@@ -85,7 +85,7 @@ public class RootResource {
 
     /**
      * <p>
-     * Given the paramaters CSARURL and PLANPOSTURL in the request, this method does the following: <br>
+     * Given the parameters CSARURL and PLANPOSTURL in the request, this method does the following: <br>
      * - Check whether the given parameters are URL's<br>
      * - Download the CSAR denoted by the CSARURL parameter<br>
      * - Load the CSAR into the OpenTOSCA Core <br>
@@ -134,5 +134,14 @@ public class RootResource {
             default:
                 return Response.ok().entity(worker.getState()).build();
         }
+    }
+    
+    @POST
+    @Consumes("application/xml")
+    @Produces("application/xml")
+    @Path("testplan")
+    public Response generateTestPlan(final GeneratePlanForTopology generatePlanForTopology) {
+        //TODO: Implement
+        return null;
     }
 }

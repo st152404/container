@@ -17,7 +17,7 @@ public abstract class AbstractPlan {
 
     // general categories
     public enum PlanType {
-        BUILD, MANAGE, TERMINATE
+        BUILD, MANAGE, TERMINATE, TEST
     }
 
     public static class Link {
