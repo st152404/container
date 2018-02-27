@@ -34,7 +34,7 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
     protected AbstractPlan generateTestOG(final String id, final AbstractDefinitions definitions,
                                           final AbstractServiceTemplate serviceTemplate) {
         final Collection<AbstractActivity> activities = new ArrayList<>();
-        final Set<Link> links = new HashSet<>();
+
 
         final Map<AbstractNodeTemplate, AbstractActivity> node2activityMap = new HashMap<>();
 
@@ -49,9 +49,16 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
             }
         }
 
+        final Set<Link> links = createOG(node2activityMap.keySet());
+
         final AbstractPlan abstractTestPlan =
             new AbstractPlan(id, AbstractPlan.PlanType.TEST, definitions, serviceTemplate, activities, links) {};
+
         return abstractTestPlan;
+    }
+
+    private Set<Link> createOG(final Collection<AbstractNodeTemplate> nodeTemplates) {
+        return new HashSet<>();
     }
 
 
