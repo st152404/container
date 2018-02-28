@@ -61,21 +61,28 @@ public abstract class AbstractServiceTemplate {
     /**
      * Returns whether this ServiceTemplate has a BuildPlan or not
      *
-     * @return true iff this ServiceTemplate has some BuildPlan
+     * @return true iff this ServiceTemplate has at least one BuildPlan
      */
     public abstract boolean hasBuildPlan();
 
     /**
-     * Returns whether this ServiceTempalte has a TerminationPlan or not
+     * Returns whether this ServiceTemplate has a TerminationPlan or not
      *
      * @return true iff this ServiceTemplate has at least one TerminationPlan
      */
     public abstract boolean hasTerminationPlan();
 
     /**
+     * Returns whether this ServiceTemplate has a TerminationPlan or not
+     *
+     * @return true iff this ServiceTemplate has at least one TestPlan
+     */
+    public abstract boolean hasTestPlan();
+
+    /**
      * Returns the Tags set on this Service Template
      *
-     * @return a Map from String to Strin representing the keys and values of TOSCA tags
+     * @return a Map from String to String representing the keys and values of TOSCA tags
      */
     public abstract Map<String, String> getTags();
 

@@ -1,8 +1,9 @@
 package org.opentosca.planbuilder.importer.context.impl;
 
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.namespace.QName;
 
@@ -30,9 +31,14 @@ public class ServiceTemplateImpl extends AbstractServiceTemplate {
 
     private final static Logger LOG = LoggerFactory.getLogger(ServiceTemplateImpl.class);
 
+    private static final String BUILD_PLAN_NAMESPACE = "http://docs.oasis-open.org/tosca/ns/2011/12/PlanTypes/BuildPlan";
+    private static final String TERMINATION_PLAN_NAMESPACE = "http://docs.oasis-open.org/tosca/ns/2011/12/PlanTypes/TerminationPlan";
+    private static final String TEST_PLAN_NAMESPACE = "http://docs.oasis-open.org/tosca/ns/2011/12/PlanTypes/TestPlan";
+
     private TServiceTemplate serviceTemplate = null;
     private AbstractTopologyTemplate topologyTemplate = null;
     private DefinitionsImpl definitions = null;
+    private final Set<String> planTypes;
 
 
     /**
@@ -44,7 +50,8 @@ public class ServiceTemplateImpl extends AbstractServiceTemplate {
     public ServiceTemplateImpl(final TServiceTemplate serviceTemplate, final DefinitionsImpl definitionsImpl) {
         this.serviceTemplate = serviceTemplate;
         this.definitions = definitionsImpl;
-        this.setUpTopologyTemplate();
+        setUpTopologyTemplate();
+        this.planTypes = resolvePlanTypes();
     }
 
     /**
@@ -77,7 +84,7 @@ public class ServiceTemplateImpl extends AbstractServiceTemplate {
     @Override
     public String getTargetNamespace() {
         if (this.serviceTemplate.getTargetNamespace() == null) {
-            ServiceTemplateImpl.LOG.warn("TargetNamespace of ServiceTemplate  {} is null!", this.getId());
+            ServiceTemplateImpl.LOG.warn("TargetNamespace of ServiceTemplate  {} is null!", getId());
         }
         return this.serviceTemplate.getTargetNamespace();
     }
@@ -106,11 +113,11 @@ public class ServiceTemplateImpl extends AbstractServiceTemplate {
      */
     @Override
     public QName getQName() {
-        String namespace = this.getTargetNamespace();
+        String namespace = getTargetNamespace();
         if (namespace == null) {
             namespace = this.definitions.getTargetNamespace();
         }
-        final String id = this.getId();
+        final String id = getId();
         return new QName(namespace, id);
     }
 
@@ -131,40 +138,17 @@ public class ServiceTemplateImpl extends AbstractServiceTemplate {
      */
     @Override
     public boolean hasBuildPlan() {
-        if (this.serviceTemplate.getPlans() != null) {
-            final TPlans plans = this.serviceTemplate.getPlans();
-            final List<TPlan> plans2 = plans.getPlan();
-            ServiceTemplateImpl.LOG.debug("Checking whether ServiceTemplate {} has no BuildPlan",
-                                          this.getQName().toString());
-            for (final TPlan plan : plans.getPlan()) {
-                ServiceTemplateImpl.LOG.debug("Checking Plan {} of Type {}", plan.getId(), plan.getPlanType());
-                if (plan.getPlanType().trim()
-                        .equals("http://docs.oasis-open.org/tosca/ns/2011/12/PlanTypes/BuildPlan")) {
-                    return true;
-                }
-            }
-
-        }
-        return false;
+        return this.planTypes.contains(BUILD_PLAN_NAMESPACE);
     }
 
     @Override
     public boolean hasTerminationPlan() {
-        if (this.serviceTemplate.getPlans() != null) {
-            final TPlans plans = this.serviceTemplate.getPlans();
-            final List<TPlan> plans2 = plans.getPlan();
-            ServiceTemplateImpl.LOG.debug("Checking whether ServiceTemplate {} has no TerminationPlan",
-                                          this.getQName().toString());
-            for (final TPlan plan : plans.getPlan()) {
-                ServiceTemplateImpl.LOG.debug("Checking Plan {} of Type {}", plan.getId(), plan.getPlanType());
-                if (plan.getPlanType().trim()
-                        .equals("http://docs.oasis-open.org/tosca/ns/2011/12/PlanTypes/TerminationPlan")) {
-                    return true;
-                }
-            }
+        return this.planTypes.contains(TERMINATION_PLAN_NAMESPACE);
+    }
 
-        }
-        return false;
+    @Override
+    public boolean hasTestPlan() {
+        return this.planTypes.contains(TEST_PLAN_NAMESPACE);
     }
 
     @Override
@@ -184,4 +168,19 @@ public class ServiceTemplateImpl extends AbstractServiceTemplate {
         return tags;
     }
 
+    /**
+     * Resolves all distinct plan types that are defined for the Service Template
+     * @return the plan types
+     */
+    private Set<String> resolvePlanTypes() {
+        final Set<String> resolvedPlanTypes = new HashSet<>();
+        if (this.serviceTemplate.getPlans() != null) {
+            final TPlans plans = this.serviceTemplate.getPlans();
+            for (final TPlan plan : plans.getPlan()) {
+                ServiceTemplateImpl.LOG.debug("Checking Plan {} of Type {}", plan.getId(), plan.getPlanType());
+                resolvedPlanTypes.add(plan.getPlanType().trim());
+            }
+        }
+        return resolvedPlanTypes;
+    }
 }

@@ -57,6 +57,11 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
         return abstractTestPlan;
     }
 
+    /**
+     * Links the NodeTemplates according to the ExecutionSequenceNumber Property of their TestPolicy
+     * @param nodeTemplates
+     * @return
+     */
     private Set<Link> createOG(final Collection<AbstractNodeTemplate> nodeTemplates) {
         return new HashSet<>();
     }
@@ -71,8 +76,8 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
     private boolean nodeTemplateHasTests(final AbstractNodeTemplate nodeTemplate) {
         final List<AbstractPolicy> policies = nodeTemplate.getPolicies();
         for (final AbstractPolicy policy : policies) {
-            // TODO:HUGE work around since there is no way to get the namespaces of a policy yet.
-            final Node policyPropertyDOM = policy.getProperties().getDOMElement().getFirstChild();
+            // TODO:HUGE work around since there is no way to get the namespaces of a policy yet
+            final Node policyPropertyDOM = policy.getTemplate().getProperties().getDOMElement().getFirstChild();
             final String namespace = policyPropertyDOM.getNamespaceURI();
             final String foundPrefixForTestNS = policyPropertyDOM.lookupPrefix(OPEN_TOSCA_TEST_NAMESPACE);
             if (foundPrefixForTestNS != null || namespace.equals(OPEN_TOSCA_TEST_NAMESPACE)) {

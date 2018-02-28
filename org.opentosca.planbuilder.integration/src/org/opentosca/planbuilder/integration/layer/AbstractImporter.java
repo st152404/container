@@ -9,6 +9,7 @@ import org.opentosca.planbuilder.AbstractPlanBuilder;
 import org.opentosca.planbuilder.core.bpel.BPELBuildProcessBuilder;
 import org.opentosca.planbuilder.core.bpel.BPELScaleOutProcessBuilder;
 import org.opentosca.planbuilder.core.bpel.BPELTerminationProcessBuilder;
+import org.opentosca.planbuilder.core.bpel.BPELTestProcessBuilder;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.tosca.AbstractDefinitions;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
@@ -61,10 +62,12 @@ public abstract class AbstractImporter {
 
         final AbstractPlanBuilder terminationPlanBuilder = new BPELTerminationProcessBuilder();
         final AbstractPlanBuilder scalingPlanBuilder = new BPELScaleOutProcessBuilder();
+        final AbstractPlanBuilder testPlanBuilder = new BPELTestProcessBuilder();
 
         plans.addAll(scalingPlanBuilder.buildPlans(csarName, defs));
         plans.addAll(buildPlanBuilder.buildPlans(csarName, defs));
         plans.addAll(terminationPlanBuilder.buildPlans(csarName, defs));
+        plans.addAll(testPlanBuilder.buildPlans(csarName, defs));
         return plans;
     }
 
