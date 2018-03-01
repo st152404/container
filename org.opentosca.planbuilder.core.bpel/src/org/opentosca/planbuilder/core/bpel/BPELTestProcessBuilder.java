@@ -4,20 +4,36 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.namespace.QName;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.opentosca.planbuilder.AbstractTestPlanBuilder;
+import org.opentosca.planbuilder.core.bpel.handlers.BPELPlanHandler;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
 import org.opentosca.planbuilder.model.tosca.AbstractDefinitions;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractServiceTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 
+    final static Logger LOGGER = LoggerFactory.getLogger(BPELTestProcessBuilder.class);
+
+    private static final String TEST_INPUT_OPERATION_NAME = "test";
+
+    private BPELPlanHandler planHandler;
+
     List<AbstractNodeTemplate> nodeTemplatesWithTest = new ArrayList<>();
 
+
     public BPELTestProcessBuilder() {
-        // TODO Auto-generated constructor stub
+        try {
+            this.planHandler = new BPELPlanHandler();
+        }
+        catch (final ParserConfigurationException e) {
+            LOGGER.error("Error initializing BuildPlanHandler", e);
+        }
     }
 
 
@@ -31,8 +47,23 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
         for(final AbstractServiceTemplate serviceTemplate : serviceTemplates) {
             String namespace = serviceTemplate.getTargetNamespace();
             if(namespace == null) {
+                //if
                 namespace = definitions.getTargetNamespace();
             }
+            if(!namespace.equals(serviceTemplateId.getNamespaceURI()) || !serviceTemplate.getId().equals(serviceTemplateId.getLocalPart())) {
+                BPELBuildProcessBuilder.LOG.warn("Couldn't create BuildPlan for ServiceTemplate {} in Definitions {} of CSAR {}",
+                                                 serviceTemplateId.toString(), definitions.getId(), csarName);
+                return null;
+            }
+            final String processName = serviceTemplate.getId() + "_testPlan";
+            final String processNamespace = namespace + "_testPlan";
+
+            final AbstractPlan testPlan = generateTestOG(new QName(processNamespace, processName).toString(), definitions, serviceTemplate);
+
+            LOGGER.debug("Generated the following abstract test plan: \n{}", testPlan.toString());
+
+            final BPELPlan newTestPlan = this.planHandler.createEmptyBPELPlan(processNamespace, processName, testPlan, TEST_INPUT_OPERATION_NAME);
+
         }
         return null;
     }
