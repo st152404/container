@@ -21,6 +21,7 @@ import org.w3c.dom.Node;
 
 public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 
+
     private static final String OPEN_TOSCA_TEST_NAMESPACE = "http://opentosca.org/policytypes/annotations/tests";
 
     /**
@@ -41,12 +42,10 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
         final AbstractTopologyTemplate topology = serviceTemplate.getTopologyTemplate();
 
         for (final AbstractNodeTemplate nodeTemplate : topology.getNodeTemplates()) {
-            if (nodeTemplateHasTests(nodeTemplate)) {
-                final ANodeTemplateActivity activity =
-                    new ANodeTemplateActivity(nodeTemplate.getId() + "__test_activity", "TEST", nodeTemplate);
-                activities.add(activity);
-                node2activityMap.put(nodeTemplate, activity);
-            }
+            final ANodeTemplateActivity activity =
+                new ANodeTemplateActivity(nodeTemplate.getId() + "__test_activity", "TEST", nodeTemplate);
+            activities.add(activity);
+            node2activityMap.put(nodeTemplate, activity);
         }
 
         final Set<Link> links = createOG(node2activityMap.keySet());
@@ -59,6 +58,7 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 
     /**
      * Links the NodeTemplates according to the ExecutionSequenceNumber Property of their TestPolicy
+     *
      * @param nodeTemplates
      * @return
      */
@@ -68,12 +68,12 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 
 
     /**
-     * Checks if the policy defines a test
+     * Checks if the node template has at least one policy which defines a test
      *
      * @param nodeTemplate
      * @return
      */
-    private boolean nodeTemplateHasTests(final AbstractNodeTemplate nodeTemplate) {
+    protected boolean nodeTemplateHasTests(final AbstractNodeTemplate nodeTemplate) {
         final List<AbstractPolicy> policies = nodeTemplate.getPolicies();
         for (final AbstractPolicy policy : policies) {
             // TODO:HUGE work around since there is no way to get the namespaces of a policy yet

@@ -64,6 +64,14 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 
             final BPELPlan newTestPlan = this.planHandler.createEmptyBPELPlan(processNamespace, processName, testPlan, TEST_INPUT_OPERATION_NAME);
 
+            newTestPlan.setTOSCAInterfaceName("OpenTOSCA-Lifecycle-Interface");
+            newTestPlan.setTOSCAOperationname("test");
+
+            this.planHandler.initializeBPELSkeleton(newTestPlan, csarName);
+
+            return newTestPlan;
+
+
         }
         return null;
     }
@@ -83,10 +91,12 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
             } else {
                 serviceTemplateId = new QName(definitions.getTargetNamespace(), serviceTemplate.getId());
             }
+            //count nodeTemplates and relationshipTemplates with assigned tests
+            final long nodeTemplatesWithTests = serviceTemplate.getTopologyTemplate().getNodeTemplates().stream().filter(this::nodeTemplateHasTests).count();
 
-            if (!serviceTemplate.hasBuildPlan()) {
-                BPELBuildProcessBuilder.LOG.debug("ServiceTemplate {} has no TestPlan, generating TestPlan",
-                                                  serviceTemplateId.toString());
+            if (!serviceTemplate.hasTestPlan() && nodeTemplatesWithTests > 0) {
+                BPELBuildProcessBuilder.LOG.debug("ServiceTemplate {} has no TestPlan and {} NodeTemplates with Tests assigned, generating TestPlan",
+                                                  serviceTemplateId.toString(), nodeTemplatesWithTests);
                 final BPELPlan newTestPlan = buildPlan(csarName, definitions, serviceTemplateId);
 
                 if (newTestPlan != null) {
@@ -95,11 +105,12 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
                     testPlanList.add(newTestPlan);
                 }
             } else {
-                BPELBuildProcessBuilder.LOG.debug("ServiceTemplate {} has TestPlan, no generation needed",
-                                                  serviceTemplateId.toString());
+                BPELBuildProcessBuilder.LOG.debug("ServiceTemplate {} has TestPlan assigned/ {} defined Tests were found, no generation needed",
+                                                  serviceTemplateId.toString(), nodeTemplatesWithTests);
             }
         }
         return testPlanList;
     }
+
 
 }
