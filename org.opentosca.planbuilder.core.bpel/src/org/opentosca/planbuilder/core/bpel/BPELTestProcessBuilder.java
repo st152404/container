@@ -8,10 +8,18 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.opentosca.planbuilder.AbstractTestPlanBuilder;
 import org.opentosca.planbuilder.core.bpel.handlers.BPELPlanHandler;
+import org.opentosca.planbuilder.core.bpel.helpers.BPELFinalizer;
+import org.opentosca.planbuilder.core.bpel.helpers.CorrelationIDInitializer;
+import org.opentosca.planbuilder.core.bpel.helpers.EmptyPropertyToInputInitializer;
+import org.opentosca.planbuilder.core.bpel.helpers.NodeInstanceInitializer;
+import org.opentosca.planbuilder.core.bpel.helpers.PropertyMappingsToOutputInitializer;
+import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer;
+import org.opentosca.planbuilder.core.bpel.helpers.ServiceInstanceInitializer;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
 import org.opentosca.planbuilder.model.tosca.AbstractDefinitions;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
+import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
 import org.opentosca.planbuilder.model.tosca.AbstractServiceTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,34 +31,51 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
     private static final String TEST_INPUT_OPERATION_NAME = "test";
 
     private BPELPlanHandler planHandler;
+    private final PropertyMappingsToOutputInitializer propertyOutputInitializer;
+    private final BPELFinalizer finalizer;
+    private final PropertyVariableInitializer propertyInitializer;
+    private ServiceInstanceInitializer serviceInstanceInitializer;
+    private NodeInstanceInitializer instanceInit;
+    private final EmptyPropertyToInputInitializer emptyPropertyInitializer;
+    private final CorrelationIDInitializer correlationIdInitializer;
 
-    List<AbstractNodeTemplate> nodeTemplatesWithTest = new ArrayList<>();
 
 
     public BPELTestProcessBuilder() {
         try {
             this.planHandler = new BPELPlanHandler();
+            this.serviceInstanceInitializer = new ServiceInstanceInitializer();
+            this.instanceInit = new NodeInstanceInitializer(this.planHandler);
         }
         catch (final ParserConfigurationException e) {
             LOGGER.error("Error initializing BuildPlanHandler", e);
         }
+        this.correlationIdInitializer = new CorrelationIDInitializer();
+        this.emptyPropertyInitializer = new EmptyPropertyToInputInitializer();
+        this.propertyInitializer = new PropertyVariableInitializer(this.planHandler);
+        this.propertyOutputInitializer = new PropertyMappingsToOutputInitializer();
+        this.finalizer = new BPELFinalizer();
     }
 
 
     /*
      * (non-Javadoc)
-     * @see org.opentosca.planbuilder.AbstractPlanBuilder#buildPlan(java.lang.String, org.opentosca.planbuilder.model.tosca.AbstractDefinitions, javax.xml.namespace.QName)
+     *
+     * @see org.opentosca.planbuilder.AbstractPlanBuilder#buildPlan(java.lang.String,
+     * org.opentosca.planbuilder.model.tosca.AbstractDefinitions, javax.xml.namespace.QName)
      */
     @Override
-    public BPELPlan buildPlan(final String csarName, final AbstractDefinitions definitions, final QName serviceTemplateId) {
+    public BPELPlan buildPlan(final String csarName, final AbstractDefinitions definitions,
+                              final QName serviceTemplateId) {
         final List<AbstractServiceTemplate> serviceTemplates = definitions.getServiceTemplates();
-        for(final AbstractServiceTemplate serviceTemplate : serviceTemplates) {
+        for (final AbstractServiceTemplate serviceTemplate : serviceTemplates) {
             String namespace = serviceTemplate.getTargetNamespace();
-            if(namespace == null) {
-                //if
+            if (namespace == null) {
+                // if
                 namespace = definitions.getTargetNamespace();
             }
-            if(!namespace.equals(serviceTemplateId.getNamespaceURI()) || !serviceTemplate.getId().equals(serviceTemplateId.getLocalPart())) {
+            if (!namespace.equals(serviceTemplateId.getNamespaceURI())
+                || !serviceTemplate.getId().equals(serviceTemplateId.getLocalPart())) {
                 BPELBuildProcessBuilder.LOG.warn("Couldn't create BuildPlan for ServiceTemplate {} in Definitions {} of CSAR {}",
                                                  serviceTemplateId.toString(), definitions.getId(), csarName);
                 return null;
@@ -58,18 +83,26 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
             final String processName = serviceTemplate.getId() + "_testPlan";
             final String processNamespace = namespace + "_testPlan";
 
-            final AbstractPlan testPlan = generateTestOG(new QName(processNamespace, processName).toString(), definitions, serviceTemplate);
+            final AbstractPlan abstractTestPlan =
+                generateTestOG(new QName(processNamespace, processName).toString(), definitions, serviceTemplate);
 
-            LOGGER.debug("Generated the following abstract test plan: \n{}", testPlan.toString());
+            LOGGER.debug("Generated the following abstract test plan: \n{}", abstractTestPlan.toString());
 
-            final BPELPlan newTestPlan = this.planHandler.createEmptyBPELPlan(processNamespace, processName, testPlan, TEST_INPUT_OPERATION_NAME);
+            final BPELPlan bpelTestPlan =
+                this.planHandler.createEmptyBPELPlan(processNamespace, processName, abstractTestPlan,
+                                                     TEST_INPUT_OPERATION_NAME);
 
-            newTestPlan.setTOSCAInterfaceName("OpenTOSCA-Lifecycle-Interface");
-            newTestPlan.setTOSCAOperationname("test");
+            bpelTestPlan.setTOSCAInterfaceName(TEST_INTERFACE_NAMESPACE);
+            bpelTestPlan.setTOSCAOperationname(TEST_INPUT_OPERATION_NAME);
 
-            this.planHandler.initializeBPELSkeleton(newTestPlan, csarName);
+            this.planHandler.initializeBPELSkeleton(bpelTestPlan, csarName);
 
-            return newTestPlan;
+            this.serviceInstanceInitializer.initializeInstanceDataFromInput(bpelTestPlan);
+
+
+
+
+            return bpelTestPlan;
 
 
         }
@@ -78,7 +111,9 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 
     /*
      * (non-Javadoc)
-     * @see org.opentosca.planbuilder.AbstractPlanBuilder#buildPlans(java.lang.String, org.opentosca.planbuilder.model.tosca.AbstractDefinitions)
+     *
+     * @see org.opentosca.planbuilder.AbstractPlanBuilder#buildPlans(java.lang.String,
+     * org.opentosca.planbuilder.model.tosca.AbstractDefinitions)
      */
     @Override
     public List<AbstractPlan> buildPlans(final String csarName, final AbstractDefinitions definitions) {
@@ -91,8 +126,9 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
             } else {
                 serviceTemplateId = new QName(definitions.getTargetNamespace(), serviceTemplate.getId());
             }
-            //count nodeTemplates and relationshipTemplates with assigned tests
-            final long nodeTemplatesWithTests = serviceTemplate.getTopologyTemplate().getNodeTemplates().stream().filter(this::nodeTemplateHasTests).count();
+            // count nodeTemplates and relationshipTemplates with assigned tests
+            final long nodeTemplatesWithTests = serviceTemplate.getTopologyTemplate().getNodeTemplates().stream()
+                                                               .filter(this::nodeTemplateHasTests).count();
 
             if (!serviceTemplate.hasTestPlan() && nodeTemplatesWithTests > 0) {
                 BPELBuildProcessBuilder.LOG.debug("ServiceTemplate {} has no TestPlan and {} NodeTemplates with Tests assigned, generating TestPlan",
@@ -113,4 +149,18 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
     }
 
 
+    /**
+     * Returns a list of all test operations defined for a note template
+     *
+     * @param nodeTemplate
+     * @return
+     */
+    private List<String> getTestOperationNames(final AbstractNodeTemplate nodeTemplate) {
+        final List<String> testOperationNames = new ArrayList<>();
+        final List<AbstractPolicy> policies = nodeTemplate.getPolicies();
+        for (final AbstractPolicy policy : policies) {
+            testOperationNames.add(policy.getType().getName());
+        }
+        return testOperationNames;
+    }
 }
