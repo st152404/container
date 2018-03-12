@@ -7,6 +7,7 @@ import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.opentosca.planbuilder.AbstractTestPlanBuilder;
+import org.opentosca.planbuilder.core.bpel.context.BPELPlanContext;
 import org.opentosca.planbuilder.core.bpel.handlers.BPELPlanHandler;
 import org.opentosca.planbuilder.core.bpel.helpers.BPELFinalizer;
 import org.opentosca.planbuilder.core.bpel.helpers.CorrelationIDInitializer;
@@ -14,13 +15,16 @@ import org.opentosca.planbuilder.core.bpel.helpers.EmptyPropertyToInputInitializ
 import org.opentosca.planbuilder.core.bpel.helpers.NodeInstanceInitializer;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyMappingsToOutputInitializer;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer;
+import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer.PropertyMap;
 import org.opentosca.planbuilder.core.bpel.helpers.ServiceInstanceInitializer;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
+import org.opentosca.planbuilder.model.plan.bpel.BPELScopeActivity;
 import org.opentosca.planbuilder.model.tosca.AbstractDefinitions;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
 import org.opentosca.planbuilder.model.tosca.AbstractServiceTemplate;
+import org.opentosca.planbuilder.model.utils.ModelUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +33,7 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
     final static Logger LOGGER = LoggerFactory.getLogger(BPELTestProcessBuilder.class);
 
     private static final String TEST_INPUT_OPERATION_NAME = "test";
+    private static final String BPEL_REST_NAMESPACE = "http://iaas.uni-stuttgart.de/bpel/extensions/bpel4restlight";
 
     private BPELPlanHandler planHandler;
     private final PropertyMappingsToOutputInitializer propertyOutputInitializer;
@@ -97,16 +102,61 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 
             this.planHandler.initializeBPELSkeleton(bpelTestPlan, csarName);
 
+            this.planHandler.registerExtension(BPEL_REST_NAMESPACE, true, bpelTestPlan);
+
+            final PropertyMap propMap = this.propertyInitializer.initializePropertiesAsVariables(bpelTestPlan);
+
+            this.propertyOutputInitializer.initializeBuildPlanOutput(definitions, bpelTestPlan, propMap);
+
             this.serviceInstanceInitializer.initializeInstanceDataFromInput(bpelTestPlan);
 
+            this.emptyPropertyInitializer.initializeEmptyPropertiesAsInputParam(bpelTestPlan, propMap);
+
+            runPlugins(bpelTestPlan, propMap);
+
+            this.correlationIdInitializer.addCorrellationID(bpelTestPlan);
+
+            this.serviceInstanceInitializer.appendSetServiceInstanceState(bpelTestPlan,
+                                                                          bpelTestPlan.getBpelMainFlowElement(),
+                                                                          "TESTING");
+            this.serviceInstanceInitializer.appendSetServiceInstanceState(bpelTestPlan,
+                                                                          bpelTestPlan.getBpelMainSequenceOutputAssignElement(),
+                                                                          "DONE TESTING");
+
+            this.finalizer.finalize(bpelTestPlan);
 
 
+            BPELBuildProcessBuilder.LOG.debug(ModelUtils.getStringFromDoc(bpelTestPlan.getBpelDocument()));
 
             return bpelTestPlan;
 
 
         }
         return null;
+    }
+
+    private void runPlugins(final BPELPlan bpelTestPlan, final PropertyMap propMap) {
+        final List<BPELScopeActivity> bpelScopes = bpelTestPlan.getTemplateBuildPlans();
+
+        for (final BPELScopeActivity bpelScope : bpelScopes) {
+            final BPELPlanContext context = new BPELPlanContext(bpelScope, propMap, bpelTestPlan.getServiceTemplate());
+            final AbstractNodeTemplate nodeTemplate = bpelScope.getNodeTemplate();
+            if (nodeTemplate == null) {
+                // Tests for relationships are not planned
+                continue;
+            }
+            final List<String> testOperationNames = getTestOperationNames(nodeTemplate);
+            for (final String testOperationName : testOperationNames) {
+                final OperationChain chain =
+                    BPELScopeBuilder.createOperationCall(nodeTemplate, TEST_INTERFACE_NAMESPACE, testOperationName);
+                if (chain == null) {
+                    continue;
+                }
+                chain.executeOperationProvisioning(context);
+            }
+        }
+
+
     }
 
     /*
@@ -159,7 +209,14 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
         final List<String> testOperationNames = new ArrayList<>();
         final List<AbstractPolicy> policies = nodeTemplate.getPolicies();
         for (final AbstractPolicy policy : policies) {
-            testOperationNames.add(policy.getType().getName());
+            if (policy.getType().getTargetNamespace().equals(TEST_POLICYTYPE_NAMESPACE)) {
+                final String policyOperationName = policy.getType().getName();
+                final char[] asArray = policyOperationName.toCharArray();
+                // operation needs to have the same name as policyType, although starting with a small letter
+                // because of conventions
+                asArray[0] = Character.toLowerCase(asArray[0]);
+                testOperationNames.add(new String(asArray));
+            }
         }
         return testOperationNames;
     }

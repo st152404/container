@@ -22,7 +22,7 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
     private final static String TESTING_ACTIVITY_SUFFIX = "_testing_activity";
     private final static String TESTING_ACTIVITY_TYPE = "TESTING";
     protected final static String TEST_INTERFACE_NAMESPACE = "http://opentosca.org/interfaces/tests";
-    protected static final String OPEN_TOSCA_TEST_NAMESPACE = "http://opentosca.org/policytypes/annotations/tests";
+    protected static final String TEST_POLICYTYPE_NAMESPACE = "http://opentosca.org/policytypes/annotations/tests";
 
     /**
      * Generates an ordered graph of the nodes that are to be tested
@@ -96,7 +96,7 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
         final List<AbstractPolicy> policies = nodeTemplate.getPolicies();
         for (final AbstractPolicy policy : policies) {
             final String namespace = policy.getType().getTargetNamespace();
-            if (namespace.equals(OPEN_TOSCA_TEST_NAMESPACE)) {
+            if (namespace.equals(TEST_POLICYTYPE_NAMESPACE)) {
                 return true;
             }
         }
