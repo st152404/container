@@ -249,10 +249,10 @@ public class ManagementOperationTest implements TestExecutionPlugin {
     @Override
     public boolean canExecute(final AbstractNodeTemplate nodeTemplate, final AbstractPolicyTemplate policyTemplate) {
 
+
         if (policyTemplate.getType().getId().equals(ANNOTATION_MANAGEMENT_OPERATION_TEST)) {
             return true;
         }
-
         return false;
     }
 }

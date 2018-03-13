@@ -26,8 +26,8 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 public class TestExecutor {
 
     private static Logger logger = LoggerFactory.getLogger(TestExecutor.class);
-
     private final List<TestExecutionPlugin> plugins = Lists.newArrayList();
+
 
     private final ExecutorService jobExecutor;
     private final ExecutorService testExecutor;
