@@ -204,8 +204,19 @@ public class CsarController {
     }
 
     private Response handleCsarUpload(final String filename, final InputStream is) {
-
         final File file = this.csarService.storeTemporaryFile(filename, is);
+
+        if (filename.endsWith(".smar")) {
+            // (2) Extract 'file' to another temp location; probably CSARUnpacker.java can be used
+            // (3) Validate signature and what is necessary in addition (decryption, etc.)
+            // (4) Create an archive (zip), stored in a temp location, use this handle as new 'file'
+            // (5) Call handleCsarUpload(file)
+        }
+
+        return handleCsarUpload(file);
+    }
+
+    private Response handleCsarUpload(final File file) {
 
         CSARID csarId;
 
