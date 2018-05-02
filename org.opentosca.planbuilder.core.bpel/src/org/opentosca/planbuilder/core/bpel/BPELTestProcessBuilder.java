@@ -12,11 +12,9 @@ import org.opentosca.planbuilder.core.bpel.handlers.BPELPlanHandler;
 import org.opentosca.planbuilder.core.bpel.helpers.BPELFinalizer;
 import org.opentosca.planbuilder.core.bpel.helpers.CorrelationIDInitializer;
 import org.opentosca.planbuilder.core.bpel.helpers.EmptyPropertyToInputInitializer;
-import org.opentosca.planbuilder.core.bpel.helpers.NodeInstanceInitializer;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyMappingsToOutputInitializer;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer.PropertyMap;
-import org.opentosca.planbuilder.core.bpel.helpers.ServiceInstanceInitializer;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELScopeActivity;
@@ -39,8 +37,6 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
     private final PropertyMappingsToOutputInitializer propertyOutputInitializer;
     private final BPELFinalizer finalizer;
     private final PropertyVariableInitializer propertyInitializer;
-    private ServiceInstanceInitializer serviceInstanceInitializer;
-    private NodeInstanceInitializer instanceInit;
     private final EmptyPropertyToInputInitializer emptyPropertyInitializer;
     private final CorrelationIDInitializer correlationIdInitializer;
 
@@ -49,8 +45,6 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
     public BPELTestProcessBuilder() {
         try {
             this.planHandler = new BPELPlanHandler();
-            this.serviceInstanceInitializer = new ServiceInstanceInitializer();
-            this.instanceInit = new NodeInstanceInitializer(this.planHandler);
         }
         catch (final ParserConfigurationException e) {
             LOGGER.error("Error initializing BuildPlanHandler", e);
@@ -108,20 +102,11 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 
             this.propertyOutputInitializer.initializeBuildPlanOutput(definitions, bpelTestPlan, propMap);
 
-            this.serviceInstanceInitializer.initializeInstanceDataFromInput(bpelTestPlan);
-
             this.emptyPropertyInitializer.initializeEmptyPropertiesAsInputParam(bpelTestPlan, propMap);
 
             runPlugins(bpelTestPlan, propMap);
 
             this.correlationIdInitializer.addCorrellationID(bpelTestPlan);
-
-            this.serviceInstanceInitializer.appendSetServiceInstanceState(bpelTestPlan,
-                                                                          bpelTestPlan.getBpelMainFlowElement(),
-                                                                          "TESTING");
-            this.serviceInstanceInitializer.appendSetServiceInstanceState(bpelTestPlan,
-                                                                          bpelTestPlan.getBpelMainSequenceOutputAssignElement(),
-                                                                          "DONE TESTING");
 
             this.finalizer.finalize(bpelTestPlan);
 

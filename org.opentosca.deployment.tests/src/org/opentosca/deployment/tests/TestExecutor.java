@@ -27,7 +27,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 public class TestExecutor {
 
     private static Logger logger = LoggerFactory.getLogger(TestExecutor.class);
-    private final List<TestExecutionPlugin> plugins = Lists.newArrayList();
 
     private final List<TestExecutionPlugin> plugins =
         Lists.newArrayList(new HttpTest(), new ManagementOperationTest(), new TcpPingTest()
@@ -39,8 +38,6 @@ public class TestExecutor {
     private final ExecutorService testExecutor;
 
     public TestExecutor() {
-        this.plugins.add(new HttpTest());
-        this.plugins.add(new ManagementOperationTest());
         ThreadFactory threadFactory;
         threadFactory = new ThreadFactoryBuilder().setNameFormat("job-pool-%d").setDaemon(true).build();
         this.jobExecutor = Executors.newFixedThreadPool(20, threadFactory);

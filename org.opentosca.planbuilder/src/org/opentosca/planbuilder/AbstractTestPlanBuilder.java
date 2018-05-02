@@ -43,8 +43,6 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
             // Only add nodes that have tests defined
             if (nodeTemplateHasTests(nodeTemplate)) {
                 relevantNodes.add(nodeTemplate);
-                relevantActivities.add(new ANodeTemplateActivity(nodeTemplate.getId() + TESTING_ACTIVITY_SUFFIX,
-                    TESTING_ACTIVITY_TYPE, nodeTemplate));
             }
         }
 
