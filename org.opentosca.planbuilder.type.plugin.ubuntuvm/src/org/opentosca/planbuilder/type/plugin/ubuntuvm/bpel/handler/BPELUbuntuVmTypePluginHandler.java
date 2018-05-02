@@ -15,6 +15,7 @@ import org.opentosca.container.core.tosca.convention.Types;
 import org.opentosca.planbuilder.core.bpel.context.BPELPlanContext;
 import org.opentosca.planbuilder.core.bpel.fragments.BPELProcessFragments;
 import org.opentosca.planbuilder.core.plugins.context.Variable;
+import org.opentosca.planbuilder.model.plan.bpel.BPELScopeActivity.BPELScopePhaseType;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipTemplate;
@@ -226,7 +227,7 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
         // we check if the ubuntu which must be connected to this node (if not
         // directly then trough some vm nodetemplate) is a nodetype with a
         // ubuntu version e.g. Ubuntu_13.10 and stuff
-        final AbstractNodeTemplate ubuntuNodeTemplate = this.findUbuntuNode(nodeTemplate);
+        final AbstractNodeTemplate ubuntuNodeTemplate = findUbuntuNode(nodeTemplate);
         Variable ubuntuAMIIdVar = null;
 
         if (ubuntuNodeTemplate == null) {
@@ -237,15 +238,15 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
         // here either the ubuntu connected to the provider this handler is
         // working on hasn't a version in the ID (ubuntu version must be written
         // in AMIId property then) or something went really wrong
-        if (this.isUbuntuNodeTypeWithImplicitImage(ubuntuNodeTemplate.getType().getId())) {
+        if (isUbuntuNodeTypeWithImplicitImage(ubuntuNodeTemplate.getType().getId())) {
             // we'll set a global variable with the necessary ubuntu image
             // ubuntuAMIIdVar =
             // context.createGlobalStringVariable("ubuntu_AMIId",
             // "ubuntu-13.10-server-cloudimg-amd64");
             ubuntuAMIIdVar =
                 context.createGlobalStringVariable("ubuntu_AMIId",
-                                                   this.createUbuntuImageStringFromNodeType(ubuntuNodeTemplate.getType()
-                                                                                                              .getId()));
+                                                   createUbuntuImageStringFromNodeType(ubuntuNodeTemplate.getType()
+                                                                                                         .getId()));
         }
 
         LOG.debug("Found following Ubuntu Node " + ubuntuNodeTemplate.getId() + " of Type "
@@ -407,7 +408,7 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
 
         this.invokerOpPlugin.handle(context, ubuntuNodeTemplate.getId(), true, "start", "InterfaceUbuntu",
                                     "planCallbackAddress_invoker", startRequestInputParams,
-                                    new HashMap<String, Variable>(), false);
+                                    new HashMap<String, Variable>(), BPELScopePhaseType.PROVISIONING);
 
         return true;
     }
@@ -417,13 +418,13 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
                                                     final AbstractNodeTemplate nodeTemplate) {
 
         // we need a cloud provider node
-        final AbstractNodeTemplate cloudProviderNodeTemplate = this.findCloudProviderNode(nodeTemplate);
+        final AbstractNodeTemplate cloudProviderNodeTemplate = findCloudProviderNode(nodeTemplate);
         if (cloudProviderNodeTemplate == null) {
             return false;
         }
 
         // and an OS node (check for ssh service..)
-        final AbstractNodeTemplate ubuntuNodeTemplate = this.findUbuntuNode(nodeTemplate);
+        final AbstractNodeTemplate ubuntuNodeTemplate = findUbuntuNode(nodeTemplate);
 
         Variable ubuntuAMIIdVar = null;
 
@@ -435,15 +436,15 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
         // here either the ubuntu connected to the provider this handler is
         // working on hasn't a version in the ID (ubuntu version must be written
         // in AMIId property then) or something went really wrong
-        if (this.isUbuntuNodeTypeWithImplicitImage(ubuntuNodeTemplate.getType().getId())) {
+        if (isUbuntuNodeTypeWithImplicitImage(ubuntuNodeTemplate.getType().getId())) {
             // we'll set a global variable with the necessary ubuntu image
             // ubuntuAMIIdVar =
             // context.createGlobalStringVariable("ubuntu_AMIId",
             // "ubuntu-13.10-server-cloudimg-amd64");
             ubuntuAMIIdVar =
                 context.createGlobalStringVariable("ubuntu_AMIId",
-                                                   this.createUbuntuImageStringFromNodeType(ubuntuNodeTemplate.getType()
-                                                                                                              .getId()));
+                                                   createUbuntuImageStringFromNodeType(ubuntuNodeTemplate.getType()
+                                                                                                         .getId()));
         }
 
         LOG.debug("Found following Ubuntu Node " + ubuntuNodeTemplate.getId() + " of Type "
@@ -645,7 +646,7 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_CLOUDPROVIDER_CREATEVM,
                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_CLOUDPROVIDER,
                                     "planCallbackAddress_invoker", createEC2InternalExternalPropsInput,
-                                    createEC2InternalExternalPropsOutput, false);
+                                    createEC2InternalExternalPropsOutput, BPELScopePhaseType.PROVISIONING);
 
         /*
          * Check whether the SSH port is open on the VM. Doing this here removes the necessity for the other
@@ -665,15 +666,14 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM_WAITFORAVAIL,
                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM,
                                     "planCallbackAddress_invoker", startRequestInputParams, startRequestOutputParams,
-                                    false);
+                                    BPELScopePhaseType.PROVISIONING);
 
         for (final AbstractPolicy policy : nodeTemplate.getPolicies()) {
             if (policy.getType().getId().equals(UbuntuVmTypePlugin.onlyModeledPortsPolicyType)) {
-                final List<Variable> modeledPortsVariables =
-                    this.fetchModeledPortsOfInfrastructure(context, nodeTemplate);
+                final List<Variable> modeledPortsVariables = fetchModeledPortsOfInfrastructure(context, nodeTemplate);
                 modeledPortsVariables.add(context.createGlobalStringVariable("vmSshPort", "22"));
-                this.addIpTablesScriptLogic(context, modeledPortsVariables, serverIpPropWrapper, sshUserVariable,
-                                            sshKeyVariable, ubuntuNodeTemplate);
+                addIpTablesScriptLogic(context, modeledPortsVariables, serverIpPropWrapper, sshUserVariable,
+                                       sshKeyVariable, ubuntuNodeTemplate);
             }
         }
 
@@ -737,18 +737,18 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM_RUNSCRIPT,
                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM,
                                     "planCallbackAddress_invoker", startRequestInputParams, startRequestOutputParams,
-                                    false);
+                                    BPELScopePhaseType.PROVISIONING);
     }
 
     private List<Variable> fetchModeledPortsOfInfrastructure(final BPELPlanContext context,
                                                              final AbstractNodeTemplate nodeTemplate) {
         final List<Variable> portVariables = new ArrayList<>();
 
-        portVariables.addAll(this.fetchPortPropertyVariable(context, nodeTemplate));
+        portVariables.addAll(fetchPortPropertyVariable(context, nodeTemplate));
 
         for (final AbstractRelationshipTemplate relation : nodeTemplate.getIngoingRelations()) {
             if (ModelUtils.isInfrastructureRelationshipType(relation.getType())) {
-                portVariables.addAll(this.fetchModeledPortsOfInfrastructure(context, relation.getSource()));
+                portVariables.addAll(fetchModeledPortsOfInfrastructure(context, relation.getSource()));
             }
         }
 
@@ -782,8 +782,8 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
                                                    final AbstractNodeTemplate nodeTemplate) {
 
         // search for ubuntu and docker engine nodes
-        final AbstractNodeTemplate ubuntuNodeTemplate = this.findUbuntuNode(nodeTemplate);
-        final AbstractNodeTemplate dockerEngineNodeTemplate = this.findDockerEngineNode(nodeTemplate);
+        final AbstractNodeTemplate ubuntuNodeTemplate = findUbuntuNode(nodeTemplate);
+        final AbstractNodeTemplate dockerEngineNodeTemplate = findDockerEngineNode(nodeTemplate);
 
         if (ubuntuNodeTemplate == null) {
             LOG.error("Couldn't find Ubuntu Node");
@@ -936,7 +936,7 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_DOCKERENGINE_STARTCONTAINER,
                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_DOCKERENGINE,
                                     "planCallbackAddress_invoker", createDEInternalExternalPropsInput,
-                                    createDEInternalExternalPropsOutput, false);
+                                    createDEInternalExternalPropsOutput, BPELScopePhaseType.PROVISIONING);
 
         /*
          * Check whether the SSH port is open on the VM. Doing this here removes the necessity for the other
@@ -955,7 +955,7 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM_WAITFORAVAIL,
                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM,
                                     "planCallbackAddress_invoker", startRequestInputParams, startRequestOutputParams,
-                                    false);
+                                    BPELScopePhaseType.PROVISIONING);
 
         return true;
     }
@@ -963,13 +963,13 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
     public boolean handleWithLocalCloudProviderInterface(final BPELPlanContext context,
                                                          final AbstractNodeTemplate nodeTemplate) {
         // we need a cloud provider node
-        final AbstractNodeTemplate cloudProviderNodeTemplate = this.findCloudProviderNode(nodeTemplate);
+        final AbstractNodeTemplate cloudProviderNodeTemplate = findCloudProviderNode(nodeTemplate);
         if (cloudProviderNodeTemplate == null) {
             return false;
         }
 
         // and an OS node (check for ssh service..)
-        final AbstractNodeTemplate ubuntuNodeTemplate = this.findUbuntuNode(nodeTemplate);
+        final AbstractNodeTemplate ubuntuNodeTemplate = findUbuntuNode(nodeTemplate);
         Variable ubuntuAMIIdVar = null;
 
         if (ubuntuNodeTemplate == null) {
@@ -980,15 +980,15 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
         // here either the ubuntu connected to the provider this handler is
         // working on hasn't a version in the ID (ubuntu version must be written
         // in AMIId property then) or something went really wrong
-        if (this.isUbuntuNodeTypeWithImplicitImage(ubuntuNodeTemplate.getType().getId())) {
+        if (isUbuntuNodeTypeWithImplicitImage(ubuntuNodeTemplate.getType().getId())) {
             // we'll set a global variable with the necessary ubuntu image
             // ubuntuAMIIdVar =
             // context.createGlobalStringVariable("ubuntu_AMIId",
             // "ubuntu-13.10-server-cloudimg-amd64");
             ubuntuAMIIdVar =
                 context.createGlobalStringVariable("ubuntu_AMIId",
-                                                   this.createUbuntuImageStringFromNodeType(ubuntuNodeTemplate.getType()
-                                                                                                              .getId()));
+                                                   createUbuntuImageStringFromNodeType(ubuntuNodeTemplate.getType()
+                                                                                                         .getId()));
         }
 
         BPELUbuntuVmTypePluginHandler.LOG.debug("Found following Ubuntu Node " + ubuntuNodeTemplate.getId()
@@ -1177,7 +1177,7 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_CLOUDPROVIDER_CREATEVM,
                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_CLOUDPROVIDER,
                                     "planCallbackAddress_invoker", createEC2InternalExternalPropsInput,
-                                    createEC2InternalExternalPropsOutput, false);
+                                    createEC2InternalExternalPropsOutput, BPELScopePhaseType.PROVISIONING);
 
         /*
          * Check whether the SSH port is open on the VM. Doing this here removes the necessity for the other
@@ -1196,7 +1196,7 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM_WAITFORAVAIL,
                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM,
                                     "planCallbackAddress_invoker", startRequestInputParams, startRequestOutputParams,
-                                    false);
+                                    BPELScopePhaseType.PROVISIONING);
 
         return true;
     }
@@ -1209,7 +1209,7 @@ public class BPELUbuntuVmTypePluginHandler implements UbuntuVmTypePluginHandler<
      * @return true if the given QName represents an Ubuntu NodeType with implicit image information
      */
     private boolean isUbuntuNodeTypeWithImplicitImage(final QName nodeType) {
-        return this.createUbuntuImageStringFromNodeType(nodeType) != null;
+        return createUbuntuImageStringFromNodeType(nodeType) != null;
     }
 
 }

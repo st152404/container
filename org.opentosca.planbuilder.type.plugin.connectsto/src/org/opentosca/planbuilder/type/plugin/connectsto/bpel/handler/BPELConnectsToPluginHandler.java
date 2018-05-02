@@ -57,28 +57,40 @@ public class BPELConnectsToPluginHandler implements ConnectsToPluginHandler<BPEL
 
     /**
      * Executes the connectTo operation on the given connectToNode NodeTemplate, the parameters for the
-     * operation will be searched starting from the given parametersRootNode Node Template
+     * operation will be searched starting from the opposite NodeTemplate.
      *
-     * E.g.: For a MQTT Client to connect to a MQTT topic it uses the properties from the topology stack
-     * given by the topic itself. These properties are then mapped to the parameters of the MQTT client
-     * connectTo operation.
+     * Additionally it is possible to search properties which start with "SOURCE_" or "TARGET_" on the
+     * source/target NodeTemplate.
      *
      * @param templateContext the context of this operation call
      * @param connectToNode a Node Template with a connectTo operation
-     * @param parametersRootNode a Node Template, which should be used as the starting node for
-     *        parameter search
+     * @param sourceParameterNode the source node template of the connectsTo relationship
+     * @param targetParameterNode the target node template of the connectsTo relationship
      */
     private boolean executeConnectsTo(final BPELPlanContext templateContext, final AbstractNodeTemplate connectToNode,
-                                      final AbstractNodeTemplate parametersRootNode) {
+                                      final AbstractNodeTemplate sourceParameterNode,
+                                      final AbstractNodeTemplate targetParameterNode) {
         // fetch the connectsTo Operation of the source node and it's parameters
         AbstractInterface connectsToIface = null;
         AbstractOperation connectsToOp = null;
+        Map<AbstractParameter, Variable> param2propertyMapping = null;
         for (final AbstractInterface iface : connectToNode.getType().getInterfaces()) {
             for (final AbstractOperation op : iface.getOperations()) {
                 if (op.getName().equals("connectTo")) {
-                    connectsToIface = iface;
-                    connectsToOp = op;
-                    break;
+                    // find properties that match the params on the target nodes' stack or prefixed
+                    // properties at the source stack
+                    BPELConnectsToPluginHandler.LOG.debug("Found connectTo operation. Searching for matching parameters in the properties.");
+                    param2propertyMapping = findInputParameters(templateContext, op, connectToNode, sourceParameterNode,
+                                                                targetParameterNode);
+
+                    if (param2propertyMapping.size() != op.getInputParameters().size()) {
+                        BPELConnectsToPluginHandler.LOG.debug("Didn't find necessary matchings from parameter to property. Can't initialize connectsTo relationship.");
+                    } else {
+                        // executable operation found
+                        connectsToIface = iface;
+                        connectsToOp = op;
+                        break;
+                    }
                 }
             }
             if (connectsToOp != null) {
@@ -86,78 +98,120 @@ public class BPELConnectsToPluginHandler implements ConnectsToPluginHandler<BPEL
             }
         }
 
-        // find properties that match the params on the target nodes' stack
+        // no connectTo operation found with matching parameters
+        if (connectsToOp == null) {
+            BPELConnectsToPluginHandler.LOG.debug("No executable connectTo operation found.");
+            return false;
+        }
+
+        // execute the connectTo operation with the found parameters
+        BPELConnectsToPluginHandler.LOG.debug("Adding connectTo operation execution to build plan.");
+        final Boolean result = templateContext.executeOperation(connectToNode, connectsToIface.getName(),
+                                                                connectsToOp.getName(), param2propertyMapping);
+        BPELConnectsToPluginHandler.LOG.debug("Result from adding operation: " + result);
+
+        return true;
+
+    }
+
+    /**
+     * Search the input parameters for a given connectTo operation.
+     *
+     * @param templateContext the context of the operation
+     * @param connectsToOp the connectTo operation object
+     * @param connectToNode the node which tries to establish the connection
+     * @param sourceParameterNode the source node of the relationship
+     * @param targetParameterNode the target node of the relationship
+     * @return the Map which contains all found input parameters
+     */
+    private Map<AbstractParameter, Variable> findInputParameters(final BPELPlanContext templateContext,
+                                                                 final AbstractOperation connectsToOp,
+                                                                 final AbstractNodeTemplate connectToNode,
+                                                                 final AbstractNodeTemplate sourceParameterNode,
+                                                                 final AbstractNodeTemplate targetParameterNode) {
         final Map<AbstractParameter, Variable> param2propertyMapping = new HashMap<>();
 
-        for (final AbstractParameter param : connectsToOp.getInputParameters()) {
-            boolean ambiParam = false;
+        // search on the opposite side of the connectToNode NodeTemplate for default parameters
+        AbstractNodeTemplate parametersRootNode;
+        if (sourceParameterNode.equals(connectToNode)) {
+            parametersRootNode = targetParameterNode;
+        } else {
+            parametersRootNode = sourceParameterNode;
+        }
 
+        // search the input parameters in the properties
+        for (final AbstractParameter param : connectsToOp.getInputParameters()) {
+            // search parameter in the RelationshipTemplate properties
             final Variable var =
                 templateContext.getPropertyVariable(templateContext.getRelationshipTemplate(), param.getName());
 
             if (var != null) {
                 param2propertyMapping.put(param, var);
-            }
-
-            if (org.opentosca.container.core.tosca.convention.Utils.isSupportedVirtualMachineIPProperty(param.getName())) {
-                ambiParam = true;
-            }
-
-            if (!ambiParam) {
-                AbstractNodeTemplate currentNode = parametersRootNode;
-                while (currentNode != null) {
-                    final Variable property = templateContext.getPropertyVariable(currentNode, param.getName());
+            } else {
+                // search for prefixed parameters
+                if (param.getName().startsWith("SOURCE_")) {
+                    final String unprefixedParam = param.getName().substring(7);
+                    final Variable property =
+                        searchPropertyInStack(templateContext, sourceParameterNode, unprefixedParam);
                     if (property != null) {
-                        // found property with matching name
                         param2propertyMapping.put(param, property);
-                        break;
-                    } else {
-                        currentNode = this.fetchNodeConnectedWithHostedOn(currentNode);
                     }
                 }
-            } else {
 
-                for (final String paramName : org.opentosca.container.core.tosca.convention.Utils.getSupportedVirtualMachineIPPropertyNames()) {
-                    boolean found = false;
-                    AbstractNodeTemplate currentNode = parametersRootNode;
-                    while (currentNode != null) {
-                        final Variable property = templateContext.getPropertyVariable(currentNode, paramName);
+                if (param.getName().startsWith("TARGET_")) {
+                    final String unprefixedParam = param.getName().substring(7);
+                    final Variable property =
+                        searchPropertyInStack(templateContext, targetParameterNode, unprefixedParam);
+                    if (property != null) {
+                        param2propertyMapping.put(param, property);
+                    }
+                }
+
+                // search for default parameters at opposite NodeTemplate
+                if (!param2propertyMapping.containsKey(param)) {
+                    if (!org.opentosca.container.core.tosca.convention.Utils.isSupportedVirtualMachineIPProperty(param.getName())) {
+                        // search for property with exact name
+                        final Variable property =
+                            searchPropertyInStack(templateContext, parametersRootNode, param.getName());
                         if (property != null) {
-                            // found property with matching name
                             param2propertyMapping.put(param, property);
-                            found = true;
-                            break;
-                        } else {
-                            currentNode = this.fetchNodeConnectedWithHostedOn(currentNode);
+                        }
+                    } else {
+                        // search for IP property with different names
+                        for (final String paramName : org.opentosca.container.core.tosca.convention.Utils.getSupportedVirtualMachineIPPropertyNames()) {
+                            final Variable property =
+                                searchPropertyInStack(templateContext, parametersRootNode, paramName);
+                            if (property != null) {
+                                param2propertyMapping.put(param, property);
+                                break;
+                            }
                         }
                     }
-                    if (found) {
-                        break;
-                    }
                 }
             }
         }
+        return param2propertyMapping;
+    }
 
-        if (param2propertyMapping.size() != connectsToOp.getInputParameters().size()) {
-            BPELConnectsToPluginHandler.LOG.error("Didn't find necessary matchings from param to property. Can't initialize connectsTo relationship");
-            return false;
+    /**
+     * Search for a property with a certain name on the stack of a node template.
+     *
+     * @param templateContext the context of the operation
+     * @param currentNode the node which is part of the stack
+     * @param propName the name of the property
+     * @return the property if found, null otherwise
+     */
+    private Variable searchPropertyInStack(final BPELPlanContext templateContext, AbstractNodeTemplate currentNode,
+                                           final String propName) {
+        while (currentNode != null) {
+            final Variable property = templateContext.getPropertyVariable(currentNode, propName);
+            if (property != null) {
+                return property;
+            } else {
+                currentNode = fetchNodeConnectedWithHostedOn(currentNode);
+            }
         }
-
-        // for (final AbstractNodeTypeImplementation nodeImpl :
-        // connectToNode.getImplementations()) {
-        // for (final AbstractImplementationArtifact ia :
-        // nodeImpl.getImplementationArtifacts()) {
-        // if (ia.getInterfaceName().equals(connectsToIface.getName()) &&
-        // (ia.getOperationName() != null) &&
-        // ia.getOperationName().equals(connectsToOp.getName())) {
-        templateContext.executeOperation(connectToNode, connectsToIface.getName(), connectsToOp.getName(),
-                                         param2propertyMapping);
-        // }
-        // }
-        // }
-
-        return true;
-
+        return null;
     }
 
     /**
@@ -174,7 +228,6 @@ public class BPELConnectsToPluginHandler implements ConnectsToPluginHandler<BPEL
                 return relation.getTarget();
             }
         }
-
         return null;
     }
 
@@ -196,38 +249,39 @@ public class BPELConnectsToPluginHandler implements ConnectsToPluginHandler<BPEL
         final AbstractNodeTemplate targetNodeTemplate = relationTemplate.getTarget();
 
         // if the target has connectTo we execute it
-        if (this.hasOperation(targetNodeTemplate, "connectTo")) {
+        if (hasOperation(targetNodeTemplate, "connectTo")) {
             // if we can stop and start the node, stop it
-            if (this.hasOperation(targetNodeTemplate, "stop") & this.hasOperation(targetNodeTemplate, "start")) {
-                final String ifaceName = this.getInterface(targetNodeTemplate, "stop");
+            if (hasOperation(targetNodeTemplate, "stop") & hasOperation(targetNodeTemplate, "start")) {
+                final String ifaceName = getInterface(targetNodeTemplate, "stop");
                 templateContext.executeOperation(targetNodeTemplate, ifaceName, "stop", null);
             }
 
             // connectTo
-            this.executeConnectsTo(templateContext, targetNodeTemplate, sourceNodeTemplate);
+            executeConnectsTo(templateContext, targetNodeTemplate, sourceNodeTemplate, targetNodeTemplate);
 
             // start the node again
-            if (this.hasOperation(targetNodeTemplate, "stop") & this.hasOperation(targetNodeTemplate, "start")) {
-                templateContext.executeOperation(targetNodeTemplate, this.getInterface(targetNodeTemplate, "start"),
-                                                 "start", null);
+            if (hasOperation(targetNodeTemplate, "stop") & hasOperation(targetNodeTemplate, "start")) {
+                templateContext.executeOperation(targetNodeTemplate, getInterface(targetNodeTemplate, "start"), "start",
+                                                 null);
             }
         }
 
         // if the source has connectTo we execute it
-        if (this.hasOperation(sourceNodeTemplate, "connectTo")) {
+        if (hasOperation(sourceNodeTemplate, "connectTo")) {
 
             // if we can stop and start the node, stop it
-            if (this.hasOperation(sourceNodeTemplate, "stop") & this.hasOperation(sourceNodeTemplate, "start")) {
-                templateContext.executeOperation(sourceNodeTemplate, this.getInterface(sourceNodeTemplate, "stop"),
-                                                 "stop", null);
+            if (hasOperation(sourceNodeTemplate, "stop") & hasOperation(sourceNodeTemplate, "start")) {
+                templateContext.executeOperation(sourceNodeTemplate, getInterface(sourceNodeTemplate, "stop"), "stop",
+                                                 null);
             }
 
-            this.executeConnectsTo(templateContext, sourceNodeTemplate, targetNodeTemplate);
+            // connectTo
+            executeConnectsTo(templateContext, sourceNodeTemplate, sourceNodeTemplate, targetNodeTemplate);
 
             // start the node again
-            if (this.hasOperation(sourceNodeTemplate, "stop") & this.hasOperation(sourceNodeTemplate, "start")) {
-                templateContext.executeOperation(sourceNodeTemplate, this.getInterface(sourceNodeTemplate, "start"),
-                                                 "start", null);
+            if (hasOperation(sourceNodeTemplate, "stop") & hasOperation(sourceNodeTemplate, "start")) {
+                templateContext.executeOperation(sourceNodeTemplate, getInterface(sourceNodeTemplate, "start"), "start",
+                                                 null);
             }
         }
 
@@ -260,7 +314,7 @@ public class BPELConnectsToPluginHandler implements ConnectsToPluginHandler<BPEL
                                                               final String stringVarName) throws IOException,
                                                                                           SAXException {
         final String templateString =
-            this.loadAssignXpathQueryToStringVarFragmentAsString(assignName, xpath2Query, stringVarName);
+            loadAssignXpathQueryToStringVarFragmentAsString(assignName, xpath2Query, stringVarName);
         final InputSource is = new InputSource();
         is.setCharacterStream(new StringReader(templateString));
         final Document doc = this.docBuilder.parse(is);

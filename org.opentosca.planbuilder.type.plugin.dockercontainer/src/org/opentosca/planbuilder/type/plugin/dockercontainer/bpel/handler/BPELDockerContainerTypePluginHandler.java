@@ -11,6 +11,7 @@ import org.opentosca.container.core.tosca.convention.Interfaces;
 import org.opentosca.planbuilder.core.bpel.context.BPELPlanContext;
 import org.opentosca.planbuilder.core.bpel.fragments.BPELProcessFragments;
 import org.opentosca.planbuilder.core.plugins.context.Variable;
+import org.opentosca.planbuilder.model.plan.bpel.BPELScopeActivity.BPELScopePhaseType;
 import org.opentosca.planbuilder.model.tosca.AbstractDeploymentArtifact;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTypeImplementation;
@@ -139,15 +140,16 @@ public class BPELDockerContainerTypePluginHandler implements DockerContainerType
         if (containerImageVar == null || BPELPlanContext.isVariableValueEmpty(containerImageVar, templateContext)) {
             // handle with DA -> construct URL to the DockerImage .zip
 
-            final AbstractDeploymentArtifact da = this.fetchFirstDockerContainerDA(nodeTemplate);
-            this.handleWithDA(templateContext, dockerEngineNode, da, portMappingVar, dockerEngineUrlVar, sshPortVar,
-                              containerIpVar, containerIdVar,
-                              this.fetchEnvironmentVariables(templateContext, nodeTemplate), null, null);
+            final AbstractDeploymentArtifact da = fetchFirstDockerContainerDA(nodeTemplate);
+            handleWithDA(templateContext, dockerEngineNode, da, portMappingVar, dockerEngineUrlVar, sshPortVar,
+                         containerIpVar, containerIdVar, fetchEnvironmentVariables(templateContext, nodeTemplate), null,
+                         null);
 
         } else {
             // handle with imageId
-            return this.handleWithImageId(templateContext, dockerEngineNode, containerImageVar, portMappingVar,
-                                          dockerEngineUrlVar, sshPortVar, containerIpVar, containerIdVar);
+            return handleWithImageId(templateContext, dockerEngineNode, containerImageVar, portMappingVar,
+                                     dockerEngineUrlVar, sshPortVar, containerIpVar, containerIdVar,
+                                     fetchEnvironmentVariables(templateContext, nodeTemplate));
         }
 
         return true;
@@ -273,7 +275,7 @@ public class BPELDockerContainerTypePluginHandler implements DockerContainerType
                                   Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_DOCKERENGINE_STARTCONTAINER,
                                   Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_DOCKERENGINE,
                                   "planCallbackAddress_invoker", createDEInternalExternalPropsInput,
-                                  createDEInternalExternalPropsOutput, false);
+                                  createDEInternalExternalPropsOutput, BPELScopePhaseType.PROVISIONING);
 
         return true;
     }
@@ -281,7 +283,8 @@ public class BPELDockerContainerTypePluginHandler implements DockerContainerType
     protected boolean handleWithImageId(final BPELPlanContext context, final AbstractNodeTemplate dockerEngineNode,
                                         final Variable containerImageVar, final Variable portMappingVar,
                                         final Variable dockerEngineUrlVar, final Variable sshPortVar,
-                                        final Variable containerIpVar, final Variable containerIdVar) {
+                                        final Variable containerIpVar, final Variable containerIdVar,
+                                        final Variable envMappingVar) {
 
         // map properties to input and output parameters
         final Map<String, Variable> createDEInternalExternalPropsInput = new HashMap<>();
@@ -290,6 +293,10 @@ public class BPELDockerContainerTypePluginHandler implements DockerContainerType
         createDEInternalExternalPropsInput.put("ContainerImage", containerImageVar);
         createDEInternalExternalPropsInput.put("DockerEngineURL", dockerEngineUrlVar);
         createDEInternalExternalPropsInput.put("ContainerPorts", portMappingVar);
+
+        if (envMappingVar != null) {
+            createDEInternalExternalPropsInput.put("ContainerEnv", envMappingVar);
+        }
 
         if (sshPortVar != null) {
             // we expect a sshPort back -> add to output handling
@@ -308,7 +315,7 @@ public class BPELDockerContainerTypePluginHandler implements DockerContainerType
                                   Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_DOCKERENGINE_STARTCONTAINER,
                                   Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_DOCKERENGINE,
                                   "planCallbackAddress_invoker", createDEInternalExternalPropsInput,
-                                  createDEInternalExternalPropsOutput, false);
+                                  createDEInternalExternalPropsOutput, BPELScopePhaseType.PROVISIONING);
 
         return true;
     }

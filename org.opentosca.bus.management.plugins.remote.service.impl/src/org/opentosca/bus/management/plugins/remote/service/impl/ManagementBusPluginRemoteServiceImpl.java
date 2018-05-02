@@ -3,6 +3,7 @@ package org.opentosca.bus.management.plugins.remote.service.impl;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -26,6 +27,9 @@ import org.opentosca.container.core.tosca.convention.Interfaces;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 /**
  * Management Bus-Plug-in for remoteIAs.<br>
@@ -33,10 +37,10 @@ import org.w3c.dom.Document;
  *
  *
  *
- * The Plugin gets needed information from the ManagementBus and is responsible to handle "remote
- * IAs". Remote IAs are IAs such as scripts that needs to be executed on the host machine. Therefore
- * this plugin also is responsible for the uploading of the files and the installation of required
- * packages on the target machine (if specified).
+ * The Plugin gets needed information from the ManagementBus and is responsible to handle "remote IAs".
+ * Remote IAs are IAs such as scripts that needs to be executed on the host machine. Therefore this
+ * plugin also is responsible for the uploading of the files and the installation of required packages
+ * on the target machine (if specified).
  *
  *
  *
@@ -52,6 +56,8 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
     final private static String PLACEHOLDER_TARGET_FILE_NAME_WITHOUT_EXTENSION = "{TARGET_FILE_NAME_WITHOUT_E}";
     final private static String PLACEHOLDER_DA_NAME_PATH_MAP = "{DA_NAME_PATH_MAP}";
     final private static String PLACEHOLDER_DA_INPUT_PARAMETER = "{INPUT_PARAMETER}";
+
+    final private static String RUN_SCRIPT_OUTPUT_PARAMETER_NAME = "ScriptResult";
 
     final private static Logger LOG = LoggerFactory.getLogger(ManagementBusPluginRemoteServiceImpl.class);
 
@@ -86,13 +92,14 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
         ManagementBusPluginRemoteServiceImpl.LOG.debug("ServiceInstanceID: {}", serviceInstanceID);
         final String nodeInstanceID = message.getHeader(MBHeader.NODEINSTANCEID_STRING.toString(), String.class);
         ManagementBusPluginRemoteServiceImpl.LOG.debug("NodeInstanceID: {}", nodeInstanceID);
+        final String engineIAPublicIP = message.getHeader(MBHeader.ENGINE_IA_PUBLIC_IP.toString(), String.class);
+        ManagementBusPluginRemoteServiceImpl.LOG.debug("ENGINE_IA_PUBLIC_IP: {}", engineIAPublicIP);
 
         if (nodeTemplateID == null && relationshipTemplateID != null) {
 
             final boolean isBoundToSourceNode =
                 ServiceHandler.toscaEngineService.isOperationOfRelationshipBoundToSourceNode(csarID, relationshipTypeID,
-                                                                                             interfaceName,
-                                                                                             operationName);
+                                                                                             interfaceName, operationName);
 
             if (isBoundToSourceNode) {
                 nodeTemplateID =
@@ -105,6 +112,33 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
                                                                                                     serviceTemplateID,
                                                                                                     relationshipTemplateID);
             }
+        }
+
+
+        // Determine output parameters of the current operation
+        final List<String> outputParameters = new LinkedList<>();
+        final boolean hasOutputParams =
+            ServiceHandler.toscaEngineService.hasOperationOfANodeTypeSpecifiedOutputParams(csarID, nodeTypeID,
+                                                                                           interfaceName, operationName);
+        if (hasOutputParams) {
+            final Node outputParametersNode =
+                ServiceHandler.toscaEngineService.getOutputParametersOfANodeTypeOperation(csarID, nodeTypeID,
+                                                                                          interfaceName, operationName);
+            if (outputParametersNode != null) {
+                final NodeList children = outputParametersNode.getChildNodes();
+
+                for (int i = 0; i < children.getLength(); i++) {
+                    final Node child = children.item(i);
+
+                    if (child.getNodeType() == Node.ELEMENT_NODE) {
+                        final String name = ((Element) child).getAttribute("name");
+                        outputParameters.add(name);
+                    }
+                }
+            }
+        }
+        for (final String param : outputParameters) {
+            ManagementBusPluginRemoteServiceImpl.LOG.debug("Output parameter: {}", param);
         }
 
         final QName artifactType =
@@ -143,11 +177,12 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
                         headers.put(MBHeader.INTERFACENAME_STRING.toString(),
                                     MBUtils.getInterfaceForOperatingSystemNodeType(csarID, osNodeTypeID));
                         headers.put(MBHeader.SERVICEINSTANCEID_URI.toString(), serviceInstanceID);
+                        headers.put(MBHeader.ENGINE_IA_PUBLIC_IP.toString(), engineIAPublicIP);
 
                         // install packages
                         ManagementBusPluginRemoteServiceImpl.LOG.debug("Installing packages...");
 
-                        this.installPackages(artifactType, headers);
+                        installPackages(artifactType, headers);
 
                         ManagementBusPluginRemoteServiceImpl.LOG.debug("Packages installed.");
 
@@ -165,19 +200,20 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
                         for (final String artifactRef : artifactReferences) {
 
                             fileSource =
-                                Settings.CONTAINER_API + "/CSARs/" + csarID.getFileName() + "/Content/" + artifactRef;
+                                Settings.CONTAINER_API + "/csars/" + csarID.getFileName() + "/content/" + artifactRef;
+
 
                             targetFilePath = "~/" + csarID.getFileName() + "/" + artifactRef;
 
                             targetFileFolderPath = FilenameUtils.getFullPathNoEndSeparator(targetFilePath);
 
-                            final String createDirCommand = "sleep 5 && mkdir -p " + targetFileFolderPath;
+                            final String createDirCommand = "sleep 1 && mkdir -p " + targetFileFolderPath;
 
                             // create directory before uploading file
-                            this.runScript(createDirCommand, headers);
+                            runScript(createDirCommand, headers);
 
                             // upload file
-                            this.transferFile(csarID, artifactTemplateID, fileSource, targetFilePath, headers);
+                            transferFile(csarID, artifactTemplateID, fileSource, targetFilePath, headers);
                         }
 
                         ManagementBusPluginRemoteServiceImpl.LOG.debug("Files uploaded.");
@@ -189,8 +225,7 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
                         final String fileNameWithoutE = FilenameUtils.getBaseName(targetFilePath);
 
                         String artifactTypeSpecificCommand =
-                            this.createArtifcatTypeSpecificCommandString(csarID, artifactType, artifactTemplateID,
-                                                                         params);
+                            createArtifcatTypeSpecificCommandString(csarID, artifactType, artifactTemplateID, params);
 
                         ManagementBusPluginRemoteServiceImpl.LOG.debug("Replacing further generic placeholder...");
 
@@ -209,25 +244,28 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
                                                                 fileNameWithoutE);
                         artifactTypeSpecificCommand =
                             artifactTypeSpecificCommand.replace(ManagementBusPluginRemoteServiceImpl.PLACEHOLDER_DA_NAME_PATH_MAP,
-                                                                "sudo -E "
-                                                                    + this.createDANamePathMapEnvVar(csarID,
-                                                                                                     serviceTemplateID,
-                                                                                                     nodeTypeID,
-                                                                                                     nodeTemplateID));
+                                                                "sudo -E " + createDANamePathMapEnvVar(csarID,
+                                                                                                       serviceTemplateID, nodeTypeID, nodeTemplateID));
                         artifactTypeSpecificCommand =
                             artifactTypeSpecificCommand.replace(ManagementBusPluginRemoteServiceImpl.PLACEHOLDER_DA_INPUT_PARAMETER,
-                                                                this.createParamsString(params));
+                                                                createParamsString(params));
 
                         ManagementBusPluginRemoteServiceImpl.LOG.debug("Final command for ArtifactType {} : {}",
                                                                        artifactType, artifactTypeSpecificCommand);
 
-                        this.runScript(artifactTypeSpecificCommand, headers);
+                        final Object result = runScript(artifactTypeSpecificCommand, headers);
+
+                        ManagementBusPluginRemoteServiceImpl.LOG.debug("Script execution result: {}", result);
 
                         ManagementBusPluginRemoteServiceImpl.LOG.debug("Scripts finished.");
 
-                        // dummy response
+                        // create response
                         final Map<String, String> resultMap = new HashMap<>();
-                        resultMap.put("invocation", "finished");
+                        addOutputParametersToResultMap(resultMap, result, outputParameters);
+                        if (resultMap.isEmpty()) {
+                            // create dummy response in case there are no output parameters
+                            resultMap.put("invocation", "finished");
+                        }
 
                         exchange.getIn().setBody(resultMap);
 
@@ -245,6 +283,65 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
                                                           artifactTemplateID);
         }
         return exchange;
+    }
+
+    /**
+     * Check if the output parameters for this remote service operation are returned in the script
+     * result and add them to the result map.
+     *
+     * @param resultMap The result map which is returned for the invocation of the remote service
+     *        operation
+     * @param result The returned result of the run script operation
+     * @param outputParameters The output parameters that are expected for the operation
+     */
+    private void addOutputParametersToResultMap(final Map<String, String> resultMap, final Object result,
+                                                final List<String> outputParameters) {
+
+        ManagementBusPluginRemoteServiceImpl.LOG.debug("Adding output parameters to the response message.");
+
+        // process result as HashMap
+        if (result instanceof HashMap<?, ?>) {
+            final HashMap<?, ?> resultHashMap = (HashMap<?, ?>) result;
+
+            // get ScriptResult part of the response which contains the parameters
+            if (resultHashMap.containsKey(ManagementBusPluginRemoteServiceImpl.RUN_SCRIPT_OUTPUT_PARAMETER_NAME)) {
+                final Object scriptResult =
+                    resultHashMap.get(ManagementBusPluginRemoteServiceImpl.RUN_SCRIPT_OUTPUT_PARAMETER_NAME);
+
+                if (scriptResult != null) {
+                    final String scriptResultString = scriptResult.toString();
+
+                    ManagementBusPluginRemoteServiceImpl.LOG.debug("{}: {}",
+                                                                   ManagementBusPluginRemoteServiceImpl.RUN_SCRIPT_OUTPUT_PARAMETER_NAME,
+                                                                   scriptResultString);
+
+                    // split result on line breaks as every parameter is returned in a separate "echo"
+                    // command
+                    final String[] resultParameters = scriptResultString.split("[\\r\\n]+");
+
+                    // add each parameter that is defined in the operation and passed back
+                    for (final String resultParameter : resultParameters) {
+                        for (final String outputParameter : outputParameters) {
+                            if (resultParameter.startsWith(outputParameter)) {
+                                final String value = resultParameter.substring(resultParameter.indexOf("=") + 1);
+
+                                ManagementBusPluginRemoteServiceImpl.LOG.debug("Adding parameter {} with value: {}",
+                                                                               outputParameter, value);
+                                resultMap.put(outputParameter, value);
+                            }
+                        }
+                    }
+                }
+
+            } else {
+                ManagementBusPluginRemoteServiceImpl.LOG.warn("Result contains no result entry '{}'",
+                                                              ManagementBusPluginRemoteServiceImpl.RUN_SCRIPT_OUTPUT_PARAMETER_NAME);
+            }
+
+        } else {
+            ManagementBusPluginRemoteServiceImpl.LOG.warn("Result of type {} not supported. The bus should return a HashMap as result class when it is used as input.",
+                                                          result.getClass());
+        }
     }
 
     /**
@@ -300,8 +397,7 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
             for (final String daName : daNames) {
                 final QName daArtifactTemplate =
                     ServiceHandler.toscaEngineService.getArtifactTemplateOfADeploymentArtifactOfANodeTypeImplementation(csarID,
-                                                                                                                        nodeTypeImpl,
-                                                                                                                        daName);
+                                                                                                                        nodeTypeImpl, daName);
 
                 daArtifactReferences =
                     ServiceHandler.toscaEngineService.getArtifactReferenceWithinArtifactTemplate(csarID,
@@ -384,7 +480,7 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
             headers.put(MBHeader.OPERATIONNAME_STRING.toString(),
                         Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM_INSTALLPACKAGE);
 
-            this.invokeManagementBusEngine(inputParamsMap, headers);
+            invokeManagementBusEngine(inputParamsMap, headers);
         } else {
             ManagementBusPluginRemoteServiceImpl.LOG.debug("ArtifactType: {} needs no packages to install.",
                                                            requiredPackages, artifactType);
@@ -424,7 +520,7 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
             }
         }
 
-        this.invokeManagementBusEngine(inputParamsMap, headers);
+        invokeManagementBusEngine(inputParamsMap, headers);
 
     }
 
@@ -436,7 +532,7 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
      * @param commandsString
      * @param headers
      */
-    private void runScript(final String commandsString, final HashMap<String, Object> headers) {
+    private Object runScript(final String commandsString, final HashMap<String, Object> headers) {
 
         final HashMap<String, String> inputParamsMap = new HashMap<>();
 
@@ -455,13 +551,13 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
             }
         }
 
-        this.invokeManagementBusEngine(inputParamsMap, headers);
+        return invokeManagementBusEngine(inputParamsMap, headers);
     }
 
     /**
      *
-     * Creates ArtifactType specific commands that should be executed on the target machine. Commands to
-     * be executed are defined in the corresponding *.xml file.
+     * Creates ArtifactType specific commands that should be executed on the target machine. Commands
+     * to be executed are defined in the corresponding *.xml file.
      *
      * @param csarID
      * @param artifactType
@@ -546,7 +642,7 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
 
         String paramsString = "";
         for (final Entry<String, String> param : paramsMap.entrySet()) {
-            paramsString += param.getKey() + "=" + param.getValue() + " ";
+            paramsString += param.getKey() + "='" + param.getValue() + "' ";
         }
 
         return paramsString;
@@ -559,18 +655,20 @@ public class ManagementBusPluginRemoteServiceImpl implements IManagementBusPlugi
      * @param paramsMap
      * @param headers
      */
-    private void invokeManagementBusEngine(final HashMap<String, String> paramsMap,
-                                           final HashMap<String, Object> headers) {
+    private Object invokeManagementBusEngine(final HashMap<String, String> paramsMap,
+                                             final HashMap<String, Object> headers) {
 
         ManagementBusPluginRemoteServiceImpl.LOG.debug("Invoking the Management Bus...");
 
         final ProducerTemplate template = Activator.camelContext.createProducerTemplate();
 
-        final String response =
+        final Object response =
             template.requestBodyAndHeaders("bean:org.opentosca.bus.management.service.IManagementBusService?method=invokeIA",
-                                           paramsMap, headers, String.class);
+                                           paramsMap, headers);
 
         ManagementBusPluginRemoteServiceImpl.LOG.debug("Invocation finished: {}", response);
+
+        return response;
 
     }
 

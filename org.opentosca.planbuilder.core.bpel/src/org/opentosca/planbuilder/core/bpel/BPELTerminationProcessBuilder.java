@@ -12,11 +12,10 @@ import org.opentosca.planbuilder.AbstractTerminationPlanBuilder;
 import org.opentosca.planbuilder.core.bpel.context.BPELPlanContext;
 import org.opentosca.planbuilder.core.bpel.handlers.BPELPlanHandler;
 import org.opentosca.planbuilder.core.bpel.helpers.BPELFinalizer;
-import org.opentosca.planbuilder.core.bpel.helpers.CorrelationIDInitializer;
-import org.opentosca.planbuilder.core.bpel.helpers.NodeInstanceInitializer;
+import org.opentosca.planbuilder.core.bpel.helpers.NodeRelationInstanceVariablesHandler;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer.PropertyMap;
-import org.opentosca.planbuilder.core.bpel.helpers.ServiceInstanceInitializer;
+import org.opentosca.planbuilder.core.bpel.helpers.ServiceInstanceVariablesHandler;
 import org.opentosca.planbuilder.core.plugins.IPlanBuilderPostPhasePlugin;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
@@ -44,17 +43,15 @@ public class BPELTerminationProcessBuilder extends AbstractTerminationPlanBuilde
     // class for initializing properties inside the build plan
     private final PropertyVariableInitializer propertyInitializer;
     // adds serviceInstance Variable and instanceDataAPIUrl to buildPlans
-    private ServiceInstanceInitializer serviceInstanceInitializer;
+    private ServiceInstanceVariablesHandler serviceInstanceVarsHandler;
     // adds nodeInstanceIDs to each templatePlan
-    private NodeInstanceInitializer nodeInstanceInitializer;
+    private NodeRelationInstanceVariablesHandler instanceVarsHandler;
     // class for finalizing build plans (e.g when some template didn't receive
     // some provisioning logic and they must be filled with empty elements)
     private final BPELFinalizer finalizer;
 
     // accepted operations for provisioning
     private final List<String> opNames = new ArrayList<>();
-
-    private final CorrelationIDInitializer idInit = new CorrelationIDInitializer();
 
     /**
      * <p>
@@ -64,8 +61,8 @@ public class BPELTerminationProcessBuilder extends AbstractTerminationPlanBuilde
     public BPELTerminationProcessBuilder() {
         try {
             this.planHandler = new BPELPlanHandler();
-            this.serviceInstanceInitializer = new ServiceInstanceInitializer();
-            this.nodeInstanceInitializer = new NodeInstanceInitializer(this.planHandler);
+            this.serviceInstanceVarsHandler = new ServiceInstanceVariablesHandler();
+            this.instanceVarsHandler = new NodeRelationInstanceVariablesHandler(this.planHandler);
         }
         catch (final ParserConfigurationException e) {
             BPELTerminationProcessBuilder.LOG.error("Error while initializing BuildPlanHandler", e);
@@ -99,7 +96,7 @@ public class BPELTerminationProcessBuilder extends AbstractTerminationPlanBuilde
                 final String processNamespace = serviceTemplate.getTargetNamespace() + "_terminationPlan";
 
                 final AbstractPlan newAbstractTerminationPlan =
-                    this.generateTOG(new QName(processNamespace, processName).toString(), definitions, serviceTemplate);
+                    generateTOG(new QName(processNamespace, processName).toString(), definitions, serviceTemplate);
 
                 final BPELPlan newTerminationPlan =
                     this.planHandler.createEmptyBPELPlan(processNamespace, processName, newAbstractTerminationPlan,
@@ -135,6 +132,10 @@ public class BPELTerminationProcessBuilder extends AbstractTerminationPlanBuilde
                 // // connect the templates
                 // this.initializeConnectionsInTerminationPlan(newTerminationPlan);
 
+
+                this.instanceVarsHandler.addInstanceURLVarToTemplatePlans(newTerminationPlan);
+                this.instanceVarsHandler.addInstanceIDVarToTemplatePlans(newTerminationPlan);
+
                 final PropertyMap propMap =
                     this.propertyInitializer.initializePropertiesAsVariables(newTerminationPlan);
 
@@ -145,42 +146,35 @@ public class BPELTerminationProcessBuilder extends AbstractTerminationPlanBuilde
                 // initialize instanceData handling, add
                 // instanceDataAPI/serviceInstanceID into input, add global
                 // variables to hold the value for plugins
-                this.serviceInstanceInitializer.initializeInstanceDataAPIandServiceInstanceIDFromInput(newTerminationPlan);
-                this.serviceInstanceInitializer.initPropertyVariablesFromInstanceData(newTerminationPlan, propMap);
+                this.serviceInstanceVarsHandler.addManagementPlanServiceInstanceVarHandlingFromInput(newTerminationPlan);
+                this.serviceInstanceVarsHandler.initPropertyVariablesFromInstanceData(newTerminationPlan, propMap);
 
-                this.nodeInstanceInitializer.addNodeInstanceFindLogic(newTerminationPlan,
-                                                                      "?state=STARTED,CREATED,CONFIGURED");
-                this.nodeInstanceInitializer.addPropertyVariableUpdateBasedOnNodeInstanceID(newTerminationPlan,
-                                                                                            propMap);
+                // fetch all nodeinstances that are running
+                this.instanceVarsHandler.addNodeInstanceFindLogic(newTerminationPlan,
+                                                                  "?state=STARTED&amp;state=CREATED&amp;state=CONFIGURED");
+                this.instanceVarsHandler.addPropertyVariableUpdateBasedOnNodeInstanceID(newTerminationPlan, propMap);
 
-                // TODO Create a for loop over the three sequences inside the
-                // flow to iterate for the instance count deleting one instance
-                // at a time
 
-                final List<BPELScopeActivity> changedActivities = this.runPlugins(newTerminationPlan, propMap);
 
-                this.serviceInstanceInitializer.appendServiceInstanceDelete(newTerminationPlan);
+                final List<BPELScopeActivity> changedActivities = runPlugins(newTerminationPlan, propMap);
 
-                this.idInit.addCorrellationID(newTerminationPlan);
+                this.serviceInstanceVarsHandler.appendSetServiceInstanceState(newTerminationPlan,
+                                                                              newTerminationPlan.getBpelMainSequenceOutputAssignElement(),
+                                                                              "DELETED");
+
+                this.serviceInstanceVarsHandler.addCorrellationID(newTerminationPlan);
 
                 this.finalizer.finalize(newTerminationPlan);
 
+                // add for each loop over found node instances to terminate each running instance
                 for (final BPELScopeActivity activ : changedActivities) {
                     if (activ.getNodeTemplate() != null) {
                         final BPELPlanContext context =
                             new BPELPlanContext(activ, propMap, newTerminationPlan.getServiceTemplate());
-                        this.nodeInstanceInitializer.appendCountInstancesLogic(context, activ.getNodeTemplate(),
-                                                                               "?state=STARTED,CREATED,CONFIGURED");
+                        this.instanceVarsHandler.appendCountInstancesLogic(context, activ.getNodeTemplate(),
+                                                                           "?state=STARTED&amp;state=CREATED&amp;state=CONFIGURED");
                     }
                 }
-                // TODO we need to wrap the pre-, prov- and post-phase sequences
-                // into a forEach activity that iterates over all nodeInstances
-                // of a given nodeTemplate. This allows us to generate code for
-                // a single nodeInstance which can then be used for all
-                // nodeInstances by using the same code on each instance
-
-                // add logic at the end of the process to DELETE the
-                // serviceInstance with the instanceDataAPI
 
 
 
@@ -217,7 +211,7 @@ public class BPELTerminationProcessBuilder extends AbstractTerminationPlanBuilde
             if (!serviceTemplate.hasBuildPlan()) {
                 BPELTerminationProcessBuilder.LOG.debug("ServiceTemplate {} has no TerminationPlan, generating TerminationPlan",
                                                         serviceTemplateId.toString());
-                final BPELPlan newBuildPlan = this.buildPlan(csarName, definitions, serviceTemplateId);
+                final BPELPlan newBuildPlan = buildPlan(csarName, definitions, serviceTemplateId);
 
                 if (newBuildPlan != null) {
                     BPELTerminationProcessBuilder.LOG.debug("Created TerminationPlan "
@@ -307,7 +301,7 @@ public class BPELTerminationProcessBuilder extends AbstractTerminationPlanBuilde
                     final BPELPlanContext context =
                         new BPELPlanContext(templatePlan, propMap, plan.getServiceTemplate());
 
-                    if (!this.isDockerContainer(context.getNodeTemplate())) {
+                    if (!isDockerContainer(context.getNodeTemplate())) {
                         continue;
                     }
 

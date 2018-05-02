@@ -966,7 +966,7 @@
          unpack="false"/>
 
    <plugin
-         id="org.opentosca.planbuilder.prephase.plugin.scriptiaonlinux"
+         id="org.opentosca.planbuilder.prephase.plugin.fileupload"
          download-size="0"
          install-size="0"
          version="0.0.0"
@@ -1409,6 +1409,13 @@
 
    <plugin
          id="org.opentosca.deployment.tests"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="org.opentosca.planbuilder.postphase.plugin.monitoring"
          download-size="0"
          install-size="0"
          version="0.0.0"
