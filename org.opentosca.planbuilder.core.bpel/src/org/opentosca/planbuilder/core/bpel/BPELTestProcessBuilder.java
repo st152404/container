@@ -10,11 +10,10 @@ import org.opentosca.planbuilder.AbstractTestPlanBuilder;
 import org.opentosca.planbuilder.core.bpel.context.BPELPlanContext;
 import org.opentosca.planbuilder.core.bpel.handlers.BPELPlanHandler;
 import org.opentosca.planbuilder.core.bpel.helpers.BPELFinalizer;
-import org.opentosca.planbuilder.core.bpel.helpers.CorrelationIDInitializer;
-import org.opentosca.planbuilder.core.bpel.helpers.EmptyPropertyToInputInitializer;
-import org.opentosca.planbuilder.core.bpel.helpers.PropertyMappingsToOutputInitializer;
+import org.opentosca.planbuilder.core.bpel.helpers.NodeRelationInstanceVariablesHandler;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer.PropertyMap;
+import org.opentosca.planbuilder.core.bpel.helpers.ServiceInstanceVariablesHandler;
 import org.opentosca.planbuilder.core.plugins.IPlanBuilderTestPolicyPlugin;
 import org.opentosca.planbuilder.core.plugins.registry.PluginRegistry;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
@@ -36,23 +35,21 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 	private static final String BPEL_REST_NAMESPACE = "http://iaas.uni-stuttgart.de/bpel/extensions/bpel4restlight";
 
 	private BPELPlanHandler planHandler;
-	private final PropertyMappingsToOutputInitializer propertyOutputInitializer;
 	private final BPELFinalizer finalizer;
 	private final PropertyVariableInitializer propertyInitializer;
-	private final EmptyPropertyToInputInitializer emptyPropertyInitializer;
-	private final CorrelationIDInitializer correlationIdInitializer;
 	private final PluginRegistry pluginRegistry = new PluginRegistry();
+	private NodeRelationInstanceVariablesHandler instanceVarsHandler;
+	private ServiceInstanceVariablesHandler serviceInstanceVarsHandler;
 
 	public BPELTestProcessBuilder() {
 		try {
 			this.planHandler = new BPELPlanHandler();
+			this.instanceVarsHandler = new NodeRelationInstanceVariablesHandler(this.planHandler);
+			this.serviceInstanceVarsHandler = new ServiceInstanceVariablesHandler();
 		} catch (final ParserConfigurationException e) {
 			LOGGER.error("Error initializing BPELPlanHandler", e);
 		}
-		this.correlationIdInitializer = new CorrelationIDInitializer();
-		this.emptyPropertyInitializer = new EmptyPropertyToInputInitializer();
 		this.propertyInitializer = new PropertyVariableInitializer(this.planHandler);
-		this.propertyOutputInitializer = new PropertyMappingsToOutputInitializer();
 		this.finalizer = new BPELFinalizer();
 	}
 
@@ -96,11 +93,28 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 
 			this.planHandler.initializeBPELSkeleton(bpelTestPlan, csarName);
 
+			this.instanceVarsHandler.addInstanceURLVarToTemplatePlans(bpelTestPlan);
+			this.instanceVarsHandler.addInstanceIDVarToTemplatePlans(bpelTestPlan);
+
+			final PropertyMap propMap = this.propertyInitializer.initializePropertiesAsVariables(bpelTestPlan);
+
+			this.serviceInstanceVarsHandler.addManagementPlanServiceInstanceVarHandlingFromInput(bpelTestPlan);
+			this.serviceInstanceVarsHandler.initPropertyVariablesFromInstanceData(bpelTestPlan, propMap);
+
+			// find all running node instances
+			this.instanceVarsHandler.addNodeInstanceFindLogic(bpelTestPlan,
+					"?state=STARTED&amp;state=CREATED&amp;state=CONFIGURED");
+
+			this.instanceVarsHandler.addPropertyVariableUpdateBasedOnNodeInstanceID(bpelTestPlan, propMap);
+
 			this.planHandler.registerExtension(BPEL_REST_NAMESPACE, true, bpelTestPlan);
 
 			runPlugins(bpelTestPlan);
 
-			this.correlationIdInitializer.addCorrellationID(bpelTestPlan);
+			this.serviceInstanceVarsHandler.appendSetServiceInstanceState(bpelTestPlan,
+					bpelTestPlan.getBpelMainSequenceOutputAssignElement(), "TESTED");
+
+			this.serviceInstanceVarsHandler.addCorrellationID(bpelTestPlan);
 
 			this.finalizer.finalize(bpelTestPlan);
 
