@@ -6,8 +6,10 @@ import java.util.Set;
 
 import org.opentosca.planbuilder.core.plugins.IPlanBuilderTestPolicyPlugin;
 import org.opentosca.planbuilder.core.plugins.context.PlanContext;
+import org.opentosca.planbuilder.model.tosca.AbstractImplementationArtifact;
 import org.opentosca.planbuilder.model.tosca.AbstractInterface;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
+import org.opentosca.planbuilder.model.tosca.AbstractNodeTypeImplementation;
 import org.opentosca.planbuilder.model.tosca.AbstractOperation;
 import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipTemplate;
@@ -19,7 +21,9 @@ public abstract class ScriptTestPolicyPlugin<T extends PlanContext> implements I
 	final static Logger LOGGER = LoggerFactory.getLogger(ScriptTestPolicyPlugin.class);
 
 	private static final String PLUGIN_ID = "Script Test Policy Plugin";
-	public static final String RUN_SCRIPT_OPERATION_NAME = "runScript";
+	private static final String RUN_SCRIPT_OPERATION_NAME = "runScript";
+	private static final String[] SUPPORTED_POLICY_TYPES = { "httpTest", "httpsTest", "managementOperationTest",
+			"portBindingTest", "sqlConnectionTest", "tcpPingTest" };
 
 	@Override
 	public String getID() {
@@ -27,22 +31,59 @@ public abstract class ScriptTestPolicyPlugin<T extends PlanContext> implements I
 	}
 
 	@Override
-	public boolean canHandle(AbstractNodeTemplate nodeTemplate, AbstractPolicy testPolicyTemplate) {
-
-		return true;
+	public boolean canHandle(AbstractNodeTemplate nodeTemplate, AbstractPolicy testPolicy) {
+		final AbstractNodeTemplate infrastructureNode = findRunScriptInfrastructureNode(nodeTemplate);
+		final AbstractImplementationArtifact nodeIA = findScriptTestIA(nodeTemplate, testPolicy);
+		if (isSupportedPolicyType(testPolicy) && infrastructureNode != null && nodeIA != null) {
+			return true;
+		}
+		return false;
 	}
 
-	protected AbstractNodeTemplate findRunScriptInfrastructureNode(AbstractNodeTemplate nodeTemplate) {
+	/**
+	 * Gets the TestIA for the TestPolicy
+	 *
+	 * @param nodeTemplate
+	 * @param testPolicy
+	 * @return null if not found
+	 */
+	protected static AbstractImplementationArtifact findScriptTestIA(AbstractNodeTemplate nodeTemplate,
+			AbstractPolicy testPolicy) {
+		final List<AbstractNodeTypeImplementation> nodeImpls = nodeTemplate.getImplementations();
+		for (final AbstractNodeTypeImplementation nodeImpl : nodeImpls) {
+			final List<AbstractImplementationArtifact> nodeIAs = nodeImpl.getImplementationArtifacts();
+			for (final AbstractImplementationArtifact nodeIA : nodeIAs) {
+				final String nodeIAOperationName = nodeIA.getOperationName();
+				for (final String supportedPolicyType : SUPPORTED_POLICY_TYPES) {
+					if (supportedPolicyType.equalsIgnoreCase(nodeIAOperationName)) {
+						return nodeIA;
+					}
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Finds the InterfaceNode which offers a runScript method to execute the script
+	 * test on
+	 *
+	 * @param nodeTemplate
+	 * @return null if not found
+	 */
+	protected static AbstractNodeTemplate findRunScriptInfrastructureNode(AbstractNodeTemplate nodeTemplate) {
 		final Set<AbstractNodeTemplate> toCheck = new HashSet<>();
 		final Set<AbstractNodeTemplate> toCheckNextIteration = new HashSet<>();
 		toCheck.add(nodeTemplate);
 		while (true) {
 			for (final AbstractNodeTemplate node : toCheck) {
 				final List<AbstractInterface> interfaces = node.getType().getInterfaces();
+				// add interfaces of super-node
+				interfaces.addAll(node.getType().getTypeRef().getInterfaces());
 				for (final AbstractInterface nodeInterface : interfaces) {
 					final List<AbstractOperation> operations = nodeInterface.getOperations();
 					for (final AbstractOperation operation : operations) {
-						if (operation.getName().equals(RUN_SCRIPT_OPERATION_NAME)) {
+						if (operation.getName().equalsIgnoreCase(RUN_SCRIPT_OPERATION_NAME)) {
 							return node;
 						}
 					}
@@ -60,6 +101,22 @@ public abstract class ScriptTestPolicyPlugin<T extends PlanContext> implements I
 				return null;
 			}
 		}
+	}
+
+	/**
+	 * Returns true iff the policyType is supported
+	 *
+	 * @param policyTypeName
+	 * @return
+	 */
+	protected boolean isSupportedPolicyType(AbstractPolicy policy) {
+		final String policyTypeName = policy.getType().getName();
+		for (final String supportedPolicy : SUPPORTED_POLICY_TYPES) {
+			if (supportedPolicy.equalsIgnoreCase(policyTypeName)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 }
