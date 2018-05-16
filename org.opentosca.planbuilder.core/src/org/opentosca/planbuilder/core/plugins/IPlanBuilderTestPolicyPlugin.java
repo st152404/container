@@ -7,7 +7,7 @@ import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
 public interface IPlanBuilderTestPolicyPlugin<T extends PlanContext> extends IPlanBuilderPlugin {
 
 	/**
-	 * Handles the execution of a test defined as a test policy on a node template
+	 * Handles the execution of a test defined as a test policy on a node
 	 *
 	 * @param planContext
 	 *            the context of the plan the plugin should be used for
@@ -19,7 +19,7 @@ public interface IPlanBuilderTestPolicyPlugin<T extends PlanContext> extends IPl
 
 	/**
 	 * Returns whether the plugin can handle the execution of a specific test policy
-	 * on a node template
+	 * on a specific node
 	 *
 	 * @param nodeTemplate
 	 * @param testPolicyTemplate
