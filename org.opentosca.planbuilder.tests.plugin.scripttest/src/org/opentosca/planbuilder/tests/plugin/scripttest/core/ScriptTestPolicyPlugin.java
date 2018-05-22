@@ -22,8 +22,7 @@ public abstract class ScriptTestPolicyPlugin<T extends PlanContext> implements I
 
 	private static final String PLUGIN_ID = "Script Test Policy Plugin";
 	private static final String RUN_SCRIPT_OPERATION_NAME = "runScript";
-	private static final String[] SUPPORTED_POLICY_TYPES = { "httpTest", "httpsTest", "managementOperationTest",
-			"portBindingTest", "sqlConnectionTest", "tcpPingTest" };
+	private static final String[] SUPPORTED_ARTIFACT_TYPES = { "ScriptArtifact" };
 
 	@Override
 	public String getID() {
@@ -33,8 +32,11 @@ public abstract class ScriptTestPolicyPlugin<T extends PlanContext> implements I
 	@Override
 	public boolean canHandle(AbstractNodeTemplate nodeTemplate, AbstractPolicy testPolicy) {
 		final AbstractNodeTemplate infrastructureNode = findRunScriptInfrastructureNode(nodeTemplate);
-		final AbstractImplementationArtifact nodeIA = findScriptTestIA(nodeTemplate, testPolicy);
-		if (isSupportedPolicyType(testPolicy) && infrastructureNode != null && nodeIA != null) {
+		final AbstractImplementationArtifact ia = findScriptTestIA(nodeTemplate, testPolicy);
+
+		// TODO: Replace supported PolicyType with check if its a ScriptIA, move
+		// reference check from bpel class here
+		if (infrastructureNode != null && ia != null && isSupportedIAType(ia)) {
 			return true;
 		}
 		return false;
@@ -54,19 +56,18 @@ public abstract class ScriptTestPolicyPlugin<T extends PlanContext> implements I
 			final List<AbstractImplementationArtifact> nodeIAs = nodeImpl.getImplementationArtifacts();
 			for (final AbstractImplementationArtifact nodeIA : nodeIAs) {
 				final String nodeIAOperationName = nodeIA.getOperationName();
-				for (final String supportedPolicyType : SUPPORTED_POLICY_TYPES) {
-					if (supportedPolicyType.equalsIgnoreCase(nodeIAOperationName)) {
-						return nodeIA;
-					}
+				if (testPolicy.getType().getName().toLowerCase().startsWith(nodeIAOperationName.toLowerCase())) {
+					return nodeIA;
 				}
 			}
 		}
 		return null;
+
 	}
 
 	/**
-	 * Finds the InterfaceNode which offers a runScript method to execute the script
-	 * test on
+	 * Finds the closest InfrastructureNode which offers a runScript method to
+	 * execute the script test on
 	 *
 	 * @param nodeTemplate
 	 * @return null if not found
@@ -104,15 +105,15 @@ public abstract class ScriptTestPolicyPlugin<T extends PlanContext> implements I
 	}
 
 	/**
-	 * Returns true iff the policyType is supported
+	 * Returns true iff the iaType is supported by this plugin
 	 *
-	 * @param policyTypeName
+	 * @param ia
 	 * @return
 	 */
-	protected boolean isSupportedPolicyType(AbstractPolicy policy) {
-		final String policyTypeName = policy.getType().getName();
-		for (final String supportedPolicy : SUPPORTED_POLICY_TYPES) {
-			if (supportedPolicy.equalsIgnoreCase(policyTypeName)) {
+	protected boolean isSupportedIAType(AbstractImplementationArtifact ia) {
+		final String iaType = ia.getArtifactType().getLocalPart();
+		for (final String supportedType : SUPPORTED_ARTIFACT_TYPES) {
+			if (iaType.equalsIgnoreCase(supportedType)) {
 				return true;
 			}
 		}
