@@ -14,8 +14,6 @@ import org.opentosca.planbuilder.core.bpel.helpers.NodeRelationInstanceVariables
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer.PropertyMap;
 import org.opentosca.planbuilder.core.bpel.helpers.ServiceInstanceVariablesHandler;
-import org.opentosca.planbuilder.core.plugins.IPlanBuilderTestPolicyPlugin;
-import org.opentosca.planbuilder.core.plugins.registry.PluginRegistry;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELScopeActivity;
@@ -24,6 +22,8 @@ import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
 import org.opentosca.planbuilder.model.tosca.AbstractServiceTemplate;
 import org.opentosca.planbuilder.model.utils.ModelUtils;
+import org.opentosca.planbuilder.plugins.IPlanBuilderTestPolicyPlugin;
+import org.opentosca.planbuilder.plugins.registry.PluginRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

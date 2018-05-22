@@ -1,6 +1,6 @@
 package org.opentosca.planbuilder.tests.plugin.scripttest;
 
-import org.opentosca.planbuilder.core.plugins.IPlanBuilderTestPolicyPlugin;
+import org.opentosca.planbuilder.plugins.IPlanBuilderTestPolicyPlugin;
 import org.opentosca.planbuilder.tests.plugin.scripttest.bpel.BPELScriptTestPolicyPlugin;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;

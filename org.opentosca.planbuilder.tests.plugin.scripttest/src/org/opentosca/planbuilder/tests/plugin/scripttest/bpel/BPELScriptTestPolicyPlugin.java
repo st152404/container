@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Scanner;
 
 import org.opentosca.planbuilder.core.bpel.context.BPELPlanContext;
-import org.opentosca.planbuilder.core.plugins.context.Variable;
 import org.opentosca.planbuilder.model.tosca.AbstractArtifactReference;
 import org.opentosca.planbuilder.model.tosca.AbstractImplementationArtifact;
 import org.opentosca.planbuilder.model.tosca.AbstractInterface;
@@ -16,6 +15,7 @@ import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractOperation;
 import org.opentosca.planbuilder.model.tosca.AbstractParameter;
 import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
+import org.opentosca.planbuilder.plugins.context.Variable;
 import org.opentosca.planbuilder.provphase.plugin.invoker.bpel.BPELInvokerPlugin;
 import org.opentosca.planbuilder.tests.plugin.scripttest.core.ScriptTestPolicyPlugin;
 import org.slf4j.Logger;

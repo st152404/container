@@ -1,8 +1,8 @@
-package org.opentosca.planbuilder.core.plugins;
+package org.opentosca.planbuilder.plugins;
 
-import org.opentosca.planbuilder.core.plugins.context.PlanContext;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
+import org.opentosca.planbuilder.plugins.context.PlanContext;
 
 public interface IPlanBuilderTestPolicyPlugin<T extends PlanContext> extends IPlanBuilderPlugin {
 

@@ -4,8 +4,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.opentosca.planbuilder.core.plugins.IPlanBuilderTestPolicyPlugin;
-import org.opentosca.planbuilder.core.plugins.context.PlanContext;
 import org.opentosca.planbuilder.model.tosca.AbstractImplementationArtifact;
 import org.opentosca.planbuilder.model.tosca.AbstractInterface;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
@@ -13,6 +11,8 @@ import org.opentosca.planbuilder.model.tosca.AbstractNodeTypeImplementation;
 import org.opentosca.planbuilder.model.tosca.AbstractOperation;
 import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipTemplate;
+import org.opentosca.planbuilder.plugins.IPlanBuilderTestPolicyPlugin;
+import org.opentosca.planbuilder.plugins.context.PlanContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

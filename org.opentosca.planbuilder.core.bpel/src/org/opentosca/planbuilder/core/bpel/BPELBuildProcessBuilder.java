@@ -16,8 +16,6 @@ import org.opentosca.planbuilder.core.bpel.helpers.PropertyMappingsToOutputIniti
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer.PropertyMap;
 import org.opentosca.planbuilder.core.bpel.helpers.ServiceInstanceVariablesHandler;
-import org.opentosca.planbuilder.core.plugins.IPlanBuilderPostPhasePlugin;
-import org.opentosca.planbuilder.core.plugins.IPlanBuilderTypePlugin;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELScopeActivity;
@@ -26,6 +24,9 @@ import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractServiceTemplate;
 import org.opentosca.planbuilder.model.utils.ModelUtils;
+import org.opentosca.planbuilder.plugins.IPlanBuilderPostPhasePlugin;
+import org.opentosca.planbuilder.plugins.IPlanBuilderTypePlugin;
+import org.opentosca.planbuilder.plugins.context.Variable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -222,6 +223,16 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
         return plans;
     }
 
+    private boolean isRunning(final BPELPlanContext context, final AbstractNodeTemplate nodeTemplate) {
+        final Variable state = context.getPropertyVariable(nodeTemplate, "State");
+        if (state != null) {
+            if (BPELPlanContext.getVariableContent(state, context).equals("Running")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * <p>
      * This method assigns plugins to the already initialized BuildPlan and its TemplateBuildPlans.
@@ -235,11 +246,11 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
     private void runPlugins(final BPELPlan buildPlan, final PropertyMap map) {
 
         for (final BPELScopeActivity templatePlan : buildPlan.getTemplateBuildPlans()) {
-            if (templatePlan.getNodeTemplate() != null) {
+            final BPELPlanContext context = new BPELPlanContext(templatePlan, map, buildPlan.getServiceTemplate());
+            if (templatePlan.getNodeTemplate() != null && !isRunning(context, templatePlan.getNodeTemplate())) {
                 // handling nodetemplate
                 final AbstractNodeTemplate nodeTemplate = templatePlan.getNodeTemplate();
                 BPELBuildProcessBuilder.LOG.debug("Trying to handle NodeTemplate " + nodeTemplate.getId());
-                final BPELPlanContext context = new BPELPlanContext(templatePlan, map, buildPlan.getServiceTemplate());
                 // check if we have a generic plugin to handle the template
                 // Note: if a generic plugin fails during execution the
                 // TemplateBuildPlan is broken!
@@ -273,7 +284,6 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
             } else {
                 // handling relationshiptemplate
                 final AbstractRelationshipTemplate relationshipTemplate = templatePlan.getRelationshipTemplate();
-                final BPELPlanContext context = new BPELPlanContext(templatePlan, map, buildPlan.getServiceTemplate());
 
                 // check if we have a generic plugin to handle the template
                 // Note: if a generic plugin fails during execution the

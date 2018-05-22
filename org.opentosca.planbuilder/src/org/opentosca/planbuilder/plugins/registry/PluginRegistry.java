@@ -1,19 +1,19 @@
-package org.opentosca.planbuilder.core.plugins.registry;
+package org.opentosca.planbuilder.plugins.registry;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.opentosca.planbuilder.core.plugins.IPlanBuilderPolicyAwarePostPhasePlugin;
-import org.opentosca.planbuilder.core.plugins.IPlanBuilderPolicyAwarePrePhasePlugin;
-import org.opentosca.planbuilder.core.plugins.IPlanBuilderPolicyAwareTypePlugin;
-import org.opentosca.planbuilder.core.plugins.IPlanBuilderPostPhasePlugin;
-import org.opentosca.planbuilder.core.plugins.IPlanBuilderPrePhaseDAPlugin;
-import org.opentosca.planbuilder.core.plugins.IPlanBuilderPrePhaseIAPlugin;
-import org.opentosca.planbuilder.core.plugins.IPlanBuilderProvPhaseOperationPlugin;
-import org.opentosca.planbuilder.core.plugins.IPlanBuilderTestPolicyPlugin;
-import org.opentosca.planbuilder.core.plugins.IPlanBuilderTypePlugin;
-import org.opentosca.planbuilder.core.plugins.IScalingPlanBuilderSelectionPlugin;
-import org.opentosca.planbuilder.core.plugins.activator.Activator;
+import org.opentosca.planbuilder.plugins.IPlanBuilderPolicyAwarePostPhasePlugin;
+import org.opentosca.planbuilder.plugins.IPlanBuilderPolicyAwarePrePhasePlugin;
+import org.opentosca.planbuilder.plugins.IPlanBuilderPolicyAwareTypePlugin;
+import org.opentosca.planbuilder.plugins.IPlanBuilderPostPhasePlugin;
+import org.opentosca.planbuilder.plugins.IPlanBuilderPrePhaseDAPlugin;
+import org.opentosca.planbuilder.plugins.IPlanBuilderPrePhaseIAPlugin;
+import org.opentosca.planbuilder.plugins.IPlanBuilderProvPhaseOperationPlugin;
+import org.opentosca.planbuilder.plugins.IPlanBuilderTestPolicyPlugin;
+import org.opentosca.planbuilder.plugins.IPlanBuilderTypePlugin;
+import org.opentosca.planbuilder.plugins.IScalingPlanBuilderSelectionPlugin;
+import org.opentosca.planbuilder.plugins.activator.Activator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
@@ -92,8 +92,8 @@ public class PluginRegistry {
 		final BundleContext ctx = getCtx();
 
 		try {
-			final ServiceReference<?>[] refs = ctx
-					.getAllServiceReferences(IPlanBuilderTestPolicyPlugin.class.getName(), null);
+			final ServiceReference<?>[] refs = ctx.getAllServiceReferences(IPlanBuilderTestPolicyPlugin.class.getName(),
+					null);
 
 			if (refs != null) {
 				for (final ServiceReference<?> ref : refs) {
