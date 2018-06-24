@@ -33,7 +33,7 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 	 * @param serviceTemplate
 	 * @return
 	 */
-	protected AbstractPlan generateTestOG(final String id, final AbstractDefinitions definitions,
+	protected AbstractPlan generateTestDAG(final String id, final AbstractDefinitions definitions,
 			final AbstractServiceTemplate serviceTemplate) {
 
 		final Set<AbstractNodeTemplate> relevantNodes = new HashSet<>();
@@ -49,7 +49,7 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 			}
 		}
 
-		final Set<Link> links = createOG(relevantNodes, topology.getRelationshipTemplates(), relevantActivities);
+		final Set<Link> links = createDAG(relevantNodes, topology.getRelationshipTemplates(), relevantActivities);
 
 		final AbstractPlan abstractTestPlan = new AbstractPlan(id, AbstractPlan.PlanType.TEST, definitions,
 				serviceTemplate, relevantActivities, links) {
@@ -66,20 +66,20 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 	 * @param nodeTemplates
 	 * @return
 	 */
-	private Set<Link> createOG(final Collection<AbstractNodeTemplate> relevantNodes,
+	private Set<Link> createDAG(final Collection<AbstractNodeTemplate> relevantNodes,
 			final Collection<AbstractRelationshipTemplate> relationshipTemplates,
 			final Collection<AbstractActivity> relevantActivities) {
 
 		final Set<Link> ogLinks = new HashSet<>();
 
-		// find the predecessors for every relevant node
-		for (final AbstractNodeTemplate targetNode : relevantNodes) {
-			final ANodeTemplateActivity firstActivity = findActivityForNodeTemplate(targetNode, relevantActivities);
-			final Set<ANodeTemplateActivity> relevantSourceActivities = findNextRelevantSourceNodes(targetNode,
+		// find the successor test node for every relevant node
+		for (final AbstractNodeTemplate sourceNode : relevantNodes) {
+			final ANodeTemplateActivity relevantSourceNodeActivity = findActivityForNodeTemplate(sourceNode, relevantActivities);
+			final Set<ANodeTemplateActivity> relevantTargetActivities = findNextRelevantTargetNodes(sourceNode,
 					relationshipTemplates, relevantNodes, relevantActivities);
-			for (final ANodeTemplateActivity relevantSourceActivity : relevantSourceActivities) {
-				// add links to all sources (traversing from infrastructure to application)
-				ogLinks.add(new Link(firstActivity, relevantSourceActivity));
+			for (final ANodeTemplateActivity relevantTargetActivity : relevantTargetActivities) {
+				// add links from relevant targetNodes to relevant sourceNodes (traversing from infrastructure to application)
+				ogLinks.add(new Link(relevantTargetActivity, relevantSourceNodeActivity));
 			}
 		}
 		return ogLinks;
@@ -103,42 +103,42 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 	}
 
 	/**
-	 * Returns the next relevant sources of the relevant target in the
-	 * irrelevantSourceNodeLink
+	 * Returns all next relevant targetNodes of the relevant sourceNode
 	 *
-	 * @param targetActivity
+	 * @param sourceActivity
 	 * @param relationshipTemplates
 	 * @param relevantNodes
 	 * @return
 	 */
-	private final Set<ANodeTemplateActivity> findNextRelevantSourceNodes(final AbstractNodeTemplate targetNode,
+	private final Set<ANodeTemplateActivity> findNextRelevantTargetNodes(final AbstractNodeTemplate sourceNode,
 			final Collection<AbstractRelationshipTemplate> relationshipTemplates,
 			final Collection<AbstractNodeTemplate> relevantNodes,
 			final Collection<AbstractActivity> relevantActivities) {
-		final Set<ANodeTemplateActivity> retrievedRelevantSources = new HashSet<>();
+		final Set<ANodeTemplateActivity> retrievedRelevantTargetNodes = new HashSet<>();
 		final Set<AbstractNodeTemplate> nextIterationNodes = new HashSet<>();
 
-		// first node thats predecessors are to be further investigated
-		nextIterationNodes.add(targetNode);
+		// first node thats successors are to be further investigated
+		nextIterationNodes.add(sourceNode);
 
 		while (!nextIterationNodes.isEmpty()) {
 			final Set<AbstractNodeTemplate> addToNextIteration = new HashSet<>();
-			for (final AbstractNodeTemplate irrelevantSourceNode : nextIterationNodes) {
+			for (final AbstractNodeTemplate targetNode : nextIterationNodes) {
 				// retrieve all nodes that are successors of the irrelevant source node
-				final Set<AbstractNodeTemplate> sourceSources = irrelevantSourceNode.getIngoingRelations().stream()
-						.map(relation -> relation.getSource()).collect(Collectors.toSet());
+				final Set<AbstractNodeTemplate> targetTargetNodes = targetNode.getOutgoingRelations().stream()
+						.map(relation -> relation.getTarget()).collect(Collectors.toSet());
 
-				for (final AbstractNodeTemplate sourceSource : sourceSources) {
-					if (relevantNodes.contains(sourceSource)) {
+				for (final AbstractNodeTemplate targetTargetNode : targetTargetNodes) {
+					if (relevantNodes.contains(targetTargetNode)) {
 						// the sourceSource is relevant
-						retrievedRelevantSources.add(findActivityForNodeTemplate(sourceSource, relevantActivities));
+						retrievedRelevantTargetNodes
+								.add(findActivityForNodeTemplate(targetTargetNode, relevantActivities));
 					} else {
 						/*
 						 * the sourceSource is irrelevant, add the new NodeLink to the set of NodeLinks
 						 * that are to investigate because there might be a relevant source connected to
 						 * the sourceSource
 						 */
-						addToNextIteration.add(sourceSource);
+						addToNextIteration.add(targetTargetNode);
 					}
 				}
 			}
@@ -147,7 +147,7 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 			addToNextIteration.clear();
 		}
 
-		return retrievedRelevantSources;
+		return retrievedRelevantTargetNodes;
 	}
 
 	/**

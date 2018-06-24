@@ -1,7 +1,7 @@
 package org.opentosca.planbuilder.tests.plugin.scripttest;
 
-import org.opentosca.planbuilder.plugins.IPlanBuilderTestPolicyPlugin;
-import org.opentosca.planbuilder.tests.plugin.scripttest.bpel.BPELScriptTestPolicyPlugin;
+import org.opentosca.planbuilder.plugins.IPlanBuilderTestPlugin;
+import org.opentosca.planbuilder.tests.plugin.scripttest.bpel.BPELScriptTestPlugin;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -25,8 +25,8 @@ public class Activator implements BundleActivator {
 	@Override
 	public void start(final BundleContext bundleContext) throws Exception {
 		Activator.context = bundleContext;
-		this.registration = Activator.context.registerService(IPlanBuilderTestPolicyPlugin.class.getName(),
-				new BPELScriptTestPolicyPlugin(), null);
+		this.registration = Activator.context.registerService(IPlanBuilderTestPlugin.class.getName(),
+				new BPELScriptTestPlugin(), null);
 
 	}
 

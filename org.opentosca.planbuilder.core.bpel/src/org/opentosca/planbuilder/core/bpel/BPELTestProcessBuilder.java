@@ -22,8 +22,7 @@ import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
 import org.opentosca.planbuilder.model.tosca.AbstractServiceTemplate;
 import org.opentosca.planbuilder.model.utils.ModelUtils;
-import org.opentosca.planbuilder.plugins.IPlanBuilderTestPolicyPlugin;
-import org.opentosca.planbuilder.plugins.registry.PluginRegistry;
+import org.opentosca.planbuilder.plugins.IPlanBuilderTestPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +36,6 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 	private BPELPlanHandler planHandler;
 	private final BPELFinalizer finalizer;
 	private final PropertyVariableInitializer propertyInitializer;
-	private final PluginRegistry pluginRegistry = new PluginRegistry();
 	private NodeRelationInstanceVariablesHandler instanceVarsHandler;
 	private ServiceInstanceVariablesHandler serviceInstanceVarsHandler;
 
@@ -80,7 +78,7 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 			final String processName = serviceTemplate.getId() + "_testPlan";
 			final String processNamespace = namespace + "_testPlan";
 
-			final AbstractPlan abstractTestPlan = generateTestOG(new QName(processNamespace, processName).toString(),
+			final AbstractPlan abstractTestPlan = generateTestDAG(new QName(processNamespace, processName).toString(),
 					definitions, serviceTemplate);
 
 			LOGGER.debug("Generated the following abstract test plan: \n{}", abstractTestPlan.toString());
@@ -109,7 +107,7 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 
 			this.planHandler.registerExtension(BPEL_REST_NAMESPACE, true, bpelTestPlan);
 
-			runPlugins(bpelTestPlan);
+			runTestPlugins(bpelTestPlan);
 
 			this.serviceInstanceVarsHandler.appendSetServiceInstanceState(bpelTestPlan,
 					bpelTestPlan.getBpelMainSequenceOutputAssignElement(), "TESTED");
@@ -165,7 +163,7 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 		return testPlanList;
 	}
 
-	private void runPlugins(final BPELPlan bpelTestPlan) {
+	private void runTestPlugins(final BPELPlan bpelTestPlan) {
 		final List<BPELScopeActivity> bpelScopes = bpelTestPlan.getTemplateBuildPlans();
 		final AbstractServiceTemplate serviceTemplate = bpelTestPlan.getServiceTemplate();
 		PropertyVariableInitializer initializer = null;
@@ -186,22 +184,10 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 				continue;
 			}
 			for (final AbstractPolicy policy : nodeTemplate.getPolicies()) {
-				final IPlanBuilderTestPolicyPlugin plugin = findPluginForTestPolicy(policy, nodeTemplate);
+				final IPlanBuilderTestPlugin plugin = findTestPlugin(policy, nodeTemplate);
 				plugin.handle(context, nodeTemplate, policy);
 			}
 		}
 
-	}
-
-	private IPlanBuilderTestPolicyPlugin findPluginForTestPolicy(AbstractPolicy policy,
-			AbstractNodeTemplate nodeTemplate) {
-		for (final IPlanBuilderTestPolicyPlugin plugin : this.pluginRegistry.getTestPlugins()) {
-			if (plugin.canHandle(nodeTemplate, policy)) {
-				return plugin;
-			}
-		}
-		LOGGER.error("No TestPlugin was found for test policy {} on NodeTemplate {}", policy.getName(),
-				nodeTemplate.getName());
-		return null;
 	}
 }

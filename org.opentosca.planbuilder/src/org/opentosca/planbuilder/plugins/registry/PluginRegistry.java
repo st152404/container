@@ -10,7 +10,7 @@ import org.opentosca.planbuilder.plugins.IPlanBuilderPostPhasePlugin;
 import org.opentosca.planbuilder.plugins.IPlanBuilderPrePhaseDAPlugin;
 import org.opentosca.planbuilder.plugins.IPlanBuilderPrePhaseIAPlugin;
 import org.opentosca.planbuilder.plugins.IPlanBuilderProvPhaseOperationPlugin;
-import org.opentosca.planbuilder.plugins.IPlanBuilderTestPolicyPlugin;
+import org.opentosca.planbuilder.plugins.IPlanBuilderTestPlugin;
 import org.opentosca.planbuilder.plugins.IPlanBuilderTypePlugin;
 import org.opentosca.planbuilder.plugins.IScalingPlanBuilderSelectionPlugin;
 import org.opentosca.planbuilder.plugins.activator.Activator;
@@ -86,18 +86,18 @@ public class PluginRegistry {
 		return plugins;
 	}
 
-	public List<IPlanBuilderTestPolicyPlugin<?>> getTestPlugins() {
-		final List<IPlanBuilderTestPolicyPlugin<?>> plugins = new ArrayList<>();
+	public List<IPlanBuilderTestPlugin<?>> getTestPlugins() {
+		final List<IPlanBuilderTestPlugin<?>> plugins = new ArrayList<>();
 
 		final BundleContext ctx = getCtx();
 
 		try {
-			final ServiceReference<?>[] refs = ctx.getAllServiceReferences(IPlanBuilderTestPolicyPlugin.class.getName(),
+			final ServiceReference<?>[] refs = ctx.getAllServiceReferences(IPlanBuilderTestPlugin.class.getName(),
 					null);
 
 			if (refs != null) {
 				for (final ServiceReference<?> ref : refs) {
-					plugins.add((IPlanBuilderTestPolicyPlugin<?>) ctx.getService(ref));
+					plugins.add((IPlanBuilderTestPlugin<?>) ctx.getService(ref));
 				}
 			}
 		} catch (final InvalidSyntaxException e) {

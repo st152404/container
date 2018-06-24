@@ -10,23 +10,24 @@ import java.util.Scanner;
 import org.opentosca.planbuilder.core.bpel.context.BPELPlanContext;
 import org.opentosca.planbuilder.model.tosca.AbstractArtifactReference;
 import org.opentosca.planbuilder.model.tosca.AbstractImplementationArtifact;
-import org.opentosca.planbuilder.model.tosca.AbstractInterface;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
+import org.opentosca.planbuilder.model.tosca.AbstractNodeTypeImplementation;
 import org.opentosca.planbuilder.model.tosca.AbstractOperation;
 import org.opentosca.planbuilder.model.tosca.AbstractParameter;
 import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
 import org.opentosca.planbuilder.plugins.context.Variable;
 import org.opentosca.planbuilder.provphase.plugin.invoker.bpel.BPELInvokerPlugin;
-import org.opentosca.planbuilder.tests.plugin.scripttest.core.ScriptTestPolicyPlugin;
+import org.opentosca.planbuilder.tests.plugin.scripttest.core.ScriptTestPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BPELScriptTestPolicyPlugin extends ScriptTestPolicyPlugin<BPELPlanContext> {
+public class BPELScriptTestPlugin extends ScriptTestPlugin<BPELPlanContext> {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(BPELScriptTestPolicyPlugin.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(BPELScriptTestPlugin.class);
 	private final BPELInvokerPlugin invokerPlugin = new BPELInvokerPlugin();
 	private static final String CSAR_STORE_URL = "http://localhost:1337/csars/";
-	private static final String RUN_SCRIPT_OPERATION = "runScript";
+	private static final String CONTAINER_MANAGEMENT_INTERFACE = "ContainerManagementInterface";
+	private static final String OPERATING_SYSTEM_INTERFACE = "OperatingSystemInterface";
 
 	@Override
 	public boolean handle(BPELPlanContext bpelPlanContext, AbstractNodeTemplate nodeTemplate,
@@ -38,8 +39,8 @@ public class BPELScriptTestPolicyPlugin extends ScriptTestPolicyPlugin<BPELPlanC
 		final List<AbstractArtifactReference> references = scriptArtifact.getArtifactRef().getArtifactReferences();
 
 		if (references.size() > 1) {
-			LOGGER.warn("More than one IA referenced for Node {} and Policy {} which might lead to inconsistency",
-					nodeTemplate.getName(), testPolicy.getName());
+			LOGGER.warn("More than one IA referenced for Node {} and Policy {}", nodeTemplate.getName(),
+					testPolicy.getName());
 			return false;
 		}
 		final String testScriptReference = references.get(0).getReference();
@@ -55,38 +56,65 @@ public class BPELScriptTestPolicyPlugin extends ScriptTestPolicyPlugin<BPELPlanC
 			}
 		}
 
+		// Find all input params for the runScript Operation
 		final Map<String, String> inputParamsMap = new HashMap<>();
-		inputParamsMap.put("ContainerIP", null);
-		inputParamsMap.put("SSHPort", null);
-		inputParamsMap.put("Script", scriptFileContent);
+		final AbstractOperation runScriptOperation = findRunScriptOperation(runScriptNode);
+		for (final AbstractParameter parameter : runScriptOperation.getInputParameters()) {
+			if (parameter.getName().equals("Script")) {
+				// put script content
+				inputParamsMap.put(parameter.getName(), scriptFileContent);
+			} else {
+				// has to be retrieved later
+				inputParamsMap.put(parameter.getName(), null);
+			}
+		}
 
+		// find all output params for the runScript Operation
 		final Map<String, String> outputParamsMap = new HashMap<>();
-		outputParamsMap.put("ScriptResult", null);
+		for (final AbstractParameter parameter : runScriptOperation.getOutputParameters()) {
+			inputParamsMap.put(parameter.getName(), null);
+		}
 
+		// create the maps from the params that the invoker needs
 		final Map<AbstractParameter, Variable> inputPar2VarMap = createParam2VarMapFromProps(inputParamsMap,
 				runScriptNode, bpelPlanContext);
 		final Map<AbstractParameter, Variable> outputPar2VarMap = createParam2VarMapFromProps(outputParamsMap,
 				runScriptNode, bpelPlanContext);
 
-		this.invokerPlugin.handle(bpelPlanContext, findRunScriptOperation(runScriptNode), scriptArtifact,
-				inputPar2VarMap, outputPar2VarMap);
+		final AbstractImplementationArtifact runScriptIA = findRunScriptIA(runScriptNode);
 
-		return false;
+		// TODO: This is a hack to replace the nodeTemplate of the plan context so the
+		// invoker invokes the right node
+		final AbstractNodeTemplate originalNodeTemplate = bpelPlanContext.getNodeTemplate();
+		bpelPlanContext.setNodeTemplate(runScriptNode);
+		this.invokerPlugin.handle(bpelPlanContext, runScriptOperation, runScriptIA, inputPar2VarMap, outputPar2VarMap);
+		bpelPlanContext.setNodeTemplate(originalNodeTemplate);
+
+		return true;
 	}
 
 	/**
-	 * Finds the runScript operation on the InfrastructureNode implementing the
-	 * runScript operation
+	 * Finds the IA that implements the runScript Operation
 	 *
 	 * @param runScriptNode
-	 *            the node implementing the runScript operation
 	 * @return
 	 */
-	private static AbstractOperation findRunScriptOperation(AbstractNodeTemplate runScriptNode) {
-		for (final AbstractInterface aInterface : runScriptNode.getType().getInterfaces()) {
-			for (final AbstractOperation aOp : aInterface.getOperations()) {
-				if (aOp.getName().equalsIgnoreCase(RUN_SCRIPT_OPERATION)) {
-					return aOp;
+	private AbstractImplementationArtifact findRunScriptIA(AbstractNodeTemplate runScriptNode) {
+		final List<AbstractNodeTypeImplementation> nodeImplementations = runScriptNode.getImplementations();
+		for (final AbstractNodeTypeImplementation nodeImpl : nodeImplementations) {
+			final List<AbstractImplementationArtifact> nodeIAs = nodeImpl.getImplementationArtifacts();
+			for (final AbstractImplementationArtifact nodeIA : nodeIAs) {
+				final String nodeOperationName = nodeIA.getOperationName();
+				if (nodeOperationName == null) {
+					final String nodeInterfaceName = nodeIA.getInterfaceName();
+					if (nodeInterfaceName.equalsIgnoreCase(CONTAINER_MANAGEMENT_INTERFACE)
+							|| nodeInterfaceName.equalsIgnoreCase(OPERATING_SYSTEM_INTERFACE)) {
+						// nodeIA implements interface containing runScript Operation
+						return nodeIA;
+					}
+				} else if (nodeOperationName.equalsIgnoreCase(RUN_SCRIPT_OPERATION_NAME)) {
+					// nodeIA implements runScript Operation
+					return nodeIA;
 				}
 			}
 		}
@@ -136,7 +164,7 @@ public class BPELScriptTestPolicyPlugin extends ScriptTestPolicyPlugin<BPELPlanC
 	}
 
 	/**
-	 * Retrieves the content of the referenced file.
+	 * Retrieves the content of the referenced file
 	 *
 	 * @param relativePath
 	 *            relative to [CSARNAME]/content/
@@ -151,10 +179,8 @@ public class BPELScriptTestPolicyPlugin extends ScriptTestPolicyPlugin<BPELPlanC
 			while (scanner.hasNext()) {
 				final String nextLine = scanner.nextLine();
 				scriptReader.append(nextLine + "\n");
-
 			}
 			script = scriptReader.toString();
-			System.out.println(script);
 		} catch (final IOException e) {
 			e.printStackTrace();
 		}

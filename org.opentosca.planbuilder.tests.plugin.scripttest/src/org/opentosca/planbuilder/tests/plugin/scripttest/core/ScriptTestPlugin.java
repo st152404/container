@@ -11,17 +11,17 @@ import org.opentosca.planbuilder.model.tosca.AbstractNodeTypeImplementation;
 import org.opentosca.planbuilder.model.tosca.AbstractOperation;
 import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipTemplate;
-import org.opentosca.planbuilder.plugins.IPlanBuilderTestPolicyPlugin;
+import org.opentosca.planbuilder.plugins.IPlanBuilderTestPlugin;
 import org.opentosca.planbuilder.plugins.context.PlanContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class ScriptTestPolicyPlugin<T extends PlanContext> implements IPlanBuilderTestPolicyPlugin<T> {
+public abstract class ScriptTestPlugin<T extends PlanContext> implements IPlanBuilderTestPlugin<T> {
 
-	final static Logger LOGGER = LoggerFactory.getLogger(ScriptTestPolicyPlugin.class);
+	final static Logger LOGGER = LoggerFactory.getLogger(ScriptTestPlugin.class);
 
 	private static final String PLUGIN_ID = "Script Test Policy Plugin";
-	private static final String RUN_SCRIPT_OPERATION_NAME = "runScript";
+	protected static final String RUN_SCRIPT_OPERATION_NAME = "runScript";
 	private static final String[] SUPPORTED_ARTIFACT_TYPES = { "ScriptArtifact" };
 
 	@Override
@@ -34,8 +34,6 @@ public abstract class ScriptTestPolicyPlugin<T extends PlanContext> implements I
 		final AbstractNodeTemplate infrastructureNode = findRunScriptInfrastructureNode(nodeTemplate);
 		final AbstractImplementationArtifact ia = findScriptTestIA(nodeTemplate, testPolicy);
 
-		// TODO: Replace supported PolicyType with check if its a ScriptIA, move
-		// reference check from bpel class here
 		if (infrastructureNode != null && ia != null && isSupportedIAType(ia)) {
 			return true;
 		}
@@ -56,7 +54,8 @@ public abstract class ScriptTestPolicyPlugin<T extends PlanContext> implements I
 			final List<AbstractImplementationArtifact> nodeIAs = nodeImpl.getImplementationArtifacts();
 			for (final AbstractImplementationArtifact nodeIA : nodeIAs) {
 				final String nodeIAOperationName = nodeIA.getOperationName();
-				if (testPolicy.getType().getName().toLowerCase().startsWith(nodeIAOperationName.toLowerCase())) {
+				if (nodeIAOperationName != null
+						&& testPolicy.getType().getName().toLowerCase().startsWith(nodeIAOperationName.toLowerCase())) {
 					return nodeIA;
 				}
 			}
@@ -78,20 +77,14 @@ public abstract class ScriptTestPolicyPlugin<T extends PlanContext> implements I
 		toCheck.add(nodeTemplate);
 		while (true) {
 			for (final AbstractNodeTemplate node : toCheck) {
-				final List<AbstractInterface> interfaces = node.getType().getInterfaces();
-				// add interfaces of super-node
-				interfaces.addAll(node.getType().getTypeRef().getInterfaces());
-				for (final AbstractInterface nodeInterface : interfaces) {
-					final List<AbstractOperation> operations = nodeInterface.getOperations();
-					for (final AbstractOperation operation : operations) {
-						if (operation.getName().equalsIgnoreCase(RUN_SCRIPT_OPERATION_NAME)) {
-							return node;
-						}
-					}
+				final AbstractOperation runScriptOperation = findRunScriptOperation(node);
+				if (runScriptOperation != null) {
+					// node has a runScript Operation
+					return node;
 				}
-				final List<AbstractRelationshipTemplate> relations = node.getIngoingRelations();
+				final List<AbstractRelationshipTemplate> relations = node.getOutgoingRelations();
 				for (final AbstractRelationshipTemplate relation : relations) {
-					toCheckNextIteration.add(relation.getSource());
+					toCheckNextIteration.add(relation.getTarget());
 				}
 			}
 			toCheck.clear();
@@ -102,6 +95,29 @@ public abstract class ScriptTestPolicyPlugin<T extends PlanContext> implements I
 				return null;
 			}
 		}
+	}
+
+	/**
+	 * Returns the runScript Operation of a nodeTemplate
+	 *
+	 * @param nodeTemplate
+	 * @return null if the nodeTemplate has no runScript Operation
+	 */
+	protected static AbstractOperation findRunScriptOperation(AbstractNodeTemplate nodeTemplate) {
+		final List<AbstractInterface> interfaces = nodeTemplate.getType().getInterfaces();
+		// add interfaces of super-node
+		if (nodeTemplate.getType().getTypeRef() != null) {
+			interfaces.addAll(nodeTemplate.getType().getTypeRef().getInterfaces());
+		}
+		for (final AbstractInterface nodeInterface : interfaces) {
+			final List<AbstractOperation> operations = nodeInterface.getOperations();
+			for (final AbstractOperation operation : operations) {
+				if (operation.getName().equalsIgnoreCase(RUN_SCRIPT_OPERATION_NAME)) {
+					return operation;
+				}
+			}
+		}
+		return null;
 	}
 
 	/**
