@@ -23,7 +23,7 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 	private final static String TESTING_ACTIVITY_SUFFIX = "_testing_activity";
 	private final static ActivityType TESTING_ACTIVITY_TYPE = ActivityType.TESTING;
 	protected final static String TEST_INTERFACE_NAMESPACE = "http://opentosca.org/interfaces/tests";
-	protected static final String TEST_POLICYTYPE_NAMESPACE = "http://opentosca.org/policytypes/annotations/tests";
+	protected static final String TEST_POLICYTYPE_NAMESPACE = "http://opentosca.org/policytypes/tests";
 
 	/**
 	 * Generates an ordered graph of the nodes that are to be tested
@@ -74,11 +74,13 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 
 		// find the successor test node for every relevant node
 		for (final AbstractNodeTemplate sourceNode : relevantNodes) {
-			final ANodeTemplateActivity relevantSourceNodeActivity = findActivityForNodeTemplate(sourceNode, relevantActivities);
+			final ANodeTemplateActivity relevantSourceNodeActivity = findActivityForNodeTemplate(sourceNode,
+					relevantActivities);
 			final Set<ANodeTemplateActivity> relevantTargetActivities = findNextRelevantTargetNodes(sourceNode,
 					relationshipTemplates, relevantNodes, relevantActivities);
 			for (final ANodeTemplateActivity relevantTargetActivity : relevantTargetActivities) {
-				// add links from relevant targetNodes to relevant sourceNodes (traversing from infrastructure to application)
+				// add links from relevant targetNodes to relevant sourceNodes (traversing from
+				// infrastructure to application)
 				ogLinks.add(new Link(relevantTargetActivity, relevantSourceNodeActivity));
 			}
 		}
@@ -165,7 +167,6 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 				final String activityId = activity.getId();
 				final String activityName = activityId.substring(0, activityId.indexOf(TESTING_ACTIVITY_SUFFIX));
 				if (activityName.equals(template.getId())) {
-					System.out.println("Equals: " + activityId + " and " + template.getId());
 					return (ANodeTemplateActivity) activity;
 				}
 			}

@@ -72,7 +72,7 @@ public class BPELScriptTestPlugin extends ScriptTestPlugin<BPELPlanContext> {
 		// find all output params for the runScript Operation
 		final Map<String, String> outputParamsMap = new HashMap<>();
 		for (final AbstractParameter parameter : runScriptOperation.getOutputParameters()) {
-			inputParamsMap.put(parameter.getName(), null);
+			outputParamsMap.put(parameter.getName(), null);
 		}
 
 		// create the maps from the params that the invoker needs
@@ -151,12 +151,17 @@ public class BPELScriptTestPlugin extends ScriptTestPlugin<BPELPlanContext> {
 			};
 			Variable var;
 			if (key.equals("Script") || key.equals("ScriptResult")) {
+				// needs a new variable
 				var = planContext.createGlobalStringVariable(runScriptNode.getName() + "_" + key, props.get(key));
 			} else {
+				// retrieve from existing properties
 				var = planContext.getPropertyVariable(key);
 			}
-			if (var.getName() == null) {
-				var = new Variable(var.getTemplateId(), "prop_" + var.getTemplateId() + "_" + key);
+			if (var != null) {
+				if (var.getName() == null) {
+					// variable was found but has no name
+					var = new Variable(var.getTemplateId(), "prop_" + var.getTemplateId() + "_" + key);
+				}
 			}
 			param2VarMap.put(par, var);
 		}

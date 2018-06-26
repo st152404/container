@@ -54,7 +54,7 @@ public abstract class ScriptTestPlugin<T extends PlanContext> implements IPlanBu
 			final List<AbstractImplementationArtifact> nodeIAs = nodeImpl.getImplementationArtifacts();
 			for (final AbstractImplementationArtifact nodeIA : nodeIAs) {
 				final String nodeIAOperationName = nodeIA.getOperationName();
-				if (nodeIAOperationName != null
+				if (nodeIAOperationName != null && nodeIAOperationName.length() > 0
 						&& testPolicy.getType().getName().toLowerCase().startsWith(nodeIAOperationName.toLowerCase())) {
 					return nodeIA;
 				}
