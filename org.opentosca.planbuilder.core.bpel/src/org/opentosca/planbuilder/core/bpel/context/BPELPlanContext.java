@@ -54,6 +54,10 @@ import org.w3c.dom.NodeList;
  */
 public class BPELPlanContext implements PlanContext {
 
+	public enum Phase {
+		PRE, PROV, POST
+	}
+
 	private final static Logger LOG = LoggerFactory.getLogger(BPELPlanContext.class);
 
 	private static final String BPEL_PLAN_CONTEXT = "BPEL Plan Context";
@@ -212,7 +216,7 @@ public class BPELPlanContext implements PlanContext {
 
 	public String findInstanceURLVar(final String templateId, final boolean isNode) {
 		final String instanceURLVarName = (isNode ? "node" : "relationship") + "InstanceURL_"
-				+ templateId.replace(".", "_") + "_";
+				+ ModelUtils.makeValidNCName(templateId) + "_";
 		for (final String varName : getMainVariableNames()) {
 			if (varName.contains(instanceURLVarName)) {
 				return varName;
@@ -223,7 +227,7 @@ public class BPELPlanContext implements PlanContext {
 
 	public String findInstanceIDVar(final String templateId, final boolean isNode) {
 		final String instanceURLVarName = (isNode ? "node" : "relationship") + "InstanceID_"
-				+ templateId.replace(".", "_") + "_";
+				+ ModelUtils.makeValidNCName(templateId) + "_";
 		final List<String> varNames = getMainVariableNames();
 		for (final String varName : varNames) {
 			if (varName.contains(instanceURLVarName)) {
@@ -1419,13 +1423,7 @@ public class BPELPlanContext implements PlanContext {
 	 * @return a List of AbstractRelationshipTemplate
 	 */
 	public List<AbstractRelationshipTemplate> getRelationshipTemplates() {
-		for (final AbstractServiceTemplate serviceTemplate : this.templateBuildPlan.getBuildPlan().getDefinitions()
-				.getServiceTemplates()) {
-			if (serviceTemplate.getQName().equals(this.serviceTemplate)) {
-				return serviceTemplate.getTopologyTemplate().getRelationshipTemplates();
-			}
-		}
-		return null;
+		return this.serviceTemplate.getTopologyTemplate().getRelationshipTemplates();
 	}
 
 	/**
@@ -1699,7 +1697,7 @@ public class BPELPlanContext implements PlanContext {
 
 	/**
 	 * Sets the nodeTemplate of the plan context
-	 * 
+	 *
 	 * @param nodeTemplate
 	 */
 	public void setNodeTemplate(AbstractNodeTemplate nodeTemplate) {

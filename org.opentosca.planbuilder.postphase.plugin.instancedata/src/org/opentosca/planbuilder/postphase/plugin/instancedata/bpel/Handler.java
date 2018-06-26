@@ -29,6 +29,7 @@ import org.opentosca.planbuilder.model.tosca.AbstractRelationshipTemplate;
 import org.opentosca.planbuilder.model.utils.ModelUtils;
 import org.opentosca.planbuilder.plugins.context.Variable;
 import org.opentosca.planbuilder.postphase.plugin.instancedata.core.InstanceStates;
+import org.opentosca.planbuilder.provphase.plugin.invoker.bpel.BPELInvokerPlugin;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -49,6 +50,7 @@ public class Handler {
 
     private Fragments fragments;
     private BPELProcessFragments bpelFrags;
+    private BPELInvokerPlugin invoker;
 
     private final XPathFactory xPathfactory = XPathFactory.newInstance();
 
@@ -57,6 +59,7 @@ public class Handler {
         try {
             this.fragments = new Fragments();
             this.bpelFrags = new BPELProcessFragments();
+            this.invoker = new BPELInvokerPlugin();
         }
         catch (final ParserConfigurationException e) {
             e.printStackTrace();
@@ -75,7 +78,7 @@ public class Handler {
 
     private String createStateVar(final BPELPlanContext context, final String templateId) {
         // create state variable inside scope
-        final String stateVarName = templateId.replace(".", "_") + "_state_" + context.getIdForNames();
+        final String stateVarName = ModelUtils.makeValidNCName(templateId) + "_state_" + context.getIdForNames();
         final QName stringTypeDeclId =
             context.importQName(new QName("http://www.w3.org/2001/XMLSchema", "string", "xsd"));
         if (!context.addGlobalVariable(stateVarName, BPELPlan.VariableType.TYPE, stringTypeDeclId)) {
@@ -88,7 +91,7 @@ public class Handler {
 
     public String createInstanceURLVar(final BPELPlanContext context, final String templateId) {
         final String instanceURLVarName = (context.getRelationshipTemplate() == null ? "node" : "relationship")
-            + "InstanceURL_" + templateId.replace(".", "_") + "_" + context.getIdForNames();
+            + "InstanceURL_" + ModelUtils.makeValidNCName(templateId) + "_" + context.getIdForNames();
         final QName stringTypeDeclId =
             context.importQName(new QName("http://www.w3.org/2001/XMLSchema", "string", "xsd"));
         if (!context.addGlobalVariable(instanceURLVarName, BPELPlan.VariableType.TYPE, stringTypeDeclId)) {
@@ -100,7 +103,7 @@ public class Handler {
 
     public String createInstanceIDVar(final BPELPlanContext context, final String templateId) {
         final String instanceURLVarName = (context.getRelationshipTemplate() == null ? "node" : "relationship")
-            + "InstanceID_" + templateId.replace(".", "_") + "_" + context.getIdForNames();
+            + "InstanceID_" + ModelUtils.makeValidNCName(templateId) + "_" + context.getIdForNames();
         final QName stringTypeDeclId =
             context.importQName(new QName("http://www.w3.org/2001/XMLSchema", "string", "xsd"));
         if (!context.addGlobalVariable(instanceURLVarName, BPELPlan.VariableType.TYPE, stringTypeDeclId)) {
@@ -649,7 +652,20 @@ public class Handler {
             appendUpdateProperties(context, nodeTemplate, nodeInstanceURLVarName, restCallResponseVarName,
                                    postPhaseElement);
         }
+
+        // add progression log message
+        appendProgressionUpdateLogMessage(context, nodeTemplate.getId());
+
         return true;
+    }
+
+    private void appendProgressionUpdateLogMessage(final BPELPlanContext context, final String templateId) {
+
+        final int topologySize = context.getNodeTemplates().size() + context.getRelationshipTemplates().size();
+
+        final String message = "Finished with " + templateId + " of overall topology with steps of " + topologySize;
+
+        this.invoker.addLogActivity(context, message, BPELPlanContext.Phase.POST);
     }
 
     public boolean appendUpdateProperties(final BPELPlanContext context, final AbstractNodeTemplate nodeTemplate,
@@ -993,6 +1009,8 @@ public class Handler {
                 return false;
             }
         }
+
+        appendProgressionUpdateLogMessage(context, relationshipTemplate.getId());
 
         return true;
     }
