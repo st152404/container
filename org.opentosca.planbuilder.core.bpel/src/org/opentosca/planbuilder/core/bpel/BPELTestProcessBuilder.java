@@ -63,10 +63,10 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 	public BPELPlan buildPlan(final String csarName, final AbstractDefinitions definitions,
 			final QName serviceTemplateId) {
 		final List<AbstractServiceTemplate> serviceTemplates = definitions.getServiceTemplates();
+
 		for (final AbstractServiceTemplate serviceTemplate : serviceTemplates) {
 			String namespace = serviceTemplate.getTargetNamespace();
 			if (namespace == null) {
-				// if
 				namespace = definitions.getTargetNamespace();
 			}
 			if (!namespace.equals(serviceTemplateId.getNamespaceURI())
@@ -81,7 +81,7 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 			final AbstractPlan abstractTestPlan = generateTestDAG(new QName(processNamespace, processName).toString(),
 					definitions, serviceTemplate);
 
-			LOGGER.debug("Generated the following abstract test plan: \n{}", abstractTestPlan.toString());
+			LOGGER.debug("Generated the following abstract test plan:\n{}", abstractTestPlan.toString());
 
 			final BPELPlan bpelTestPlan = this.planHandler.createEmptyBPELPlan(processNamespace, processName,
 					abstractTestPlan, TEST_INPUT_OPERATION_NAME);
@@ -107,7 +107,7 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 
 			this.planHandler.registerExtension(BPEL_REST_NAMESPACE, true, bpelTestPlan);
 
-			runTestPlugins(bpelTestPlan);
+			runTestPlugins(bpelTestPlan, propMap);
 
 			this.serviceInstanceVarsHandler.appendSetServiceInstanceState(bpelTestPlan,
 					bpelTestPlan.getBpelMainSequenceOutputAssignElement(), "TESTED");
@@ -163,21 +163,12 @@ public class BPELTestProcessBuilder extends AbstractTestPlanBuilder {
 		return testPlanList;
 	}
 
-	private void runTestPlugins(final BPELPlan bpelTestPlan) {
+	private void runTestPlugins(final BPELPlan bpelTestPlan, PropertyMap propMap) {
 		final List<BPELScopeActivity> bpelScopes = bpelTestPlan.getTemplateBuildPlans();
 		final AbstractServiceTemplate serviceTemplate = bpelTestPlan.getServiceTemplate();
-		PropertyVariableInitializer initializer = null;
-		try {
-			initializer = new PropertyVariableInitializer(new BPELPlanHandler());
-		} catch (final ParserConfigurationException e) {
-			e.printStackTrace();
-		}
 
 		for (final BPELScopeActivity bpelScope : bpelScopes) {
-			final PropertyMap dummyMap = initializer.new PropertyMap();
-			// FIXME: this is a dirty hack, we don't need any "normal" variables for the
-			// test execution (yet) so a workaround was made
-			final BPELPlanContext context = new BPELPlanContext(bpelScope, dummyMap, serviceTemplate);
+			final BPELPlanContext context = new BPELPlanContext(bpelScope, propMap, serviceTemplate);
 			final AbstractNodeTemplate nodeTemplate = bpelScope.getNodeTemplate();
 			if (nodeTemplate == null) {
 				// Tests for relationships are not planned

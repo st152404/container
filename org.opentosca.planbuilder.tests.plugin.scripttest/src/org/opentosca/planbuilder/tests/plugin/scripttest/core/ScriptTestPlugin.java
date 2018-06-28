@@ -133,6 +133,7 @@ public abstract class ScriptTestPlugin<T extends PlanContext> implements IPlanBu
 				return true;
 			}
 		}
+		LOGGER.warn("Found IA of Type {} but Plugin only supports {}", iaType, SUPPORTED_ARTIFACT_TYPES);
 		return false;
 	}
 

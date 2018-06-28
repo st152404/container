@@ -20,7 +20,7 @@ import org.opentosca.planbuilder.model.tosca.AbstractTopologyTemplate;
 
 public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 
-	private final static String TESTING_ACTIVITY_SUFFIX = "_testing_activity";
+	private final static String TESTING_ACTIVITY_SUFFIX = "_testing-activity";
 	private final static ActivityType TESTING_ACTIVITY_TYPE = ActivityType.TESTING;
 	protected final static String TEST_INTERFACE_NAMESPACE = "http://opentosca.org/interfaces/tests";
 	protected static final String TEST_POLICYTYPE_NAMESPACE = "http://opentosca.org/policytypes/tests";
@@ -37,22 +37,27 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 			final AbstractServiceTemplate serviceTemplate) {
 
 		final Set<AbstractNodeTemplate> relevantNodes = new HashSet<>();
-		final Set<AbstractActivity> relevantActivities = new HashSet<>();
+		final Set<AbstractActivity> allActivities = new HashSet<>();
 		final AbstractTopologyTemplate topology = serviceTemplate.getTopologyTemplate();
 
 		for (final AbstractNodeTemplate nodeTemplate : topology.getNodeTemplates()) {
 			// Only add nodes that have tests defined
 			if (nodeTemplateHasTests(nodeTemplate)) {
 				relevantNodes.add(nodeTemplate);
-				relevantActivities.add(new ANodeTemplateActivity(nodeTemplate.getId() + TESTING_ACTIVITY_SUFFIX,
+				allActivities.add(new ANodeTemplateActivity(nodeTemplate.getId() + TESTING_ACTIVITY_SUFFIX,
 						TESTING_ACTIVITY_TYPE, nodeTemplate));
+			} else {
+				// this is a hack, but we might need access to properties of node templates that
+				// are not "relevant" so we have to add them as a
+				allActivities.add(
+						new ANodeTemplateActivity(nodeTemplate.getId() + "_mock", TESTING_ACTIVITY_TYPE, nodeTemplate));
 			}
 		}
 
-		final Set<Link> links = createDAG(relevantNodes, topology.getRelationshipTemplates(), relevantActivities);
+		final Set<Link> links = createDAG(relevantNodes, topology.getRelationshipTemplates(), allActivities);
 
 		final AbstractPlan abstractTestPlan = new AbstractPlan(id, AbstractPlan.PlanType.TEST, definitions,
-				serviceTemplate, relevantActivities, links) {
+				serviceTemplate, allActivities, links) {
 		};
 
 		System.out.println(abstractTestPlan.toString());
@@ -68,16 +73,19 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 	 */
 	private Set<Link> createDAG(final Collection<AbstractNodeTemplate> relevantNodes,
 			final Collection<AbstractRelationshipTemplate> relationshipTemplates,
-			final Collection<AbstractActivity> relevantActivities) {
+			final Collection<AbstractActivity> allActivities) {
 
 		final Set<Link> ogLinks = new HashSet<>();
 
 		// find the successor test node for every relevant node
 		for (final AbstractNodeTemplate sourceNode : relevantNodes) {
 			final ANodeTemplateActivity relevantSourceNodeActivity = findActivityForNodeTemplate(sourceNode,
-					relevantActivities);
+					allActivities);
+			if (relevantSourceNodeActivity == null) {
+				continue;
+			}
 			final Set<ANodeTemplateActivity> relevantTargetActivities = findNextRelevantTargetNodes(sourceNode,
-					relationshipTemplates, relevantNodes, relevantActivities);
+					relationshipTemplates, relevantNodes, allActivities);
 			for (final ANodeTemplateActivity relevantTargetActivity : relevantTargetActivities) {
 				// add links from relevant targetNodes to relevant sourceNodes (traversing from
 				// infrastructure to application)
@@ -164,9 +172,7 @@ public abstract class AbstractTestPlanBuilder extends AbstractPlanBuilder {
 			final Collection<AbstractActivity> activities) {
 		for (final AbstractActivity activity : activities) {
 			if (activity instanceof ANodeTemplateActivity) {
-				final String activityId = activity.getId();
-				final String activityName = activityId.substring(0, activityId.indexOf(TESTING_ACTIVITY_SUFFIX));
-				if (activityName.equals(template.getId())) {
+				if (((ANodeTemplateActivity) activity).getNodeTemplate().equals(template)) {
 					return (ANodeTemplateActivity) activity;
 				}
 			}

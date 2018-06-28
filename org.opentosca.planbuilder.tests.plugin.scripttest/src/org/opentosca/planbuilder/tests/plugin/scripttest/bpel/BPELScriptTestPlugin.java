@@ -155,13 +155,10 @@ public class BPELScriptTestPlugin extends ScriptTestPlugin<BPELPlanContext> {
 				var = planContext.createGlobalStringVariable(runScriptNode.getName() + "_" + key, props.get(key));
 			} else {
 				// retrieve from existing properties
-				var = planContext.getPropertyVariable(key);
+				var = planContext.getPropertyFromAllNodeTemplates(key);
 			}
-			if (var != null) {
-				if (var.getName() == null) {
-					// variable was found but has no name
-					var = new Variable(var.getTemplateId(), "prop_" + var.getTemplateId() + "_" + key);
-				}
+			if (var == null) {
+				var = new Variable(runScriptNode.getId(), "prop_" + runScriptNode.getId() + "_" + key);
 			}
 			param2VarMap.put(par, var);
 		}

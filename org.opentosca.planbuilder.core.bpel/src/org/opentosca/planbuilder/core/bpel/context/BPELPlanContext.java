@@ -1303,6 +1303,31 @@ public class BPELPlanContext implements PlanContext {
 	}
 
 	/**
+	 * Not only checks the nodes that have a scope in the context for their
+	 * variables but all of them
+	 *
+	 * @param localName
+	 * @return
+	 */
+	public Variable getPropertyFromAllNodeTemplates(final String localName) {
+		final List<AbstractNodeTemplate> nodeTemplates = getNodeTemplates();
+		for (final AbstractNodeTemplate nodeTemplate : nodeTemplates) {
+			if (nodeTemplate.getProperties() == null || nodeTemplate.getProperties().getDOMElement() == null) {
+				continue;
+			}
+			final NodeList infraNodePropChilde = nodeTemplate.getProperties().getDOMElement().getChildNodes();
+			for (int index = 0; index < infraNodePropChilde.getLength(); index++) {
+				final Node infraNodeProp = infraNodePropChilde.item(index);
+				if (localName.equals(infraNodeProp.getLocalName())) {
+					return new Variable(nodeTemplate.getId(),
+							getVariableNameOfProperty(nodeTemplate.getId(), infraNodeProp.getLocalName()));
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Looks for a Property with the same localName as the given toscaParameter. The
 	 * search is on the whole TopologyTemplate this TemplateContext belongs to.
 	 *
