@@ -84,8 +84,14 @@ public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanCo
                 distributionSet = context.getPropertyVariable("distributionSet");
             }
 
+            Variable assignedDS = context.getPropertyVariable("assignedDS", true);
+            if (assignedDS == null) {
+                assignedDS = context.getPropertyVariable("assignedDS");
+            }
+
             internalExternalPropsOutput.put("deviceID", deviceID);
             internalExternalPropsOutput.put("distributionSet", distributionSet);
+            internalExternalPropsOutput.put("assignedDS", assignedDS);
 
 
             LOG.debug("Calling the Invoker for BUILD");
