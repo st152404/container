@@ -60,6 +60,7 @@ public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanCo
             if (otaManager == null) {
                 return false;
             }
+
             final String templateId = otaManager.getId();
             final boolean isNodeTemplate = true;
             final String operationName = "install";
@@ -121,46 +122,58 @@ public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanCo
             final String operation = context.getTemplateBuildPlan().getBuildPlan().getTOSCAOperationName();
 
             String operationName = "";
-            final String interfaceName = "devicemanagement";
+            String interfaceName = "";
             final String callbackAddressVarName = "planCallbackAddress_invoker";
-            final Map<String, Variable> internalExternalPropsInput = new HashMap<>();
-            final Map<String, Variable> internalExternalPropsOutput = new HashMap<>();
+            final Map<AbstractParameter, Variable> internalExternalPropsInput = new HashMap<>();
+            final Map<AbstractParameter, Variable> internalExternalPropsOutput = new HashMap<>();
             final BPELScopePhaseType phase = BPELScopePhaseType.PROVISIONING;
 
             switch (operation) {
                 case "addBinary":
                     operationName = "uploadBinary";
-                    internalExternalPropsInput.put("tenant", context.getPropertyVariable(otaManager, "tenant"));
-                    internalExternalPropsInput.put("user", context.getPropertyVariable(otaManager, "user"));
-                    internalExternalPropsInput.put("password", context.getPropertyVariable(otaManager, "password"));
-                    internalExternalPropsInput.put("host", context.getPropertyVariable(otaManager, "host"));
-                    internalExternalPropsInput.put("distributionSetName",
+                    interfaceName = "devicemanagement_binaries";
+                    internalExternalPropsInput.put(createParameter("tenant"),
+                                                   context.getPropertyVariable(otaManager, "tenant"));
+                    internalExternalPropsInput.put(createParameter("user"),
+                                                   context.getPropertyVariable(otaManager, "user"));
+                    internalExternalPropsInput.put(createParameter("password"),
+                                                   context.getPropertyVariable(otaManager, "password"));
+                    internalExternalPropsInput.put(createParameter("host"),
+                                                   context.getPropertyVariable(otaManager, "host"));
+                    internalExternalPropsInput.put(createParameter("distributionSetName"),
                                                    context.getPropertyVariable(otaManager, "distributionSetName"));
-                    internalExternalPropsInput.put("urlToBinary",
+                    internalExternalPropsInput.put(createParameter("urlToBinary"),
                                                    context.getPropertyVariable(otaManager, "urlToBinary"));
+                    internalExternalPropsOutput.put(createParameter("success"),
+                                                    context.getPropertyVariable(otaManager, "success"));
                     break;
                 case "updateDevice":
                     operationName = "updateDevice";
+                    interfaceName = "devicemanagement";
 
-                    internalExternalPropsInput.put("tenant", context.getPropertyVariable(otaManager, "tenant"));
-                    internalExternalPropsInput.put("user", context.getPropertyVariable(otaManager, "user"));
-                    internalExternalPropsInput.put("password", context.getPropertyVariable(otaManager, "password"));
-                    internalExternalPropsInput.put("host", context.getPropertyVariable(otaManager, "host"));
-                    internalExternalPropsInput.put("distributionSetName",
+                    internalExternalPropsInput.put(createParameter("tenant"),
+                                                   context.getPropertyVariable(otaManager, "tenant"));
+                    internalExternalPropsInput.put(createParameter("user"),
+                                                   context.getPropertyVariable(otaManager, "user"));
+                    internalExternalPropsInput.put(createParameter("password"),
+                                                   context.getPropertyVariable(otaManager, "password"));
+                    internalExternalPropsInput.put(createParameter("host"),
+                                                   context.getPropertyVariable(otaManager, "host"));
+                    internalExternalPropsInput.put(createParameter("distributionSetName"),
                                                    context.getPropertyVariable(otaManager, "distributionSetName"));
-                    internalExternalPropsInput.put("deviceName", context.getPropertyVariable(otaManager, "deviceName"));
+                    internalExternalPropsInput.put(createParameter("deviceName"),
+                                                   context.getPropertyVariable(otaManager, "deviceName"));
+                    internalExternalPropsOutput.put(createParameter("success"),
+                                                    context.getPropertyVariable(otaManager, "success"));
                     break;
             }
 
             LOG.debug("Calling the Invoker for MANAGE");
-            invokerPlugin.handle(context, templateId, isNodeTemplate, operationName, interfaceName,
-                                 callbackAddressVarName, internalExternalPropsInput, internalExternalPropsOutput,
-                                 phase);
+            context.executeOperation(otaManager, interfaceName, operationName, internalExternalPropsInput);// ,
             LOG.debug("Invoker was called for MANAGE");
             return true;
         }
     }
-
 
     private AbstractParameter createParameter(final String parameter) {
         return new AbstractParameter() {

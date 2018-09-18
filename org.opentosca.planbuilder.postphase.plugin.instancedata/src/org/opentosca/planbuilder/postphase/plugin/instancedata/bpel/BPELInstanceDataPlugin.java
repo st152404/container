@@ -7,6 +7,7 @@ import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipTemplate;
+import org.opentosca.planbuilder.model.utils.ModelUtils;
 import org.opentosca.planbuilder.postphase.plugin.instancedata.core.InstanceDataPlugin;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -33,28 +34,35 @@ public class BPELInstanceDataPlugin extends InstanceDataPlugin<BPELPlanContext> 
     public boolean handle(final BPELPlanContext context, final AbstractNodeTemplate nodeTemplate) {
         // TODO FIXME this is a huge assumption right now! Not all management plans need
         // instance handling for provisioning
-        if (context.getPlanType().equals(AbstractPlan.PlanType.BUILD)
-            || context.getPlanType().equals(AbstractPlan.PlanType.MANAGE)) {
-            return this.handler.handleBuild(context, nodeTemplate);
+        if (context.getPlanType().equals(AbstractPlan.PlanType.BUILD)) {
+            return handler.handleBuild(context, nodeTemplate);
+        } else if (context.getPlanType().equals(AbstractPlan.PlanType.MANAGE)) {
+            if (ModelUtils.getNodeTypeHierarchy(nodeTemplate.getType())
+                          .contains(new QName("http://opentosca.org/nodetypes", "OTA_Manager_w1-wip1"))) {
+                // Well the huge assumptions is wrong...
+                return handler.handleTerminate(context, nodeTemplate);
+            } else {
+                return handler.handleBuild(context, nodeTemplate);
+            }
         } else {
-            return this.handler.handleTerminate(context, nodeTemplate);
+            return handler.handleTerminate(context, nodeTemplate);
         }
     }
 
     @Override
     public boolean handle(final BPELPlanContext context, final AbstractRelationshipTemplate relationshipTemplate) {
-        return this.handler.handle(context, relationshipTemplate);
+        return handler.handle(context, relationshipTemplate);
     }
 
     @Override
     public boolean handle(final BPELPlanContext context, final AbstractNodeTemplate nodeTemplate,
                           final AbstractPolicy policy) {
-        return this.handler.handlePasswordCheck(context, nodeTemplate);
+        return handler.handlePasswordCheck(context, nodeTemplate);
     }
 
     @Override
     public boolean canHandle(final AbstractNodeTemplate nodeTemplate, final AbstractPolicy policy) {
-        if (!policy.getType().getId().equals(this.securePasswordPolicyType)) {
+        if (!policy.getType().getId().equals(securePasswordPolicyType)) {
             return false;
         }
 
