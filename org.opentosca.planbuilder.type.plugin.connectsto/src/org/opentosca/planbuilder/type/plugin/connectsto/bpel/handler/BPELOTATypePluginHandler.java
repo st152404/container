@@ -116,17 +116,13 @@ public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanCo
             if (otaManager == null) {
                 return false;
             }
-            final String templateId = otaManager.getId();
-            final boolean isNodeTemplate = true;
 
             final String operation = context.getTemplateBuildPlan().getBuildPlan().getTOSCAOperationName();
 
             String operationName = "";
             String interfaceName = "";
-            final String callbackAddressVarName = "planCallbackAddress_invoker";
             final Map<AbstractParameter, Variable> internalExternalPropsInput = new HashMap<>();
             final Map<AbstractParameter, Variable> internalExternalPropsOutput = new HashMap<>();
-            final BPELScopePhaseType phase = BPELScopePhaseType.PROVISIONING;
 
             switch (operation) {
                 case "addBinary":
@@ -166,10 +162,26 @@ public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanCo
                     internalExternalPropsOutput.put(createParameter("success"),
                                                     context.getPropertyVariable(otaManager, "success"));
                     break;
+                case "syncTOSCAwithRollout":
+                    operationName = "syncTOSCAwithRollout";
+                    interfaceName = "devicemanagement_sync";
+
+                    internalExternalPropsInput.put(createParameter("tenant"),
+                                                   context.getPropertyVariable(otaManager, "tenant"));
+                    internalExternalPropsInput.put(createParameter("user"),
+                                                   context.getPropertyVariable(otaManager, "user"));
+                    internalExternalPropsInput.put(createParameter("password"),
+                                                   context.getPropertyVariable(otaManager, "password"));
+                    internalExternalPropsInput.put(createParameter("host"),
+                                                   context.getPropertyVariable(otaManager, "host"));
+                    internalExternalPropsOutput.put(createParameter("success"),
+                                                    context.getPropertyVariable(otaManager, "success"));
+
+                    break;
             }
 
             LOG.debug("Calling the Invoker for MANAGE");
-            context.executeOperation(otaManager, interfaceName, operationName, internalExternalPropsInput);// ,
+            context.executeOperation(otaManager, interfaceName, operationName, internalExternalPropsInput);
             LOG.debug("Invoker was called for MANAGE");
             return true;
         }

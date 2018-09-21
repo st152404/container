@@ -115,10 +115,6 @@ public class BPELOTAProcessBuilder extends AbstractOTAPlanBuilder {
 
             boolean doNotHandle = true;
 
-            if (!tags.containsKey("iotplan_1")) {
-                return plans;
-            }
-
             for (int i = 0; i <= tags.size(); i++) {
                 if (tags.containsKey("iotplan_" + i)) {
                     doNotHandle = false;
