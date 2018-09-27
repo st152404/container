@@ -1,5 +1,6 @@
 package org.opentosca.planbuilder.model.tosca;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.xml.namespace.QName;
@@ -75,8 +76,15 @@ public abstract class AbstractServiceTemplate {
     /**
      * Returns the Tags set on this Service Template
      *
-     * @return a Map from String to Strin representing the keys and values of TOSCA tags
+     * @return a Map from String to String representing the keys and values of TOSCA tags
      */
     public abstract Map<String, String> getTags();
+
+    /**
+     * Returns the defined groups of this Service Template
+     *
+     * @return a List of AbstractGroups representing the defined groups of this Service Template
+     */
+    public abstract List<AbstractGroup> getGroups();
 
 }

@@ -1,5 +1,6 @@
 package org.opentosca.planbuilder.importer.context.impl;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,10 +12,12 @@ import org.oasis_open.docs.tosca.ns._2011._12.TPlans;
 import org.oasis_open.docs.tosca.ns._2011._12.TServiceTemplate;
 import org.oasis_open.docs.tosca.ns._2011._12.TTag;
 import org.opentosca.planbuilder.model.tosca.AbstractBoundaryDefinitions;
+import org.opentosca.planbuilder.model.tosca.AbstractGroup;
 import org.opentosca.planbuilder.model.tosca.AbstractServiceTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractTopologyTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Element;
 
 /**
  * <p>
@@ -33,6 +36,7 @@ public class ServiceTemplateImpl extends AbstractServiceTemplate {
     private TServiceTemplate serviceTemplate = null;
     private AbstractTopologyTemplate topologyTemplate = null;
     private DefinitionsImpl definitions = null;
+    private List<AbstractGroup> groups;
 
 
     /**
@@ -44,7 +48,8 @@ public class ServiceTemplateImpl extends AbstractServiceTemplate {
     public ServiceTemplateImpl(final TServiceTemplate serviceTemplate, final DefinitionsImpl definitionsImpl) {
         this.serviceTemplate = serviceTemplate;
         this.definitions = definitionsImpl;
-        this.setUpTopologyTemplate();
+        setUpTopologyTemplate();
+        setUpGroups();
     }
 
     /**
@@ -71,13 +76,35 @@ public class ServiceTemplateImpl extends AbstractServiceTemplate {
         this.topologyTemplate = new TopologyTemplateImpl(this.serviceTemplate.getTopologyTemplate(), this.definitions);
     }
 
+    private void setUpGroups() {
+        final List<Object> obj = this.serviceTemplate.getAny();
+
+        this.groups = new ArrayList<>();
+
+        for (final Object object : obj) {
+            if (object instanceof Element) {
+                final Element element = (Element) object;
+                if (element.getLocalName().equals("Groups")) {
+                    for (int index = 0; index < element.getChildNodes().getLength(); index++) {
+                        if (element.getChildNodes().item(index) instanceof Element
+                            && ((Element) element.getChildNodes().item(index)).getLocalName().equals("Group")) {
+                            this.groups.add(new GroupImpl(this.topologyTemplate,
+                                (Element) element.getChildNodes().item(index)));
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * {@inheritDoc}
      */
     @Override
     public String getTargetNamespace() {
         if (this.serviceTemplate.getTargetNamespace() == null) {
-            ServiceTemplateImpl.LOG.warn("TargetNamespace of ServiceTemplate  {} is null!", this.getId());
+            ServiceTemplateImpl.LOG.warn("TargetNamespace of ServiceTemplate  {} is null!", getId());
         }
         return this.serviceTemplate.getTargetNamespace();
     }
@@ -106,11 +133,11 @@ public class ServiceTemplateImpl extends AbstractServiceTemplate {
      */
     @Override
     public QName getQName() {
-        String namespace = this.getTargetNamespace();
+        String namespace = getTargetNamespace();
         if (namespace == null) {
             namespace = this.definitions.getTargetNamespace();
         }
-        final String id = this.getId();
+        final String id = getId();
         return new QName(namespace, id);
     }
 
@@ -135,7 +162,7 @@ public class ServiceTemplateImpl extends AbstractServiceTemplate {
             final TPlans plans = this.serviceTemplate.getPlans();
             final List<TPlan> plans2 = plans.getPlan();
             ServiceTemplateImpl.LOG.debug("Checking whether ServiceTemplate {} has no BuildPlan",
-                                          this.getQName().toString());
+                                          getQName().toString());
             for (final TPlan plan : plans.getPlan()) {
                 ServiceTemplateImpl.LOG.debug("Checking Plan {} of Type {}", plan.getId(), plan.getPlanType());
                 if (plan.getPlanType().trim()
@@ -154,7 +181,7 @@ public class ServiceTemplateImpl extends AbstractServiceTemplate {
             final TPlans plans = this.serviceTemplate.getPlans();
             final List<TPlan> plans2 = plans.getPlan();
             ServiceTemplateImpl.LOG.debug("Checking whether ServiceTemplate {} has no TerminationPlan",
-                                          this.getQName().toString());
+                                          getQName().toString());
             for (final TPlan plan : plans.getPlan()) {
                 ServiceTemplateImpl.LOG.debug("Checking Plan {} of Type {}", plan.getId(), plan.getPlanType());
                 if (plan.getPlanType().trim()
@@ -182,6 +209,12 @@ public class ServiceTemplateImpl extends AbstractServiceTemplate {
         }
 
         return tags;
+    }
+
+    @Override
+    public List<AbstractGroup> getGroups() {
+
+        return null;
     }
 
 }
