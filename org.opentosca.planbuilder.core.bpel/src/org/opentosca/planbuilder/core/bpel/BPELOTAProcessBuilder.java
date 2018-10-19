@@ -28,10 +28,15 @@ import org.opentosca.planbuilder.plugins.IPlanBuilderTypePlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Class to create a BPELPlan for the Build and Managementoperations for IoT-Devices
+ *
+ * @author Marc Schmid
+ *
+ */
 public class BPELOTAProcessBuilder extends AbstractOTAPlanBuilder {
 
     private final static Logger LOG = LoggerFactory.getLogger(BPELOTAProcessBuilder.class);
-
     private final PropertyVariableInitializer propertyInitializer;
     private ServiceInstanceVariablesHandler serviceInstanceInitializer;
     private final BPELFinalizer finalizer;
@@ -39,6 +44,9 @@ public class BPELOTAProcessBuilder extends AbstractOTAPlanBuilder {
     private NodeRelationInstanceVariablesHandler instanceInit;
     private final EmptyPropertyToInputInitializer emptyPropInit = new EmptyPropertyToInputInitializer();
 
+    /**
+     * Constructor of the BPELPlanBuilder
+     */
     public BPELOTAProcessBuilder() {
 
         try {
@@ -53,12 +61,28 @@ public class BPELOTAProcessBuilder extends AbstractOTAPlanBuilder {
         finalizer = new BPELFinalizer();
     }
 
+    /**
+     * As we expect more the one plan to be generate, we do not support only one plan generation
+     */
     @Override
     public BPELPlan buildPlan(final String csarName, final AbstractDefinitions definitions,
                               final QName serviceTemplateId) {
-        throw new RuntimeException("A service Template can have multiple scaling plans, this method is not supported");
+        throw new RuntimeException("A service Template can have multiple IoT plans, this method is not supported");
     }
 
+    /**
+     *
+     * Method to generate a BPEL Plan for IoT-Build and Managementoperations Generates an empty plan,
+     * fills the needed values and then check for the right plugins to call them and get the BPEL-Code
+     * for the plan
+     *
+     * @param csarName the Name of the CSAR to generate the Plan of
+     * @param definitions The TOSCA-Definitions used in the Service Template
+     * @param serviceTemplateId the ID of the service Template
+     * @param tagValue the value of one of the tags in the service template
+     * @param serviceTemplate the modeled Service Template with IoT-Nodes
+     * @return a BPELPlan for IoT-Management-Operations
+     */
     private BPELPlan createPlan(final String csarName, final AbstractDefinitions definitions,
                                 final QName serviceTemplateId, final String tagValue,
                                 final AbstractServiceTemplate serviceTemplate) {
@@ -79,7 +103,6 @@ public class BPELOTAProcessBuilder extends AbstractOTAPlanBuilder {
         newOTAPlan.setTOSCAOperationname(tagValue);
 
         planHandler.initializeBPELSkeleton(newOTAPlan, csarName);
-
         final PropertyMap propMap = propertyInitializer.initializePropertiesAsVariables(newOTAPlan);
         planHandler.registerExtension("http://www.apache.org/ode/bpel/extensions/bpel4restlight", true, newOTAPlan);
         serviceInstanceInitializer.addManagementPlanServiceInstanceVarHandlingFromInput(newOTAPlan);
@@ -98,21 +121,23 @@ public class BPELOTAProcessBuilder extends AbstractOTAPlanBuilder {
         }
 
         emptyPropInit.initializeEmptyPropertiesAsInputParam(provScopeActivities, newOTAPlan, propMap);
-        runPlugins(newOTAPlan, propMap, nodetemplates, relationshiptemplates);
+        runPlugins(newOTAPlan, propMap, nodetemplates);
         instanceInit.addNodeInstanceFindLogic(newOTAPlan, "?state=CREATED");
         finalizer.finalize(newOTAPlan);
 
         return newOTAPlan;
     }
 
-
+    /**
+     * Check if the Service Template of the TOSCA definitions has the right tags to need an
+     * IoT-Managementplan
+     */
     @Override
     public List<AbstractPlan> buildPlans(final String csarName, final AbstractDefinitions definitions) {
         final List<AbstractPlan> plans = new ArrayList<>();
 
         for (final AbstractServiceTemplate serviceTemplate : definitions.getServiceTemplates()) {
             final Map<String, String> tags = serviceTemplate.getTags();
-
             boolean doNotHandle = true;
 
             for (int i = 0; i <= tags.size(); i++) {
@@ -135,12 +160,18 @@ public class BPELOTAProcessBuilder extends AbstractOTAPlanBuilder {
                                      serviceTemplate));
             }
         }
-
         return plans;
     }
 
-    private void runPlugins(final BPELPlan plan, final PropertyMap map, final List<AbstractNodeTemplate> nodeTemplates,
-                            final List<AbstractRelationshipTemplate> relationshipTemplates) {
+    /**
+     * Method to run the needed plugin for the given Node Templates
+     *
+     * @param plan The BPELPlan to set the Plugins in
+     * @param map the Properties for the plugins
+     * @param nodeTemplates the node templates to run the plugins on
+     */
+    private void runPlugins(final BPELPlan plan, final PropertyMap map,
+                            final List<AbstractNodeTemplate> nodeTemplates) {
         for (final AbstractNodeTemplate node : nodeTemplates) {
             if (ModelUtils.getNodeTypeHierarchy(node.getType())
                           .contains(new QName("http://opentosca.org/nodetypes", "OTA_Manager_w1-wip1"))) {

@@ -22,10 +22,24 @@ import org.opentosca.planbuilder.model.tosca.AbstractServiceTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractTopologyTemplate;
 import org.opentosca.planbuilder.model.utils.ModelUtils;
 
+/**
+ *
+ * Class to generate abstract BPELPlans for the IoT-OTA-Use-Case
+ *
+ * @author Marc Schmid
+ *
+ */
 public abstract class AbstractOTAPlanBuilder extends AbstractPlanBuilder {
 
-
-
+    /**
+     * Generates an abstract BPELPlan for the usage with the IoT-Plugin in the IoT-OTA-Use-Case The Plan
+     * is similar to a BuildPlan but differs in the Type, as is a Managementplan not a BuildPlan
+     *
+     * @param id the ID for the Plan
+     * @param definitions The TOSCA-Definitions used in the Service Template
+     * @param serviceTemplate the modeled Service Template with IoT-Nodes
+     * @return the Managementplan for IoT-Node-Types
+     */
     protected AbstractPlan generateOTA(final String id, final AbstractDefinitions definitions,
                                        final AbstractServiceTemplate serviceTemplate) {
 
@@ -62,13 +76,10 @@ public abstract class AbstractOTAPlanBuilder extends AbstractPlanBuilder {
                 links.add(new Link(nodeMapping.get(relationshipTemplate.getTarget()), activity));
                 links.add(new Link(activity, nodeMapping.get(relationshipTemplate.getSource())));
             }
-
         }
 
         final AbstractPlan plan =
-            new AbstractPlan(id, AbstractPlan.PlanType.MANAGE, definitions, serviceTemplate, activities, links) {
-
-            };
+            new AbstractPlan(id, AbstractPlan.PlanType.MANAGE, definitions, serviceTemplate, activities, links) {};
         return plan;
     }
 }

@@ -12,11 +12,23 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+/**
+ * Class to check if a Topology has fullfiled to conditions to be handled by the IoT-Plugin
+ *
+ * @author Marc Schmid
+ *
+ * @param <T> the plancontext
+ */
 public abstract class OTATypePlugin<T extends PlanContext> implements IPlanBuilderTypePlugin<T> {
 
     private static final String PLUGIN_ID = "OpenTOSCA PlanBuilder Type Plugin IoT";
     private static final Logger LOG = LoggerFactory.getLogger(OTATypePlugin.class);
 
+    /**
+     * Check if a nodeTemplate is created to correct way to be an OTA-Manager and has all needed
+     * properties set
+     *
+     */
     @Override
     public boolean canHandle(final AbstractNodeTemplate nodeTemplate) {
         if (nodeTemplate.getProperties() == null) {
@@ -50,16 +62,22 @@ public abstract class OTATypePlugin<T extends PlanContext> implements IPlanBuild
         if (check != 3) {
             return false;
         }
-
         return true;
     }
 
+    /**
+     * As the Plugin needs to have NodeTemplates to create a Topology and handle the IoT-Devices, we do
+     * not accept RelationshipTemplates
+     */
     @Override
     public boolean canHandle(final AbstractRelationshipTemplate relationshipTemplate) {
         // We handle only nodetypes at the moment
         return false;
     }
 
+    /**
+     * Return the ID of the Plugin
+     */
     @Override
     public String getID() {
         return PLUGIN_ID;

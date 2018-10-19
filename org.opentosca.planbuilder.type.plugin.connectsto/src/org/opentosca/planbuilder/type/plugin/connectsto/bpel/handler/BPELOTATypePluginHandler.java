@@ -20,14 +20,22 @@ import org.opentosca.planbuilder.type.plugin.connectsto.core.handler.IoTTypePlug
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This class contains the methods to create and execute the BPEL-Plangenerator Plugin for
+ * IoT-OTA-Node-Types
+ *
+ * @author Marc Schmid
+ *
+ */
 public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanContext> {
 
     private static final Logger LOG = LoggerFactory.getLogger(BPELOTATypePluginHandler.class);
-
     private final BPELInvokerPlugin invokerPlugin = new BPELInvokerPlugin();
-
     private BPELProcessFragments planBuilderFragments;
 
+    /**
+     * Constructor for the plugin handler
+     */
     public BPELOTATypePluginHandler() {
         try {
             planBuilderFragments = new BPELProcessFragments();
@@ -38,6 +46,14 @@ public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanCo
         }
     }
 
+    /**
+     * For the IoT-Use-Case there have been a fixed set of operations that needed to be supported. This
+     * operations are: install, addBinary, updateDevice and syncTOSCAwithRollout
+     *
+     * For the fiven BPELPlanContext this method checks, if one of the methods should be called and
+     * creates the correct BPEL-Syntax of the operations and calls than the plugin invoker
+     *
+     */
     @Override
     public boolean handle(final BPELPlanContext context) {
         if (context.getNodeTemplate() == null) {
@@ -93,7 +109,6 @@ public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanCo
             internalExternalPropsOutput.put("deviceID", deviceID);
             internalExternalPropsOutput.put("distributionSet", distributionSet);
             internalExternalPropsOutput.put("assignedDS", assignedDS);
-
 
             LOG.debug("Calling the Invoker for BUILD");
             invokerPlugin.handle(context, templateId, isNodeTemplate, operationName, interfaceName,
@@ -176,7 +191,6 @@ public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanCo
                                                    context.getPropertyVariable(otaManager, "host"));
                     internalExternalPropsOutput.put(createParameter("success"),
                                                     context.getPropertyVariable(otaManager, "success"));
-
                     break;
             }
 
@@ -187,6 +201,12 @@ public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanCo
         }
     }
 
+    /**
+     * As we need AbstractParameter to executeOperation, here we convert a String to a AbstractParameter
+     *
+     * @param parameter the name of the AbstractParameter to set
+     * @return the parameter set to an AbstractParameter
+     */
     private AbstractParameter createParameter(final String parameter) {
         return new AbstractParameter() {
 
