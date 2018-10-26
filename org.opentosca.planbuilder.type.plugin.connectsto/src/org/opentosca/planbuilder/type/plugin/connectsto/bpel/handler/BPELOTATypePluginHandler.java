@@ -90,6 +90,8 @@ public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanCo
             internalExternalPropsInput.put("user", context.getPropertyVariable(otaManager, "user"));
             internalExternalPropsInput.put("password", context.getPropertyVariable(otaManager, "password"));
             internalExternalPropsInput.put("host", context.getPropertyVariable(otaManager, "host"));
+            internalExternalPropsInput.put("nameOfGroup", context.getPropertyVariable(otaManager, "nameOfGroup"));
+            internalExternalPropsInput.put("deviceName", context.getPropertyVariable(otaManager, "deviceName"));
 
             Variable deviceID = context.getPropertyVariable("deviceID", true);
             if (deviceID == null) {
@@ -106,9 +108,21 @@ public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanCo
                 assignedDS = context.getPropertyVariable("assignedDS");
             }
 
+            Variable groupName = context.getPropertyVariable("groupName", true);
+            if (groupName == null) {
+                groupName = context.getPropertyVariable("groupName");
+            }
+
+            Variable deviceList = context.getPropertyVariable("deviceList", true);
+            if (deviceList == null) {
+                deviceList = context.getPropertyVariable("deviceList");
+            }
+
             internalExternalPropsOutput.put("deviceID", deviceID);
             internalExternalPropsOutput.put("distributionSet", distributionSet);
             internalExternalPropsOutput.put("assignedDS", assignedDS);
+            internalExternalPropsOutput.put("groupName", groupName);
+            internalExternalPropsOutput.put("deviceList", deviceList);
 
             LOG.debug("Calling the Invoker for BUILD");
             invokerPlugin.handle(context, templateId, isNodeTemplate, operationName, interfaceName,
@@ -136,61 +150,56 @@ public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanCo
 
             String operationName = "";
             String interfaceName = "";
-            final Map<AbstractParameter, Variable> internalExternalPropsInput = new HashMap<>();
-            final Map<AbstractParameter, Variable> internalExternalPropsOutput = new HashMap<>();
+            Map<AbstractParameter, Variable> internalExternalPropsInput = new HashMap<>();
 
             switch (operation) {
                 case "addBinary":
                     operationName = "uploadBinary";
                     interfaceName = "devicemanagement_binaries";
-                    internalExternalPropsInput.put(createParameter("tenant"),
-                                                   context.getPropertyVariable(otaManager, "tenant"));
-                    internalExternalPropsInput.put(createParameter("user"),
-                                                   context.getPropertyVariable(otaManager, "user"));
-                    internalExternalPropsInput.put(createParameter("password"),
-                                                   context.getPropertyVariable(otaManager, "password"));
-                    internalExternalPropsInput.put(createParameter("host"),
-                                                   context.getPropertyVariable(otaManager, "host"));
+                    internalExternalPropsInput = createCredentials(context, otaManager);
                     internalExternalPropsInput.put(createParameter("distributionSetName"),
                                                    context.getPropertyVariable(otaManager, "distributionSetName"));
                     internalExternalPropsInput.put(createParameter("urlToBinary"),
                                                    context.getPropertyVariable(otaManager, "urlToBinary"));
-                    internalExternalPropsOutput.put(createParameter("success"),
-                                                    context.getPropertyVariable(otaManager, "success"));
                     break;
                 case "updateDevice":
                     operationName = "updateDevice";
                     interfaceName = "devicemanagement";
-
-                    internalExternalPropsInput.put(createParameter("tenant"),
-                                                   context.getPropertyVariable(otaManager, "tenant"));
-                    internalExternalPropsInput.put(createParameter("user"),
-                                                   context.getPropertyVariable(otaManager, "user"));
-                    internalExternalPropsInput.put(createParameter("password"),
-                                                   context.getPropertyVariable(otaManager, "password"));
-                    internalExternalPropsInput.put(createParameter("host"),
-                                                   context.getPropertyVariable(otaManager, "host"));
+                    internalExternalPropsInput = createCredentials(context, otaManager);
                     internalExternalPropsInput.put(createParameter("distributionSetName"),
                                                    context.getPropertyVariable(otaManager, "distributionSetName"));
                     internalExternalPropsInput.put(createParameter("deviceName"),
                                                    context.getPropertyVariable(otaManager, "deviceName"));
-                    internalExternalPropsOutput.put(createParameter("success"),
-                                                    context.getPropertyVariable(otaManager, "success"));
                     break;
                 case "syncTOSCAwithRollout":
                     operationName = "syncTOSCAwithRollout";
                     interfaceName = "devicemanagement_sync";
-
-                    internalExternalPropsInput.put(createParameter("tenant"),
-                                                   context.getPropertyVariable(otaManager, "tenant"));
-                    internalExternalPropsInput.put(createParameter("user"),
-                                                   context.getPropertyVariable(otaManager, "user"));
-                    internalExternalPropsInput.put(createParameter("password"),
-                                                   context.getPropertyVariable(otaManager, "password"));
-                    internalExternalPropsInput.put(createParameter("host"),
-                                                   context.getPropertyVariable(otaManager, "host"));
-                    internalExternalPropsOutput.put(createParameter("success"),
-                                                    context.getPropertyVariable(otaManager, "success"));
+                    internalExternalPropsInput = createCredentials(context, otaManager);
+                    break;
+                case "createGroup":
+                    operationName = "createGroup";
+                    interfaceName = "groupmanagement_creategroup";
+                    internalExternalPropsInput.put(createParameter("nameOfGroup"),
+                                                   context.getPropertyVariable(otaManager, "nameOfGroup"));
+                    internalExternalPropsInput.put(createParameter("deviceName"),
+                                                   context.getPropertyVariable(otaManager, "deviceName"));
+                    break;
+                case "addDeviceToGroup":
+                    operationName = "addDeviceToGroup";
+                    interfaceName = "groupmanagement_addDevice";
+                    internalExternalPropsInput.put(createParameter("nameOfGroup"),
+                                                   context.getPropertyVariable(otaManager, "nameOfGroup"));
+                    internalExternalPropsInput.put(createParameter("deviceName"),
+                                                   context.getPropertyVariable(otaManager, "deviceName"));
+                    break;
+                case "updateGroup":
+                    operationName = "updateGroup";
+                    interfaceName = "groupmanagement_update";
+                    internalExternalPropsInput = createCredentials(context, otaManager);
+                    internalExternalPropsInput.put(createParameter("nameOfGroup"),
+                                                   context.getPropertyVariable(otaManager, "nameOfGroup"));
+                    internalExternalPropsInput.put(createParameter("distributionSetName"),
+                                                   context.getPropertyVariable(otaManager, "distributionSetName"));
                     break;
             }
 
@@ -199,6 +208,24 @@ public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanCo
             LOG.debug("Invoker was called for MANAGE");
             return true;
         }
+    }
+
+    /**
+     *
+     * @param context
+     * @param otaManager
+     * @return
+     */
+    private Map<AbstractParameter, Variable> createCredentials(final BPELPlanContext context,
+                                                               final AbstractNodeTemplate otaManager) {
+        final Map<AbstractParameter, Variable> internalExternalPropsInput = new HashMap<>();
+
+        internalExternalPropsInput.put(createParameter("tenant"), context.getPropertyVariable(otaManager, "tenant"));
+        internalExternalPropsInput.put(createParameter("user"), context.getPropertyVariable(otaManager, "user"));
+        internalExternalPropsInput.put(createParameter("password"),
+                                       context.getPropertyVariable(otaManager, "password"));
+        internalExternalPropsInput.put(createParameter("host"), context.getPropertyVariable(otaManager, "host"));
+        return internalExternalPropsInput;
     }
 
     /**
