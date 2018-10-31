@@ -20,6 +20,7 @@ import org.opentosca.container.api.dto.plan.PlanInstanceDTO;
 import org.opentosca.container.api.dto.plan.PlanInstanceEventDTO;
 import org.opentosca.container.api.dto.plan.PlanInstanceListDTO;
 import org.opentosca.container.api.dto.plan.PlanListDTO;
+import org.opentosca.container.api.dto.plan.PlanStateDTO;
 import org.opentosca.container.api.dto.request.CreatePlanInstanceLogEntryRequest;
 import org.opentosca.container.api.service.PlanService;
 import org.opentosca.container.core.model.csar.id.CSARID;
@@ -100,8 +101,8 @@ public class BuildPlanController {
 
     @GET
     @Path("/{plan}/instances/{instance}/state")
-    @Produces({MediaType.TEXT_PLAIN})
-    @ApiOperation(value = "Get the state of a build plan instance", response = String.class)
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @ApiOperation(value = "Get the state of a build plan instance", response = PlanStateDTO.class)
     public Response getBuildPlanInstanceState(@ApiParam("ID of build plan") @PathParam("plan") final String plan,
                                               @ApiParam("correlation ID") @PathParam("instance") final String instance,
                                               @Context final UriInfo uriInfo) {
@@ -111,11 +112,11 @@ public class BuildPlanController {
 
     @PUT
     @Path("/{plan}/instances/{instance}/state")
-    @Consumes({MediaType.TEXT_PLAIN})
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @ApiOperation(hidden = true, value = "")
     public Response changeBuildPlanInstanceState(@PathParam("plan") final String plan,
                                                  @PathParam("instance") final String instance,
-                                                 @Context final UriInfo uriInfo, final String request) {
+                                                 @Context final UriInfo uriInfo, final PlanStateDTO request) {
         return this.planService.changePlanInstanceState(request, plan, instance, uriInfo, this.csarId,
                                                         this.serviceTemplate, null, this.PLAN_TYPE);
     }

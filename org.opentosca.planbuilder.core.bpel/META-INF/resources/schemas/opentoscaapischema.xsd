@@ -2,7 +2,14 @@
 <schema xmlns="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://opentosca.org/api"
 	targetNamespace="http://opentosca.org/api">
 	<element name="correlationID" type="string"></element>
-	<element name="log" type="string"></element>
+	
+    <!-- 
+      Example:
+      <Log>
+          <Message>Hello from Plan!</Message>
+      </Log>
+    -->
+    <element name="Log" type="tns:LogType"/>
 	
 	<element name="CreateRelationshipTemplateInstanceRequest" type="tns:TCreateRelationshipTemplateInstanceRequest"/>
 
@@ -10,5 +17,13 @@
 		<attribute name="source-instance-id" />
 		<attribute name="target-instance-id"/>
 	</complexType>
-	
+  
+    <complexType name="LogType">
+        <sequence>
+            <element name="Status" type="string" minOccurs="0" />
+            <element name="Type" type="string" minOccurs="0" />
+            <element name="Message" type="string"/>
+        </sequence>
+    </complexType>
+    
 </schema>

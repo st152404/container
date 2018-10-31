@@ -23,6 +23,8 @@ import org.opentosca.container.api.dto.plan.PlanInstanceDTO;
 import org.opentosca.container.api.dto.plan.PlanInstanceEventListDTO;
 import org.opentosca.container.api.dto.plan.PlanInstanceListDTO;
 import org.opentosca.container.api.dto.plan.PlanListDTO;
+import org.opentosca.container.api.dto.plan.PlanStateDTO;
+import org.opentosca.container.api.dto.plan.PlanTaskDTO;
 import org.opentosca.container.api.dto.request.CreatePlanInstanceLogEntryRequest;
 import org.opentosca.container.api.util.JsonUtil;
 import org.opentosca.container.api.util.UriUtil;
@@ -34,6 +36,7 @@ import org.opentosca.container.core.model.csar.id.CSARID;
 import org.opentosca.container.core.next.model.PlanInstance;
 import org.opentosca.container.core.next.model.PlanInstanceEvent;
 import org.opentosca.container.core.next.model.PlanInstanceState;
+import org.opentosca.container.core.next.model.PlanTask;
 import org.opentosca.container.core.next.model.ServiceTemplateInstance;
 import org.opentosca.container.core.next.repository.PlanInstanceRepository;
 import org.opentosca.container.core.next.repository.ServiceTemplateInstanceRepository;
@@ -370,18 +373,43 @@ public class PlanService {
         final PlanInstance pi =
             resolvePlanInstance(plan, instance, uriInfo, csarId, serviceTemplate, serviceTemplateInstanceId, planTypes);
 
-        return Response.ok(pi.getState().toString()).build();
+        final PlanStateDTO dto = new PlanStateDTO();
+        dto.setState(pi.getState());
+        dto.setTasks(PlanTaskDTO.Converter.convert(pi.getTasks()));
+
+        return Response.ok(dto).build();
     }
 
-    public Response changePlanInstanceState(final String newState, final String plan, final String instance,
+    public Response changePlanInstanceState(final PlanStateDTO newState, final String plan, final String instance,
                                             final UriInfo uriInfo, final CSARID csarId, final QName serviceTemplate,
                                             final Long serviceTemplateInstanceId, final PlanTypes... planTypes) {
 
         final PlanInstance pi =
             resolvePlanInstance(plan, instance, uriInfo, csarId, serviceTemplate, serviceTemplateInstanceId, planTypes);
         try {
-            final PlanInstanceState parsedState = PlanInstanceState.valueOf(newState);
-            pi.setState(parsedState);
+            final PlanInstanceState overallState = newState.getState();
+
+            // Update overall plan state if required
+            if (overallState != null) {
+                pi.setState(overallState);
+            }
+
+            // Update tasks
+            for (final PlanTaskDTO task : newState.getTasks()) {
+                final PlanTask t = PlanTaskDTO.Converter.convert(task);
+
+                if (pi.getTasks().contains(t)) {
+                    // Merge with existing task
+                    final PlanTask taskToUpdate = pi.getTasks().stream().filter(i -> {
+                        return i.getTaskId().equals(t.getTaskId());
+                    }).findFirst().get();
+                    taskToUpdate.setState(t.getState());
+                } else {
+                    // Add a new task
+                    pi.getTasks().add(t);
+                }
+            }
+
             this.planInstanceRepository.update(pi);
 
             return Response.ok().build();
@@ -413,19 +441,16 @@ public class PlanService {
                                          final String instance, final UriInfo uriInfo, final CSARID csarId,
                                          final QName serviceTemplate, final Long serviceTemplateInstanceId,
                                          final PlanTypes... planTypes) {
-        final String entry = logEntry.getLogEntry();
-
-
+        final String entry = logEntry.getMessage();
         if (entry != null && entry.length() > 0) {
             final PlanInstance pi = resolvePlanInstance(plan, instance, uriInfo, csarId, serviceTemplate,
                                                         serviceTemplateInstanceId, planTypes);
-            final PlanInstanceEvent event = new PlanInstanceEvent("INFO", "PLAN_LOG", entry);
+            final PlanInstanceEvent event = new PlanInstanceEvent(logEntry.getStatus(), logEntry.getType(), entry);
             pi.addEvent(event);
             this.planInstanceRepository.update(pi);
             final URI resourceUri = UriUtil.generateSelfURI(uriInfo);
 
             return Response.ok(resourceUri).build();
-
         } else {
             logger.info("Log entry is empty!");
             return Response.status(Status.BAD_REQUEST).build();

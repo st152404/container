@@ -66,6 +66,10 @@ public class PlanInstance extends PersistenceObject {
     @Column(name = "TEMPLATE_ID", nullable = false)
     private QName templateId;
 
+    @OrderBy("createdAt DESC")
+    @OneToMany(mappedBy = "planInstance", cascade = {CascadeType.ALL})
+    private Set<PlanTask> tasks = Sets.newHashSet();
+
 
     public PlanInstance() {
 
@@ -171,5 +175,23 @@ public class PlanInstance extends PersistenceObject {
 
     public void setTemplateId(final QName templateId) {
         this.templateId = templateId;
+    }
+
+    public Collection<PlanTask> getTasks() {
+        return this.tasks;
+    }
+
+    public void setTasks(final Set<PlanTask> tasks) {
+        this.tasks = tasks;
+    }
+
+    public void addTask(final PlanTask task) {
+        if (!this.tasks.add(task)) {
+            this.tasks.remove(task);
+            this.tasks.add(task);
+        }
+        if (task.getPlanInstance() != this) {
+            task.setPlanInstance(this);
+        }
     }
 }

@@ -18,6 +18,7 @@
     <class>org.opentosca.container.core.next.model.PlanInstanceEvent</class>
     <class>org.opentosca.container.core.next.model.PlanInstanceOutput</class>
     <class>org.opentosca.container.core.next.model.PlanInstanceInput</class>
+    <class>org.opentosca.container.core.next.model.PlanTask</class>
     
     <class>org.opentosca.container.core.next.model.DeploymentTest</class>
     <class>org.opentosca.container.core.next.model.DeploymentTestResult</class>
