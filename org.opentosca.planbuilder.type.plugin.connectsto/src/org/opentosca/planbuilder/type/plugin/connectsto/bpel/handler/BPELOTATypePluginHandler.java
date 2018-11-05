@@ -90,8 +90,6 @@ public class BPELOTATypePluginHandler implements IoTTypePluginHandler<BPELPlanCo
             internalExternalPropsInput.put("user", context.getPropertyVariable(otaManager, "user"));
             internalExternalPropsInput.put("password", context.getPropertyVariable(otaManager, "password"));
             internalExternalPropsInput.put("host", context.getPropertyVariable(otaManager, "host"));
-            internalExternalPropsInput.put("nameOfGroup", context.getPropertyVariable(otaManager, "nameOfGroup"));
-            internalExternalPropsInput.put("deviceName", context.getPropertyVariable(otaManager, "deviceName"));
 
             Variable deviceID = context.getPropertyVariable("deviceID", true);
             if (deviceID == null) {
