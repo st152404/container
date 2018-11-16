@@ -27,4 +27,6 @@ public class DockerContainerTypePluginPluginConstants {
         new QName("http://opentosca.org/nodetypes", "OpenMTCDockerContainerGateway");
     public final static QName OPENMTC_PROTOCOL_ADAPTER_DOCKER_CONTAINER_NODETYPE =
         new QName("http://opentosca.org/nodetypes", "OpenMTCDockerContainerProtocolAdapter");
+    public final static QName LOCATION_RESTRICTION_POLICYTYPE =
+        new QName("http://opentosca.org/policytypes", "LocationRestrictionPolicy");
 }

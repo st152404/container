@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.opentosca.container.core.tosca.convention.Interfaces;
@@ -16,6 +17,7 @@ import org.opentosca.planbuilder.model.tosca.AbstractArtifactReference;
 import org.opentosca.planbuilder.model.tosca.AbstractDeploymentArtifact;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTypeImplementation;
+import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
 import org.opentosca.planbuilder.model.utils.ModelUtils;
 import org.opentosca.planbuilder.plugins.context.Variable;
 import org.opentosca.planbuilder.provphase.plugin.invoker.bpel.BPELInvokerPlugin;
@@ -40,8 +42,6 @@ import org.xml.sax.SAXException;
  */
 public class BPELDockerContainerTypePluginHandler implements DockerContainerTypePluginHandler<BPELPlanContext> {
     private static final Logger LOG = LoggerFactory.getLogger(BPELDockerContainerTypePluginHandler.class);
-
-
 
     private final BPELInvokerPlugin invokerPlugin = new BPELInvokerPlugin();
 
@@ -118,9 +118,26 @@ public class BPELDockerContainerTypePluginHandler implements DockerContainerType
         // fetch the DockerIp
         final Variable dockerEngineUrlVar = templateContext.getPropertyVariable(dockerEngineNode, "DockerEngineURL");
 
+        // check if there is a location restriction policy attached
+        for (final AbstractPolicy policy : nodeTemplate.getPolicies()) {
+            if (policy.getType().getId()
+                      .equals(DockerContainerTypePluginPluginConstants.LOCATION_RESTRICTION_POLICYTYPE)) {
+
+                LOG.info("LOCATION_RESTRICTION_POLICYTYPE is attached");
+                templateContext.createGlobalStringVariable("WhitelistedHosts", policy.getTemplate().getProperties()
+                                                                                     .asMap().get("WhitelistedHosts"));
+                final String xpathExpression = "not($DockerEngineURL = $WhitelistedHosts)";
+
+                Node ifTrueThrowError = this.planBuilderFragments.createIfTrueThrowsError(xpathExpression, new QName(
+                    "http://opentosca.org/plans/faults", "HostNotWhitelisted"));
+
+                ifTrueThrowError = templateContext.importNode(ifTrueThrowError);
+                templateContext.getPrePhaseElement().appendChild(ifTrueThrowError);
+            }
+        }
+
         // determine whether we work with an ImageId or a zipped DockerContainer
         final Variable containerImageVar = templateContext.getPropertyVariable(nodeTemplate, "ImageID");
-
 
 
         /* volume data handling */
@@ -152,8 +169,6 @@ public class BPELDockerContainerTypePluginHandler implements DockerContainerType
                 vmPrivateKeyVariable = findPrivateKey(templateContext, infraNode);
             }
         }
-
-
 
         if (containerImageVar == null || BPELPlanContext.isVariableValueEmpty(containerImageVar, templateContext)) {
             // handle with DA -> construct URL to the DockerImage .zip

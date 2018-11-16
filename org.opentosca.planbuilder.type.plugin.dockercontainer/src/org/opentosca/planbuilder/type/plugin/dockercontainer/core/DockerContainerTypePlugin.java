@@ -9,12 +9,15 @@ import javax.xml.soap.Node;
 import org.opentosca.planbuilder.model.tosca.AbstractDeploymentArtifact;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTypeImplementation;
+import org.opentosca.planbuilder.model.tosca.AbstractPolicy;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipTemplate;
 import org.opentosca.planbuilder.model.utils.ModelUtils;
+import org.opentosca.planbuilder.plugins.IPlanBuilderPolicyAwareTypePlugin;
 import org.opentosca.planbuilder.plugins.IPlanBuilderTypePlugin;
 import org.opentosca.planbuilder.plugins.context.PlanContext;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+
 
 /**
  * <p>
@@ -27,7 +30,8 @@ import org.w3c.dom.NodeList;
  * @author Kalman Kepes - kepeskn@studi.informatik.uni-stuttgart.de
  *
  */
-public abstract class DockerContainerTypePlugin<T extends PlanContext> implements IPlanBuilderTypePlugin<T> {
+public abstract class DockerContainerTypePlugin<T extends PlanContext> implements IPlanBuilderTypePlugin<T>,
+                                               IPlanBuilderPolicyAwareTypePlugin<T> {
 
     private static final String PLUGIN_ID = "OpenTOSCA PlanBuilder Type Plugin DockerContainer";
 
@@ -152,5 +156,28 @@ public abstract class DockerContainerTypePlugin<T extends PlanContext> implement
     @Override
     public String getID() {
         return DockerContainerTypePlugin.PLUGIN_ID;
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see org.opentosca.planbuilder.core.plugins.IPlanBuilderPolicyAwareTypePlugin#
+     * canHandlePolicyAware(org.opentosca.planbuilder.model.tosca. AbstractNodeTemplate)
+     */
+    @Override
+    public boolean canHandlePolicyAware(final AbstractNodeTemplate nodeTemplate) {
+        boolean canHandle = this.canHandle(nodeTemplate);
+
+        for (final AbstractPolicy policy : nodeTemplate.getPolicies()) {
+            if (policy.getType().getId()
+                      .equals(DockerContainerTypePluginPluginConstants.LOCATION_RESTRICTION_POLICYTYPE)) {
+                canHandle &= true;
+            } else {
+                // ALL policies must be supported
+                return false;
+            }
+        }
+
+        return canHandle;
     }
 }

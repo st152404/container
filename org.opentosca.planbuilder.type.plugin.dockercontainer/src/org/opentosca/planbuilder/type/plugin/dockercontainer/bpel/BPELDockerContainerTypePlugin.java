@@ -32,4 +32,10 @@ public class BPELDockerContainerTypePlugin extends DockerContainerTypePlugin<BPE
         return false;
     }
 
+    @Override
+    public boolean handlePolicyAware(final BPELPlanContext templateContext) {
+        return handle(templateContext);
+    }
+
+
 }
