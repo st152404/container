@@ -1,5 +1,6 @@
 package org.opentosca.planbuilder.type.plugin.dockercontainer;
 
+import org.opentosca.planbuilder.plugins.IPlanBuilderPolicyAwareTypePlugin;
 import org.opentosca.planbuilder.plugins.IPlanBuilderTypePlugin;
 import org.opentosca.planbuilder.type.plugin.dockercontainer.bpel.BPELDockerContainerTypePlugin;
 import org.opentosca.planbuilder.type.plugin.dockercontainer.bpel.BPELOpenMTCDockerContainerTypePlugin;
@@ -13,6 +14,7 @@ public class Activator implements BundleActivator {
 
     private ServiceRegistration registrationDockerContainerPlugin;
     private ServiceRegistration registrationOpenMTCDockerContainerPlugin;
+    private ServiceRegistration registrationPolicyAwarePlugin;
 
     static BundleContext getContext() {
         return Activator.context;
@@ -32,6 +34,9 @@ public class Activator implements BundleActivator {
         this.registrationOpenMTCDockerContainerPlugin =
             Activator.context.registerService(IPlanBuilderTypePlugin.class.getName(),
                                               new BPELOpenMTCDockerContainerTypePlugin(), null);
+        this.registrationPolicyAwarePlugin =
+            Activator.context.registerService(IPlanBuilderPolicyAwareTypePlugin.class.getName(),
+                                              new BPELDockerContainerTypePlugin(), null);
 
     }
 

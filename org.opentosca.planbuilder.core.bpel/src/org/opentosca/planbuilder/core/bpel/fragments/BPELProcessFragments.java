@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.URL;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
@@ -13,6 +14,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.FileUtils;
 import org.eclipse.core.runtime.FileLocator;
+import org.opentosca.planbuilder.core.bpel.context.BPELPlanContext;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
 import org.osgi.framework.FrameworkUtil;
 import org.slf4j.Logger;
@@ -306,6 +308,73 @@ public class BPELProcessFragments {
         ifElement.appendChild(throwElement);
 
         return ifElement;
+    }
+
+    public Node createIfTrueExecuteSequence(final String xpath, final Node sequence) {
+        final Document doc = this.docBuilder.newDocument();
+
+        final Element ifElement = doc.createElementNS(BPELPlan.bpelNamespace, "if");
+
+        final Element conditionElement = doc.createElementNS(BPELPlan.bpelNamespace, "condition");
+        conditionElement.setAttribute("expressionLanguage", BPELPlan.xpath2Namespace);
+        final Text textSectionValue = doc.createTextNode(xpath);
+        conditionElement.appendChild(textSectionValue);
+
+        ifElement.appendChild(conditionElement);
+        final Node importedSequence = doc.importNode(sequence, true);
+        ifElement.appendChild(importedSequence);
+
+        return ifElement;
+    }
+
+    public Node createSequenceToHandleThrow(final BPELPlanContext templateContext, final QName fault) {
+        final Document doc = this.docBuilder.newDocument();
+
+        final Element sequenceElement = doc.createElementNS(BPELPlan.bpelNamespace, "sequence");
+        sequenceElement.setAttribute("name", fault.getLocalPart() + "FaultHandlingSequence");
+
+        final Element throwElement = doc.createElementNS(BPELPlan.bpelNamespace, "throw");
+        final String nsPrefix = "ns" + System.currentTimeMillis();
+        throwElement.setAttribute("xmlns:" + nsPrefix, fault.getNamespaceURI());
+        throwElement.setAttribute("faultName", nsPrefix + ":" + fault.getLocalPart());
+
+        final String xsdNamespace = "http://www.w3.org/2001/XMLSchema";
+        final String xsdPrefix = "xsd" + System.currentTimeMillis();
+
+        // generate any type variable for REST call response
+        final String restCallResponseVarName = "bpel4restlightVarResponse" + System.currentTimeMillis();
+        final QName rescalResponseVarDeclId = new QName(xsdNamespace, "anyType", xsdPrefix);
+        templateContext.addVariable(restCallResponseVarName, BPELPlan.VariableType.TYPE, rescalResponseVarDeclId);
+
+        final String restCallRequestVarName = "bpel4restlightVarRequest" + System.currentTimeMillis();
+        final QName rescalRequestVarDeclId = new QName(xsdNamespace, "string", xsdPrefix);
+        templateContext.addVariable(restCallRequestVarName, BPELPlan.VariableType.TYPE, rescalRequestVarDeclId);
+
+        final String assignName = "assignServiceInstanceState" + System.currentTimeMillis();
+        Node assignRequestWithStateNode = null;
+        Node setInstanceStateRequestNode = null;
+        try {
+            assignRequestWithStateNode =
+                createAssignXpathQueryToStringVarFragmentAsNode(assignName, "string('ERROR')", restCallRequestVarName);
+            setInstanceStateRequestNode =
+                createBPEL4RESTLightPutStateAsNode(templateContext.getServiceInstanceURLVarName(),
+                                                   restCallRequestVarName);
+        }
+        catch (IOException | SAXException e) {
+            e.printStackTrace();
+        }
+
+        if (Objects.nonNull(assignRequestWithStateNode) && Objects.nonNull(setInstanceStateRequestNode)) {
+            assignRequestWithStateNode = doc.importNode(assignRequestWithStateNode, true);
+            setInstanceStateRequestNode = doc.importNode(setInstanceStateRequestNode, true);
+            sequenceElement.appendChild(assignRequestWithStateNode);
+            sequenceElement.appendChild(setInstanceStateRequestNode);
+            sequenceElement.appendChild(throwElement);
+        } else {
+            return null;
+        }
+
+        return sequenceElement;
     }
 
     /**

@@ -124,15 +124,30 @@ public class BPELDockerContainerTypePluginHandler implements DockerContainerType
                       .equals(DockerContainerTypePluginPluginConstants.LOCATION_RESTRICTION_POLICYTYPE)) {
 
                 LOG.info("LOCATION_RESTRICTION_POLICYTYPE is attached");
-                templateContext.createGlobalStringVariable("WhitelistedHosts", policy.getTemplate().getProperties()
-                                                                                     .asMap().get("WhitelistedHosts"));
-                final String xpathExpression = "not($DockerEngineURL = $WhitelistedHosts)";
 
-                Node ifTrueThrowError = this.planBuilderFragments.createIfTrueThrowsError(xpathExpression, new QName(
-                    "http://opentosca.org/plans/faults", "HostNotWhitelisted"));
+                final String whitelistedHostsVar = policy.getTemplate().getProperties().asMap().get("WhitelistedHosts");
 
-                ifTrueThrowError = templateContext.importNode(ifTrueThrowError);
-                templateContext.getPrePhaseElement().appendChild(ifTrueThrowError);
+                final String xpathExpression =
+                    "not(string($" + dockerEngineUrlVar.getName() + ") = string('" + whitelistedHostsVar + "'))";
+
+                /*
+                 * Node ifTrueThrowError = this.planBuilderFragments.createIfTrueThrowsError(xpathExpression, new
+                 * QName( "http://opentosca.org/plans/faults", "HostNotWhitelisted"));
+                 *
+                 * ifTrueThrowError = templateContext.importNode(ifTrueThrowError);
+                 * templateContext.getPrePhaseElement().appendChild(ifTrueThrowError);
+                 */
+
+                final Node faultHandlingSequence =
+                    this.planBuilderFragments.createSequenceToHandleThrow(templateContext, new QName(
+                        "http://opentosca.org/plans/faults", "HostNotWhitelisted"));
+
+                Node ifTrueThrowExecuteSequence =
+                    this.planBuilderFragments.createIfTrueExecuteSequence(xpathExpression, faultHandlingSequence);
+                ifTrueThrowExecuteSequence = templateContext.importNode(ifTrueThrowExecuteSequence);
+                templateContext.getPrePhaseElement().appendChild(ifTrueThrowExecuteSequence);
+
+
             }
         }
 
