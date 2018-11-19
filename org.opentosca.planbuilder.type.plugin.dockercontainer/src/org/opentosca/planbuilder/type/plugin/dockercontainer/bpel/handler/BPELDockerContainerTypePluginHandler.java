@@ -130,14 +130,6 @@ public class BPELDockerContainerTypePluginHandler implements DockerContainerType
                 final String xpathExpression =
                     "not(string($" + dockerEngineUrlVar.getName() + ") = string('" + whitelistedHostsVar + "'))";
 
-                /*
-                 * Node ifTrueThrowError = this.planBuilderFragments.createIfTrueThrowsError(xpathExpression, new
-                 * QName( "http://opentosca.org/plans/faults", "HostNotWhitelisted"));
-                 *
-                 * ifTrueThrowError = templateContext.importNode(ifTrueThrowError);
-                 * templateContext.getPrePhaseElement().appendChild(ifTrueThrowError);
-                 */
-
                 final Node faultHandlingSequence =
                     this.planBuilderFragments.createSequenceToHandleThrow(templateContext, new QName(
                         "http://opentosca.org/plans/faults", "HostNotWhitelisted"));
@@ -146,8 +138,6 @@ public class BPELDockerContainerTypePluginHandler implements DockerContainerType
                     this.planBuilderFragments.createIfTrueExecuteSequence(xpathExpression, faultHandlingSequence);
                 ifTrueThrowExecuteSequence = templateContext.importNode(ifTrueThrowExecuteSequence);
                 templateContext.getPrePhaseElement().appendChild(ifTrueThrowExecuteSequence);
-
-
             }
         }
 

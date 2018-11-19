@@ -34,6 +34,8 @@ public class BPELProcessFragments {
 
     private final static Logger LOG = LoggerFactory.getLogger(BPELProcessFragments.class);
 
+    private static final String PlanInstanceURLVarKeyword = "OpenTOSCAContainerAPIPlanInstanceURL";
+
     private final DocumentBuilderFactory docFactory;
     private final DocumentBuilder docBuilder;
 
@@ -330,9 +332,11 @@ public class BPELProcessFragments {
     public Node createSequenceToHandleThrow(final BPELPlanContext templateContext, final QName fault) {
         final Document doc = this.docBuilder.newDocument();
 
+        // create BPEL sequence activity
         final Element sequenceElement = doc.createElementNS(BPELPlan.bpelNamespace, "sequence");
         sequenceElement.setAttribute("name", fault.getLocalPart() + "FaultHandlingSequence");
 
+        // create BPEL throw activity
         final Element throwElement = doc.createElementNS(BPELPlan.bpelNamespace, "throw");
         final String nsPrefix = "ns" + System.currentTimeMillis();
         throwElement.setAttribute("xmlns:" + nsPrefix, fault.getNamespaceURI());
@@ -346,6 +350,7 @@ public class BPELProcessFragments {
         final QName rescalResponseVarDeclId = new QName(xsdNamespace, "anyType", xsdPrefix);
         templateContext.addVariable(restCallResponseVarName, BPELPlan.VariableType.TYPE, rescalResponseVarDeclId);
 
+        // generate string type variable for REST call request
         final String restCallRequestVarName = "bpel4restlightVarRequest" + System.currentTimeMillis();
         final QName rescalRequestVarDeclId = new QName(xsdNamespace, "string", xsdPrefix);
         templateContext.addVariable(restCallRequestVarName, BPELPlan.VariableType.TYPE, rescalRequestVarDeclId);
@@ -364,11 +369,53 @@ public class BPELProcessFragments {
             e.printStackTrace();
         }
 
-        if (Objects.nonNull(assignRequestWithStateNode) && Objects.nonNull(setInstanceStateRequestNode)) {
+        // =========== Start generating the LOG message =================
+        String logMessageTempStringVarName = "instanceDataLogMsg_" + System.currentTimeMillis();
+        final String logMessageContent = "Plan execution failed due to: " + fault.getLocalPart();
+        // create variables
+        logMessageTempStringVarName =
+            templateContext.createGlobalStringVariable(logMessageTempStringVarName, logMessageContent).getName();
+
+        final String logMessageReqVarName = "logMessage" + templateContext.getIdForNames();
+        try {
+            final File opentoscaApiSchemaFile = getOpenTOSCAAPISchemaFile();
+            QName logMsgRequestQName = getOpenToscaApiLogMsgReqElementQName();
+            templateContext.registerType(logMsgRequestQName, opentoscaApiSchemaFile);
+            logMsgRequestQName = templateContext.importQName(logMsgRequestQName);
+            templateContext.addGlobalVariable(logMessageReqVarName, BPELPlan.VariableType.ELEMENT, logMsgRequestQName);
+        }
+        catch (final IOException e3) {
+            e3.printStackTrace();
+        }
+
+        String planInstanceURLVar = null;
+        for (final String varName : templateContext.getMainVariableNames()) {
+            if (varName.contains(PlanInstanceURLVarKeyword)) {
+                planInstanceURLVar = varName;
+                break;
+            }
+        }
+
+        Node logPOSTNode = null;
+        try {
+            logPOSTNode =
+                createBPEL4RESTLightPlanInstanceLOGsPOSTAsNode(planInstanceURLVar, logMessageTempStringVarName,
+                                                               logMessageReqVarName);
+        }
+        catch (final IOException | SAXException e) {
+            e.printStackTrace();
+        }
+        // ======== END generating the LOG message =============
+
+        // Append all activities to sequence, throw goes last
+        if (Objects.nonNull(assignRequestWithStateNode) && Objects.nonNull(setInstanceStateRequestNode)
+            && Objects.nonNull(logPOSTNode)) {
             assignRequestWithStateNode = doc.importNode(assignRequestWithStateNode, true);
             setInstanceStateRequestNode = doc.importNode(setInstanceStateRequestNode, true);
+            logPOSTNode = doc.importNode(logPOSTNode, true);
             sequenceElement.appendChild(assignRequestWithStateNode);
             sequenceElement.appendChild(setInstanceStateRequestNode);
+            sequenceElement.appendChild(logPOSTNode);
             sequenceElement.appendChild(throwElement);
         } else {
             return null;
