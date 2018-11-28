@@ -2,7 +2,9 @@ package org.opentosca.planbuilder.type.plugin.dockercontainer.bpel.handler;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -125,10 +127,11 @@ public class BPELDockerContainerTypePluginHandler implements DockerContainerType
 
                 LOG.info("LOCATION_RESTRICTION_POLICYTYPE is attached");
 
-                final String whitelistedHostsVar = policy.getTemplate().getProperties().asMap().get("WhitelistedHosts");
+                final String whitelistedHostsCSV = policy.getTemplate().getProperties().asMap().get("WhitelistedHosts");
+                final String[] hosts = whitelistedHostsCSV.split("\\s+");
 
                 final String xpathExpression =
-                    "not(string($" + dockerEngineUrlVar.getName() + ") = string('" + whitelistedHostsVar + "'))";
+                    buildWhitelistedHostsXPath(Arrays.asList(hosts), dockerEngineUrlVar.getName());
 
                 final Node faultHandlingSequence =
                     this.planBuilderFragments.createSequenceToHandleThrow(templateContext, new QName(
@@ -193,6 +196,28 @@ public class BPELDockerContainerTypePluginHandler implements DockerContainerType
                                      remoteVolumeDataVariable, hostVolumeDataVariable, vmIpVariable,
                                      vmPrivateKeyVariable);
         }
+    }
+
+    private String buildWhitelistedHostsXPath(final List<String> hosts, final String dockerEngineVarName) {
+        if (hosts.size() > 0) {
+            final StringBuilder sb = new StringBuilder();
+            final Iterator<String> it = hosts.iterator();
+            sb.append("not(string($" + dockerEngineVarName + ") = (");
+            while (it.hasNext()) {
+                sb.append("'" + it.next() + "'");
+                if (it.hasNext()) {
+                    sb.append(", ");
+                } else {
+                    sb.append(")");
+                }
+            }
+            sb.append(")");
+
+            return sb.toString();
+        }
+
+        // no hosts are allowed => error
+        return "true()";
     }
 
     private AbstractNodeTemplate findInfrastructureTemplate(final BPELPlanContext context,
@@ -407,8 +432,6 @@ public class BPELDockerContainerTypePluginHandler implements DockerContainerType
          * Variable remoteVolumeDataVariable = null; Variable hostVolumeDataVariable = null; Variable
          * vmIpVariable = null; Variable vmPrivateKeyVariable = null;
          */
-
-
 
         context.addStringValueToPlanRequest("csarEntrypoint");
         final String artifactPathQuery =

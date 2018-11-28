@@ -12,9 +12,9 @@ public class Activator implements BundleActivator {
 
     private static BundleContext context;
 
-    private ServiceRegistration registrationDockerContainerPlugin;
-    private ServiceRegistration registrationOpenMTCDockerContainerPlugin;
-    private ServiceRegistration registrationPolicyAwarePlugin;
+    private ServiceRegistration<?> registrationDockerContainerPlugin;
+    private ServiceRegistration<?> registrationOpenMTCDockerContainerPlugin;
+    private ServiceRegistration<?> registrationPolicyAwarePlugin;
 
     static BundleContext getContext() {
         return Activator.context;
@@ -50,6 +50,7 @@ public class Activator implements BundleActivator {
         Activator.context = null;
         this.registrationDockerContainerPlugin.unregister();
         this.registrationOpenMTCDockerContainerPlugin.unregister();
+        this.registrationPolicyAwarePlugin.unregister();
 
     }
 

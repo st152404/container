@@ -252,7 +252,6 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
      *        of inside the BuidlPlan
      */
     private void runPlugins(final BPELPlan buildPlan, final PropertyMap map) {
-
         for (final BPELScopeActivity templatePlan : buildPlan.getTemplateBuildPlans()) {
             final BPELPlanContext context = new BPELPlanContext(templatePlan, map, buildPlan.getServiceTemplate());
             if (templatePlan.getNodeTemplate() != null) {
