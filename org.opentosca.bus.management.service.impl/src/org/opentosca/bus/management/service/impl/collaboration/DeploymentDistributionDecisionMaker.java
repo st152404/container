@@ -3,16 +3,15 @@ package org.opentosca.bus.management.service.impl.collaboration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import javax.xml.namespace.QName;
 
 import org.apache.camel.ConsumerTemplate;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.ExchangeBuilder;
+import org.opentosca.bus.management.discovery.plugin.IManagementBusDiscoveryPluginService;
 import org.opentosca.bus.management.header.MBHeader;
 import org.opentosca.bus.management.service.impl.Activator;
 import org.opentosca.bus.management.service.impl.collaboration.model.BodyType;
@@ -21,38 +20,35 @@ import org.opentosca.bus.management.service.impl.collaboration.model.InstanceDat
 import org.opentosca.bus.management.service.impl.collaboration.model.KeyValueMap;
 import org.opentosca.bus.management.service.impl.collaboration.model.KeyValueType;
 import org.opentosca.bus.management.service.impl.collaboration.model.RemoteOperations;
+import org.opentosca.bus.management.service.impl.servicehandler.ServiceHandler;
 import org.opentosca.container.core.common.Settings;
 import org.opentosca.container.core.next.model.NodeTemplateInstance;
-import org.opentosca.container.core.next.model.NodeTemplateInstanceState;
-import org.opentosca.container.core.next.model.PlanInstance;
-import org.opentosca.container.core.next.model.PlanInstanceState;
-import org.opentosca.container.core.next.model.PlanType;
 import org.opentosca.container.core.next.model.RelationshipTemplateInstance;
-import org.opentosca.container.core.next.model.ServiceTemplateInstanceState;
 import org.opentosca.container.core.next.repository.NodeTemplateInstanceRepository;
 import org.opentosca.container.core.tosca.convention.Types;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class determines on which OpenTOSCA Container instance an Implementation Artifact for a
- * certain service instance has to be deployed. It returns the host name of this Container instance
- * which can then be used by the deployment and invocation plug-ins to perform operations with the
+ * This class determines on which OpenTOSCA Container node an Implementation Artifact for a certain
+ * service instance has to be deployed. It returns the host name of this Container node which can
+ * then be used by the deployment and invocation plug-ins to perform operations with the
  * Implementation Artifact.<br>
  * <br>
  *
- * To determine the responsible OpenTOSCA Container, a matching with the instance data of the
- * different available Containers is performed. Therefore, the infrastructure NodeTemplateInstance
- * of the topology stack of the IA is retrieved. Afterwards the matching of this
- * NodeTemplateInstance with the instance data of the local OpenTOSCA Container is done. If this is
- * not successful, a matching request is distributed to other Containers via MQTT. In case there is
- * also no match, the local Container is used as default deployment location.<br>
+ * To determine the responsible OpenTOSCA Container, a device/service discovery at the distributed
+ * Containers is performed. Therefore, the infrastructure NodeTemplateInstance of the topology stack
+ * of the IA is retrieved. Afterwards, its NodeType and properties are used to detect a matching
+ * device/service locally. If this is not successful, the discovery is distributed to other
+ * Containers via MQTT. In case there is also no matching device/service, the local Container is
+ * used as default deployment location.<br>
  * <br>
  *
  * {@link Settings#OPENTOSCA_COLLABORATION_MODE} and the respective config.ini entry can be used to
- * control the matching. If the property is <tt>true</tt>, matching is performed. If it is set to
- * <tt>false</tt>, all IA deployments will be performed locally. Therefore, the performance can be
- * increased by disabling this setting if distributed IA deployment is not needed.<br>
+ * control the device/service discovery. If the property is <tt>true</tt>, the discovery is
+ * performed. If it is set to <tt>false</tt>, all IA deployments will be performed locally.
+ * Therefore, the performance can be increased by disabling this setting if distributed IA
+ * deployment is not needed.<br>
  * <br>
  *
  * Copyright 2018 IAAS University of Stuttgart
@@ -67,11 +63,11 @@ public class DeploymentDistributionDecisionMaker {
 
     /**
      * Get the deployment location for IAs which are attached to the NodeTemplateInstance. If the
-     * collaboration mode is turned on, this method performs an instance data matching to determine
+     * collaboration mode is turned on, this method performs a device/service discovery to determine
      * the deployment location. Therefore, the infrastructure NodeTemplateInstance is searched in
-     * the topology. Afterwards, its type and properties are matched against local and remote
-     * instance data to get the correct deployment location for the IAs. If the matching is not
-     * successful, the local OpenTOSCA Container is returned as default deployment location.
+     * the topology. Afterwards, its NodeType and properties are used to detect a matching
+     * device/service locally and remotely. If the matching is not successful, the local OpenTOSCA
+     * Container is returned as default deployment location.
      *
      * @param nodeTemplateInstance the NodeTemplateInstance for which the IAs have to be deployed
      * @return the location where the IAs should be deployed
@@ -83,116 +79,85 @@ public class DeploymentDistributionDecisionMaker {
             // only perform matching if collaboration mode is turned on
             if (Boolean.parseBoolean(Settings.OPENTOSCA_COLLABORATION_MODE)) {
 
-                DeploymentDistributionDecisionMaker.LOG.debug("Deployment distribution decision for IAs from NodeTemplateInstance with ID: {}",
-                                                              nodeTemplateInstance.getId());
-
-                // check if decision is already made for this instance
-                if (nodeTemplateInstance.getManagingContainer() != null) {
-                    DeploymentDistributionDecisionMaker.LOG.debug("ManagingContainer attribute is already set for this NodeTemplateInstance: {}",
-                                                                  nodeTemplateInstance.getManagingContainer());
-                    return nodeTemplateInstance.getManagingContainer();
-                }
-
-                DeploymentDistributionDecisionMaker.LOG.debug("Looking for infrastructure NodeTemplateInstance that corresponds to this NodeTemplateInstance...");
+                LOG.debug("Deployment distribution decision for IAs from NodeTemplateInstance with ID: {}",
+                          nodeTemplateInstance.getId());
 
                 // get infrastructure NodeTemplate
                 final NodeTemplateInstance infrastructureNodeTemplateInstance =
                     searchInfrastructureNode(nodeTemplateInstance);
 
+                LOG.debug("Infrastructure NodeTemplateInstance has ID: {} and NodeType: {}",
+                          infrastructureNodeTemplateInstance.getId(),
+                          infrastructureNodeTemplateInstance.getTemplateType());
+
                 // check if "managingContainer" is already set for the infrastructure
                 // NodeTemplateInstance
                 if (infrastructureNodeTemplateInstance.getManagingContainer() != null) {
+                    LOG.debug("Infrastructure NodeTemplateInstance has set managingContainer attribute.");
 
                     // no instance data matching needed, as it was already performed for the
                     // infrastructure NodeTemplateInstance
                     final String managingContainer = infrastructureNodeTemplateInstance.getManagingContainer();
 
-                    DeploymentDistributionDecisionMaker.LOG.debug("Infrastructure NodeTemplateInstance has set managingContainer attribute.");
-                    DeploymentDistributionDecisionMaker.LOG.debug("Result of deployment distribution decision: {}",
-                                                                  managingContainer);
-
-                    // current NodeTemplateInstance is managed by the same Container as the
-                    // infrastructure instance
-                    nodeTemplateInstance.setManagingContainer(managingContainer);
-                    nodeTemplateInstanceRepository.update(nodeTemplateInstance);
+                    LOG.debug("Result of deployment distribution decision: {}", managingContainer);
                     return managingContainer;
                 } else {
-
-                    // instance data matching has to be performed for the NodeTemplateInstance
-                    DeploymentDistributionDecisionMaker.LOG.debug("Infrastructure NodeTemplateInstance has ID: {}",
-                                                                  infrastructureNodeTemplateInstance.getId());
-
-                    // retrieve type and properties for the matching
+                    final String deploymentLocation;
                     final QName infrastructureNodeType = infrastructureNodeTemplateInstance.getTemplateType();
-                    final Map<String, String> infrastructureProperties =
-                        infrastructureNodeTemplateInstance.getPropertiesAsMap();
 
-                    DeploymentDistributionDecisionMaker.LOG.debug("Infrastructure NodeTemplateInstance has NodeType: {}",
-                                                                  infrastructureNodeType);
-                    DeploymentDistributionDecisionMaker.LOG.debug("Infrastructure NodeTemplateInstance has properties:");
-                    for (final String key : infrastructureProperties.keySet()) {
-                        DeploymentDistributionDecisionMaker.LOG.debug("Key: {}; Value: {}", key,
-                                                                      infrastructureProperties.get(key));
+                    // if there is no discovery plug-in for the type, local deployment has to be
+                    // performed
+                    if (ServiceHandler.discoveryPluginServices.containsKey(infrastructureNodeType)) {
+                        final IManagementBusDiscoveryPluginService plugin =
+                            ServiceHandler.discoveryPluginServices.get(infrastructureNodeType);
+
+                        final Map<String, String> infrastructureProperties =
+                            infrastructureNodeTemplateInstance.getPropertiesAsMap();
+
+                        // perform local device/service discovery
+                        if (plugin.invokeNodeTemplateDiscovery(infrastructureNodeType, infrastructureProperties)) {
+                            LOG.debug("Local discovery was successful. Performing local deployment...");
+                            deploymentLocation = Settings.OPENTOSCA_CONTAINER_HOSTNAME;
+                        } else {
+                            // no matching local device/service --> perform remote discovery
+                            LOG.debug("Local discovery was not successful. Performing remote discovery...");
+                            final Optional<String> deploymentLocationOptional =
+                                performRemoteDiscovery(infrastructureNodeType, infrastructureProperties);
+
+                            if (deploymentLocationOptional.isPresent()) {
+                                deploymentLocation = deploymentLocationOptional.get();
+                                LOG.debug("Found matching device/service remotely. Deployment will be done on OpenTOSCA Container with host name: {}",
+                                          deploymentLocation);
+                            } else {
+                                LOG.warn("Remote discovery was not successful. Performing local deployment as default.");
+                                deploymentLocation = Settings.OPENTOSCA_CONTAINER_HOSTNAME;
+                            }
+                        }
+                    } else {
+                        LOG.warn("No discovery plug-in for this NodeType available. Performing local deployment.");
+                        deploymentLocation = Settings.OPENTOSCA_CONTAINER_HOSTNAME;
                     }
 
-                    // match NodeType and properties against local instance data
-                    DeploymentDistributionDecisionMaker.LOG.debug("Performing local instance data matching...");
-                    String deploymentLocation =
-                        performInstanceDataMatching(infrastructureNodeType, infrastructureProperties);
-                    if (deploymentLocation != null) {
-                        DeploymentDistributionDecisionMaker.LOG.debug("Found matching local instance data. Deployment will be done at: {}",
-                                                                      deploymentLocation);
+                    // set property to speed up future distribution decisions
+                    infrastructureNodeTemplateInstance.setManagingContainer(deploymentLocation);
+                    nodeTemplateInstanceRepository.update(infrastructureNodeTemplateInstance);
 
-                        // set property to speed up future matching
-                        infrastructureNodeTemplateInstance.setManagingContainer(deploymentLocation);
-                        nodeTemplateInstance.setManagingContainer(deploymentLocation);
-
-                        // update stored entities
-                        nodeTemplateInstanceRepository.update(nodeTemplateInstance);
-                        nodeTemplateInstanceRepository.update(infrastructureNodeTemplateInstance);
-
-                        return deploymentLocation;
-                    }
-
-                    // match against instance data at remote OpenTOSCA Containers
-                    DeploymentDistributionDecisionMaker.LOG.debug("Local instance data matching had no success. Performing matching with remote instance data...");
-                    deploymentLocation =
-                        performRemoteInstanceDataMatching(infrastructureNodeType, infrastructureProperties);
-                    if (deploymentLocation != null) {
-                        DeploymentDistributionDecisionMaker.LOG.debug("Found matching remote instance data. Deployment will be done on OpenTOSCA Container with host name: {}",
-                                                                      deploymentLocation);
-
-                        // set property to speed up future matching
-                        infrastructureNodeTemplateInstance.setManagingContainer(deploymentLocation);
-                        nodeTemplateInstance.setManagingContainer(deploymentLocation);
-
-                        // update stored entities
-                        nodeTemplateInstanceRepository.update(nodeTemplateInstance);
-                        nodeTemplateInstanceRepository.update(infrastructureNodeTemplateInstance);
-
-                        return deploymentLocation;
-                    }
-
-                    DeploymentDistributionDecisionMaker.LOG.debug("Remote instance data matching had no success. Returning local host name as default deployment location.");
+                    return deploymentLocation;
                 }
             } else {
-                DeploymentDistributionDecisionMaker.LOG.debug("Distributed IA deployment disabled. Using local deployment.");
+                LOG.debug("Distributed IA deployment disabled. Performing local deployment.");
+                return Settings.OPENTOSCA_CONTAINER_HOSTNAME;
             }
         } else {
-            DeploymentDistributionDecisionMaker.LOG.error("NodeTemplateInstance object is null. Using local deployment.");
+            LOG.error("NodeTemplateInstance object is null. Performing local deployment.");
             return Settings.OPENTOSCA_CONTAINER_HOSTNAME;
         }
-
-        // default (no matching): return host name of local container
-        nodeTemplateInstance.setManagingContainer(Settings.OPENTOSCA_CONTAINER_HOSTNAME);
-        nodeTemplateInstanceRepository.update(nodeTemplateInstance);
-        return Settings.OPENTOSCA_CONTAINER_HOSTNAME;
     }
 
     /**
      * Search for the infrastructure NodeTemplateInstance on which the given NodeTemplateInstance is
-     * hosted/deployed/based. In the context of instance data matching the infrastructure Node
-     * should always be the Node at the bottom of a stack in the topology. If an OpenTOSCA Container
+     * hosted/deployed/based. In the context of device discovery the infrastructure Node should
+     * always be the Node at the bottom of a stack in the topology. If an OpenTOSCA Container
      * manages this bottom Node, it can be used to deploy all IAs attached to Nodes that are above
      * the infrastructure Node in the topology.
      *
@@ -200,32 +165,29 @@ public class DeploymentDistributionDecisionMaker {
      * @return the infrastructure NodeTemplateInstance
      */
     private static NodeTemplateInstance searchInfrastructureNode(final NodeTemplateInstance nodeTemplateInstance) {
-        DeploymentDistributionDecisionMaker.LOG.debug("Looking for infrastructure NodeTemplate at NodeTemplate {} and below...",
-                                                      nodeTemplateInstance.getTemplateId());
+        LOG.debug("Looking for infrastructure NodeTemplate at NodeTemplate {} and below...",
+                  nodeTemplateInstance.getTemplateId());
 
         final Collection<RelationshipTemplateInstance> outgoingRelationships =
             nodeTemplateInstance.getOutgoingRelations();
 
         // terminate search if bottom NodeTemplate is found
         if (outgoingRelationships.isEmpty()) {
-            DeploymentDistributionDecisionMaker.LOG.debug("NodeTemplate {} is the infrastructure NodeTemplate",
-                                                          nodeTemplateInstance.getTemplateId());
+            LOG.debug("NodeTemplate {} is the infrastructure NodeTemplate", nodeTemplateInstance.getTemplateId());
             return nodeTemplateInstance;
         } else {
-            DeploymentDistributionDecisionMaker.LOG.debug("NodeTemplate {} has outgoing RelationshipTemplates...",
-                                                          nodeTemplateInstance.getTemplateId());
+            LOG.debug("NodeTemplate {} has outgoing RelationshipTemplates...", nodeTemplateInstance.getTemplateId());
 
             for (final RelationshipTemplateInstance relation : outgoingRelationships) {
                 final QName relationType = relation.getTemplateType();
-                DeploymentDistributionDecisionMaker.LOG.debug("Found outgoing RelationshipTemplate of type: {}",
-                                                              relationType);
+                LOG.debug("Found outgoing RelationshipTemplate of type: {}", relationType);
 
                 // traverse topology stack downwards
                 if (isInfrastructureRelationshipType(relationType)) {
-                    DeploymentDistributionDecisionMaker.LOG.debug("Continue search with the target of the RelationshipTemplate...");
+                    LOG.debug("Continue search with the target of the RelationshipTemplate...");
                     return searchInfrastructureNode(relation.getTarget());
                 } else {
-                    DeploymentDistributionDecisionMaker.LOG.debug("RelationshipType is not valid for infrastructure search (e.g. hostedOn).");
+                    LOG.debug("RelationshipType is not valid for infrastructure search (e.g. hostedOn).");
                 }
             }
         }
@@ -236,71 +198,21 @@ public class DeploymentDistributionDecisionMaker {
     }
 
     /**
-     * Match the given NodeType and properties against instance data from the local repository. The
-     * matching is successful if a NodeTemplateInstance with the same NodeType and the same values
-     * for the properties is found in the instance data.
+     * The method sends a request to discover a certain device/service via MQTT to all subscribed
+     * OpenTOSCA Container nodes. Afterwards, it waits for a reply which contains the host name of
+     * the OpenTOSCA Container that found the device/service locally. If it receives a reply in
+     * time, it returns the host name. Otherwise, it returns null.
      *
-     * @param infrastructureNodeType the NodeType of the NodeTemplate which has to be matched
+     * @param infrastructureNodeType the NodeType of the NodeTemplate which has to be discovered
      * @param infrastructureProperties the set of properties of the NodeTemplate which has to be
-     *        matched
-     * @return the deployment location if a matching NodeTemplateInstance is found, <tt>null</tt>
-     *         otherwise.
+     *        discovered
+     * @return an optional containing the host name of the OpenTOSCA Container which found a
+     *         matching device/service if one is found, an empty optional otherwise.
      */
-    protected static String performInstanceDataMatching(final QName infrastructureNodeType,
-                                                        final Map<String, String> infrastructureProperties) {
+    private static Optional<String> performRemoteDiscovery(final QName infrastructureNodeType,
+                                                           final Map<String, String> infrastructureProperties) {
 
-        if (infrastructureNodeType != null) {
-
-            // get the infrastructure properties without 'state' property for comparison
-            final Set<Entry<String, String>> infrastructureEntrySet = getEntrySetWithoutState(infrastructureProperties);
-
-            // search NodeTemplateInstance with matching NodeType and Properties which is already
-            // provisioned completely
-            final NodeTemplateInstance matchingInstance =
-                nodeTemplateInstanceRepository.findByTemplateType(infrastructureNodeType).stream()
-                                              .filter((instance) -> instance.getServiceTemplateInstance().getState()
-                                                                            .equals(ServiceTemplateInstanceState.CREATED))
-                                              .filter((instance) -> instance.getState()
-                                                                            .equals(NodeTemplateInstanceState.STARTED))
-                                              .filter((instance) -> isBuildPlanFinished(instance))
-                                              .filter((instance) -> getEntrySetWithoutState(instance.getPropertiesAsMap()).equals(infrastructureEntrySet))
-                                              .findFirst().orElse(null);
-
-            if (matchingInstance != null) {
-                // check whether the matching NodeTemplateInstance is managed by this Container
-                if (matchingInstance.getManagingContainer() == null) {
-                    // If no Container is set and the build plan is finished, this means that there
-                    // was no IA invocation in the build plan and therefore also no remote
-                    // deployment which means it is managed locally.
-                    return Settings.OPENTOSCA_CONTAINER_HOSTNAME;
-                } else {
-                    return matchingInstance.getManagingContainer();
-                }
-            }
-        }
-
-        // no matching found or type is null
-        return null;
-    }
-
-    /**
-     * Match the given NodeType and properties against instance data from remote OpenTOSCA
-     * Containers. The matching is successful if a NodeTemplateInstance with the same NodeType and
-     * the same values for the properties is found in their instance data. The method sends a
-     * request via MQTT to all subscribed OpenTOSCA Containers. Afterwards, it waits for a reply
-     * which contains the host name of the OpenTOSCA Container that found matching instance data. If
-     * it receives a reply in time, it returns the host name. Otherwise, it returns null.
-     *
-     * @param infrastructureNodeType the NodeType of the NodeTemplate which has to be matched
-     * @param infrastructureProperties the set of properties of the NodeTemplate which has to be
-     *        matched
-     * @return the host name of the OpenTOSCA Container which found a matching NodeTemplateInstance
-     *         if one is found, <tt>null</tt> otherwise.
-     */
-    private static String performRemoteInstanceDataMatching(final QName infrastructureNodeType,
-                                                            final Map<String, String> infrastructureProperties) {
-
-        DeploymentDistributionDecisionMaker.LOG.debug("Creating collaboration message for remote instance data matching...");
+        LOG.debug("Creating collaboration message for remote device/service discovery...");
 
         // transform infrastructureProperties for the message body
         final KeyValueMap properties = new KeyValueMap();
@@ -315,9 +227,8 @@ public class DeploymentDistributionDecisionMaker {
         // create an unique correlation ID for the request
         final String correlationID = UUID.randomUUID().toString();
 
-        DeploymentDistributionDecisionMaker.LOG.debug("Publishing instance matching request to MQTT broker at {} with topic {} and correlation ID {}",
-                                                      Constants.LOCAL_MQTT_BROKER, Constants.REQUEST_TOPIC,
-                                                      correlationID);
+        LOG.debug("Publishing discovery request to MQTT broker at {} with topic {} and correlation ID {}",
+                  Constants.LOCAL_MQTT_BROKER, Constants.REQUEST_TOPIC, correlationID);
 
         // create exchange containing the collaboration message and the needed headers
         final Exchange request =
@@ -331,7 +242,7 @@ public class DeploymentDistributionDecisionMaker {
                                                        .withHeader(MBHeader.CORRELATIONID_STRING.toString(),
                                                                    correlationID)
                                                        .withHeader(MBHeader.REMOTEOPERATION_STRING.toString(),
-                                                                   RemoteOperations.invokeInstanceDataMatching)
+                                                                   RemoteOperations.invokeDiscovery)
                                                        .build();
 
         // publish the exchange over the camel route
@@ -350,7 +261,7 @@ public class DeploymentDistributionDecisionMaker {
         thread.start();
 
         final String callbackEndpoint = "direct:Callback-" + correlationID;
-        DeploymentDistributionDecisionMaker.LOG.debug("Waiting for response at endpoint: {}", callbackEndpoint);
+        LOG.debug("Waiting for response at endpoint: {}", callbackEndpoint);
 
         // wait for a response and consume it or timeout after 10s
         final ConsumerTemplate consumer = Activator.camelContext.createConsumerTemplate();
@@ -361,47 +272,18 @@ public class DeploymentDistributionDecisionMaker {
             consumer.stop();
         }
         catch (final Exception e) {
-            DeploymentDistributionDecisionMaker.LOG.warn("Unable to stop consumer: {}", e.getMessage());
+            LOG.warn("Unable to stop consumer: {}", e.getMessage());
         }
 
         if (response != null) {
-            DeploymentDistributionDecisionMaker.LOG.debug("Received a response in time.");
+            LOG.debug("Received a response in time.");
 
             // read the deployment location from the reply
-            return response.getIn().getHeader(MBHeader.DEPLOYMENTLOCATION_STRING.toString(), String.class);
+            return Optional.ofNullable(response.getIn().getHeader(MBHeader.DEPLOYMENTLOCATION_STRING.toString(),
+                                                                  String.class));
         } else {
-            DeploymentDistributionDecisionMaker.LOG.debug("No response received within the timeout interval.");
-            return null;
-        }
-    }
-
-    /**
-     * Remove the 'State' property from the given properties Map if it is defined and return the
-     * corresponding entry Set.
-     *
-     * @param properties the properties as Map
-     * @return the properties as entry Set without 'State' property
-     */
-    private static Set<Entry<String, String>> getEntrySetWithoutState(final Map<String, String> properties) {
-        return properties.entrySet().stream().filter((entry) -> !entry.getKey().equals("State"))
-                         .collect(Collectors.toSet());
-    }
-
-    /**
-     * Check whether the build plan that corresponds to the given NodeTemplateInstance is finished.
-     *
-     * @param nodeTemplateInstance the NodeTemplateInstance for which the build plan is checked
-     * @return <tt>true</tt> if the build plan is found and terminated, <tt>false</tt> otherwise
-     */
-    private static boolean isBuildPlanFinished(final NodeTemplateInstance nodeTemplateInstance) {
-        if (nodeTemplateInstance != null) {
-            final PlanInstance buildPlan =
-                nodeTemplateInstance.getServiceTemplateInstance().getPlanInstances().stream()
-                                    .filter((plan) -> plan.getType().equals(PlanType.BUILD)).findFirst().orElse(null);
-
-            return buildPlan != null && buildPlan.getState().equals(PlanInstanceState.FINISHED);
-        } else {
-            return false;
+            LOG.warn("No response received within the timeout interval.");
+            return Optional.empty();
         }
     }
 

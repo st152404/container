@@ -58,8 +58,8 @@ public class ReceiveRequestRoute extends RouteBuilder {
             + this.password + "&subscribeTopicNames=" + this.topic + "&qualityOfService=ExactlyOnce";
 
         // endpoints to invoke the methods corresponding to requests
-        final String instanceMatchingEndpoint =
-            "bean:org.opentosca.bus.management.service.impl.collaboration.RequestReceiver?method=invokeInstanceDataMatching";
+        final String discoveryEndpoint =
+            "bean:org.opentosca.bus.management.service.impl.collaboration.RequestReceiver?method=invokeDiscovery";
         final String deploymentEndpoint =
             "bean:org.opentosca.bus.management.service.impl.collaboration.RequestReceiver?method=invokeIADeployment";
         final String undeploymentEndpoint =
@@ -85,7 +85,7 @@ public class ReceiveRequestRoute extends RouteBuilder {
         final String operation = "Message has remote operation header: ${header." + remoteOperationHeader + "}";
         final String noMarshalling = "Unable to unmarshal message. Ignoring it!";
         final String invalidOperation = "Remote operation header is either null or contains an invalid operation!";
-        final String invokeInstanceDataMatching = "Invoking instance data matching on local OpenTOSCA Container";
+        final String invokeDiscovery = "Invoking device/service discovery on local OpenTOSCA Container";
         final String invokeIADeployment = "Invoking IA deployment on local OpenTOSCA Container";
         final String invokeIAUndeployment = "Invoking IA undeployment on local OpenTOSCA Container";
         final String invokeIAOperation = "Invoking IA operation on local OpenTOSCA Container";
@@ -99,9 +99,9 @@ public class ReceiveRequestRoute extends RouteBuilder {
                 .process(headerProcessor)
                 .log(LoggingLevel.DEBUG, LOG, operation)
                 .choice()
-                    .when(header(remoteOperationHeader).isEqualTo(RemoteOperations.invokeInstanceDataMatching))
-                        .log(LoggingLevel.DEBUG, LOG, invokeInstanceDataMatching)
-                        .to(instanceMatchingEndpoint)
+                    .when(header(remoteOperationHeader).isEqualTo(RemoteOperations.invokeDiscovery))
+                        .log(LoggingLevel.DEBUG, LOG, invokeDiscovery)
+                        .to(discoveryEndpoint)
                     .endChoice()
                     .when(header(remoteOperationHeader).isEqualTo(RemoteOperations.invokeIADeployment))
                         .log(LoggingLevel.DEBUG, LOG, invokeIADeployment)

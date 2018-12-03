@@ -14,6 +14,7 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.commons.lang3.StringUtils;
 import org.opentosca.bus.management.deployment.plugin.IManagementBusDeploymentPluginService;
+import org.opentosca.bus.management.discovery.plugin.IManagementBusDiscoveryPluginService;
 import org.opentosca.bus.management.header.MBHeader;
 import org.opentosca.bus.management.invocation.plugin.IManagementBusInvocationPluginService;
 import org.opentosca.bus.management.service.impl.Activator;
@@ -40,17 +41,15 @@ import org.w3c.dom.Element;
  * consumer endpoints of the collaboration request route ({@link ReceiveRequestRoute}).<br>
  * <br>
  *
- * Copyright 2018 IAAS University of Stuttgart <br>
- * <br>
- *
- * @author Benjamin Weder - st100495@stud.uni-stuttgart.de
- *
+ * Copyright 2018 IAAS University of Stuttgart
  */
 public class RequestReceiver {
 
     private final static Logger LOG = LoggerFactory.getLogger(RequestReceiver.class);
 
     /**
+     * TODO: change comment; change InstanceDataMatchingRequest class
+     *
      * Perform instance data matching with the transferred NodeType and properties and the instance
      * data of the local OpenTOSCA Container. NodeType and properties have to be passed as part of
      * the {@link CollaborationMessage} in the message body of the exchange. The method sends a
@@ -60,9 +59,9 @@ public class RequestReceiver {
      *
      * @param exchange the exchange containing the needed information as headers and body
      */
-    public void invokeInstanceDataMatching(final Exchange exchange) {
+    public void invokeDiscovery(final Exchange exchange) {
 
-        RequestReceiver.LOG.debug("Received remote operation call for instance data matching.");
+        RequestReceiver.LOG.debug("Received remote operation call for device/service discovery");
         final Message message = exchange.getIn();
 
         // check whether the request contains the needed header fields to send a response
@@ -77,7 +76,6 @@ public class RequestReceiver {
                     final InstanceDataMatchingRequest request = body.getInstanceDataMatchingRequest();
 
                     if (request != null) {
-                        RequestReceiver.LOG.debug("InstanceDataMatchingRequest contained in incoming message. Processing it...");
 
                         // get NodeType and properties from the request
                         final QName nodeType = request.getNodeType();
@@ -86,28 +84,29 @@ public class RequestReceiver {
                             properties.put(property.getKey(), property.getValue());
                         }
 
-                        RequestReceiver.LOG.debug("Performing matching with NodeType: {} and properties: {}", nodeType,
+                        RequestReceiver.LOG.debug("Performing discover for NodeType: {} and properties: {}", nodeType,
                                                   properties.toString());
 
-                        // perform instance data matching
-                        final String deploymentLocation =
-                            DeploymentDistributionDecisionMaker.performInstanceDataMatching(nodeType, properties);
-                        if (deploymentLocation != null) {
-                            RequestReceiver.LOG.debug("Instance data matching was successful. Sending response to requestor...");
+                        final IManagementBusDiscoveryPluginService plugin =
+                            ServiceHandler.discoveryPluginServices.get(nodeType);
+
+                        if (plugin.invokeNodeTemplateDiscovery(nodeType, properties)) {
+                            RequestReceiver.LOG.debug("Device/service discovery was successful. Sending response to requestor...");
                             RequestReceiver.LOG.debug("Broker: {} Topic: {} Correlation: {}",
                                                       headers.get(MBHeader.MQTTBROKERHOSTNAME_STRING.toString()),
                                                       headers.get(MBHeader.MQTTTOPIC_STRING.toString()),
                                                       headers.get(MBHeader.CORRELATIONID_STRING.toString()));
 
                             // add the deployment location as operation result to the headers
-                            headers.put(MBHeader.DEPLOYMENTLOCATION_STRING.toString(), deploymentLocation);
+                            headers.put(MBHeader.DEPLOYMENTLOCATION_STRING.toString(),
+                                        Settings.OPENTOSCA_CONTAINER_HOSTNAME);
 
                             // create empty reply message and transmit it with the headers
                             final CollaborationMessage replyBody = new CollaborationMessage(new KeyValueMap(), null);
                             Activator.producer.sendBodyAndHeaders("direct:SendMQTT", replyBody, headers);
                         } else {
                             // if matching is not successful, no response is needed
-                            RequestReceiver.LOG.debug("Instance data matching was not successful.");
+                            RequestReceiver.LOG.debug("Device/service discovery was not successful.");
                         }
                     } else {
                         RequestReceiver.LOG.error("Body contains no InstanceDataMatchingRequest. Aborting operation!");

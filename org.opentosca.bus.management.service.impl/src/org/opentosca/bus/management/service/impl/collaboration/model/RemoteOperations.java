@@ -7,17 +7,14 @@ package org.opentosca.bus.management.service.impl.collaboration.model;
  *
  * Copyright 2018 IAAS University of Stuttgart <br>
  * <br>
- *
- * @author Benjamin Weder - st100495@stud.uni-stuttgart.de
- *
  */
 public enum RemoteOperations {
 
     /**
-     * Requests the conduct of instance data matching between the local instance data and the
-     * NodeType and properties contained in the collaboration message.
+     * Requests the conduct of device/service discovery for the NodeType and properties contained in
+     * the collaboration message.
      */
-    invokeInstanceDataMatching,
+    invokeDiscovery,
 
     /**
      * Requests the deployment of a certain IA.
