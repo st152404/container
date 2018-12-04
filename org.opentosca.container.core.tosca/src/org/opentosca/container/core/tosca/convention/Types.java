@@ -42,8 +42,9 @@ public class Types {
     public final static QName ubuntu1404ServerVmNodeType3 =
         new QName("http://opentosca.org/nodetypes/versioned", "Ubuntu-VM_14.04-w1");
 
-    // raspbian nodeTypes
+    // raspberry pi nodeTypes
     public final static QName raspbianJessieOSNodeType = new QName("http://opentosca.org/nodetypes", "RaspbianJessie");
+    public final static QName raspberryPI3NodeType = new QName("http://opentosca.org/nodetypes", "RaspberryPI3");
 
     // remote host nodeType for nodes not managed by opentosca
     public final static QName remoteHostNodeType = new QName("http://opentosca.org/nodetypes", "RemoteHost");

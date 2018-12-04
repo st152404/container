@@ -263,9 +263,9 @@ public class DeploymentDistributionDecisionMaker {
         final String callbackEndpoint = "direct:Callback-" + correlationID;
         LOG.debug("Waiting for response at endpoint: {}", callbackEndpoint);
 
-        // wait for a response and consume it or timeout after 10s
+        // wait for a response and consume it or timeout after 45s
         final ConsumerTemplate consumer = Activator.camelContext.createConsumerTemplate();
-        final Exchange response = consumer.receive(callbackEndpoint, 10000);
+        final Exchange response = consumer.receive(callbackEndpoint, 45000);
 
         // release resources
         try {

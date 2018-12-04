@@ -24,6 +24,8 @@ ENV COLLABORATION_MODE false
 ENV COLLABORATION_HOSTNAMES ""
 ENV COLLABORATION_PORTS ""
 
+RUN apt-get -qq update && apt-get -qqy install nmap
+
 RUN rm /dev/random && ln -s /dev/urandom /dev/random \
     && wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
     && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \

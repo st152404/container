@@ -131,6 +131,7 @@
     <module>org.opentosca.bus.management.deployment.plugin.tomcat</module>
     <module>org.opentosca.bus.management.deployment.plugin.remote</module>
     <module>org.opentosca.bus.management.discovery.plugin</module>
+    <module>org.opentosca.bus.management.discovery.plugin.raspberrypi</module>
     <module>org.opentosca.bus.management.invocation.plugin</module>
     <module>org.opentosca.bus.management.invocation.plugin.script</module>
     <module>org.opentosca.bus.management.invocation.plugin.rest</module>
