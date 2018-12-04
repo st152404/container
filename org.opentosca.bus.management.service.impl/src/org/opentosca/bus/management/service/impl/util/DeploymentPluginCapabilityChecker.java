@@ -1,9 +1,7 @@
 package org.opentosca.bus.management.service.impl.util;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.opentosca.bus.management.deployment.plugin.IManagementBusDeploymentPluginService;
 import org.opentosca.bus.management.service.impl.servicehandler.ServiceHandler;
@@ -15,11 +13,7 @@ import org.opentosca.container.core.model.capability.provider.ProviderType;
  * (plan + deployment).<br>
  * <br>
  *
- * Copyright 2018 IAAS University of Stuttgart <br>
- * <br>
- *
- * @author Benjamin Weder - st100495@stud.uni-stuttgart.de
- *
+ * Copyright 2018 IAAS University of Stuttgart
  */
 
 public class DeploymentPluginCapabilityChecker {
@@ -37,8 +31,7 @@ public class DeploymentPluginCapabilityChecker {
         if (!requiredFeatures.isEmpty()) {
 
             // get all provided capabilities
-            final List<String> capabilities = new ArrayList<>();
-            capabilities.addAll(DeploymentPluginCapabilityChecker.getConAndPlanCaps());
+            final List<String> capabilities = getConAndPlanCaps();
             capabilities.addAll(plugin.getCapabilties());
 
             // remove all required features that are satisfied by a capability
@@ -48,12 +41,10 @@ public class DeploymentPluginCapabilityChecker {
                     itReqCaps.remove();
                 }
             }
-
-            // return true if no further requested feature exists
-            return requiredFeatures.isEmpty();
         }
 
-        return true;
+        // return true if no further requested feature exists
+        return requiredFeatures.isEmpty();
     }
 
     /**
@@ -63,20 +54,12 @@ public class DeploymentPluginCapabilityChecker {
      */
     private static List<String> getConAndPlanCaps() {
 
-        final List<String> conAndPlanCaps = new ArrayList<>();
-
-        final List<String> containerCaps =
+        final List<String> conAndPlanCaps =
             ServiceHandler.capabilityService.getCapabilities(ProviderType.CONTAINER.toString(), ProviderType.CONTAINER);
-        final Map<String, List<String>> planPluginsCaps =
-            ServiceHandler.capabilityService.getCapabilities(ProviderType.PLAN_PLUGIN);
 
-        conAndPlanCaps.addAll(containerCaps);
-
-        for (final String planPlugin : planPluginsCaps.keySet()) {
-            conAndPlanCaps.addAll(planPluginsCaps.get(planPlugin));
-        }
+        ServiceHandler.capabilityService.getCapabilities(ProviderType.PLAN_PLUGIN).values()
+                                        .forEach(caps -> conAndPlanCaps.addAll(caps));
 
         return conAndPlanCaps;
     }
-
 }

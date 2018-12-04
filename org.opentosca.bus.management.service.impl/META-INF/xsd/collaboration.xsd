@@ -18,7 +18,7 @@
             <xs:any minOccurs="0" maxOccurs="1" processContents="skip" />
         </xs:sequence>
     </xs:complexType>
-    <xs:complexType name="InstanceDataMatchingRequest">
+    <xs:complexType name="DiscoveryRequest">
         <xs:sequence>
             <xs:element minOccurs="1" maxOccurs="1" name="NodeType" type="xs:QName" />
             <xs:element minOccurs="1" maxOccurs="1" name="Properties" type="ns:KeyValueMap" />
@@ -32,7 +32,7 @@
     </xs:complexType>
     <xs:complexType name="BodyType">
         <xs:choice>
-            <xs:element minOccurs="0" maxOccurs="1" name="InstanceDataMatchingRequest" type="ns:InstanceDataMatchingRequest" />
+            <xs:element minOccurs="0" maxOccurs="1" name="DiscoveryRequest" type="ns:DiscoveryRequest" />
             <xs:element minOccurs="0" maxOccurs="1" name="IAInvocationRequest" type="ns:IAInvocationRequest" />
         </xs:choice>
     </xs:complexType>

@@ -16,7 +16,7 @@ import org.opentosca.bus.management.header.MBHeader;
 import org.opentosca.bus.management.service.impl.Activator;
 import org.opentosca.bus.management.service.impl.collaboration.model.BodyType;
 import org.opentosca.bus.management.service.impl.collaboration.model.CollaborationMessage;
-import org.opentosca.bus.management.service.impl.collaboration.model.InstanceDataMatchingRequest;
+import org.opentosca.bus.management.service.impl.collaboration.model.DiscoveryRequest;
 import org.opentosca.bus.management.service.impl.collaboration.model.KeyValueMap;
 import org.opentosca.bus.management.service.impl.collaboration.model.KeyValueType;
 import org.opentosca.bus.management.service.impl.collaboration.model.RemoteOperations;
@@ -221,7 +221,7 @@ public class DeploymentDistributionDecisionMaker {
             entry.getValue())));
 
         // create collaboration message
-        final BodyType content = new BodyType(new InstanceDataMatchingRequest(infrastructureNodeType, properties));
+        final BodyType content = new BodyType(new DiscoveryRequest(infrastructureNodeType, properties));
         final CollaborationMessage collaborationMessage = new CollaborationMessage(new KeyValueMap(), content);
 
         // create an unique correlation ID for the request

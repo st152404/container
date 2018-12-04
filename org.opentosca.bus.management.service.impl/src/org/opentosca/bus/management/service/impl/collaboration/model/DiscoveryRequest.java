@@ -18,7 +18,7 @@ import javax.xml.namespace.QName;
  * The following schema fragment specifies the expected content contained within this class.
  *
  * <pre>
- * &lt;complexType name="InstanceDataMatchingRequest">
+ * &lt;complexType name="DiscoveryRequest">
  *   &lt;complexContent>
  *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *       &lt;sequence>
@@ -33,17 +33,17 @@ import javax.xml.namespace.QName;
  *
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "InstanceDataMatchingRequest", propOrder = {"nodeType", "properties"})
-public class InstanceDataMatchingRequest {
+@XmlType(name = "DiscoveryRequest", propOrder = {"nodeType", "properties"})
+public class DiscoveryRequest {
 
     @XmlElement(name = "NodeType", required = true)
     protected QName nodeType;
     @XmlElement(name = "Properties", required = true)
     protected KeyValueMap properties;
 
-    public InstanceDataMatchingRequest() {}
+    public DiscoveryRequest() {}
 
-    public InstanceDataMatchingRequest(final QName nodeType, final KeyValueMap properties) {
+    public DiscoveryRequest(final QName nodeType, final KeyValueMap properties) {
         this.nodeType = nodeType;
         this.properties = properties;
     }

@@ -21,9 +21,9 @@ import org.opentosca.bus.management.service.impl.Activator;
 import org.opentosca.bus.management.service.impl.ManagementBusServiceImpl;
 import org.opentosca.bus.management.service.impl.collaboration.model.BodyType;
 import org.opentosca.bus.management.service.impl.collaboration.model.CollaborationMessage;
+import org.opentosca.bus.management.service.impl.collaboration.model.DiscoveryRequest;
 import org.opentosca.bus.management.service.impl.collaboration.model.Doc;
 import org.opentosca.bus.management.service.impl.collaboration.model.IAInvocationRequest;
-import org.opentosca.bus.management.service.impl.collaboration.model.InstanceDataMatchingRequest;
 import org.opentosca.bus.management.service.impl.collaboration.model.KeyValueMap;
 import org.opentosca.bus.management.service.impl.collaboration.model.KeyValueType;
 import org.opentosca.bus.management.service.impl.collaboration.route.ReceiveRequestRoute;
@@ -48,14 +48,11 @@ public class RequestReceiver {
     private final static Logger LOG = LoggerFactory.getLogger(RequestReceiver.class);
 
     /**
-     * TODO: change comment; change InstanceDataMatchingRequest class
-     *
-     * Perform instance data matching with the transferred NodeType and properties and the instance
-     * data of the local OpenTOSCA Container. NodeType and properties have to be passed as part of
-     * the {@link CollaborationMessage} in the message body of the exchange. The method sends a
-     * reply to the topic specified in the headers of the incoming exchange if the matching is
-     * successful and adds the deployment location as header to the outgoing exchange. Otherwise no
-     * response is send.
+     * Perform device/service discovery for the transferred NodeType and properties. NodeType and
+     * properties have to be passed as part of the {@link CollaborationMessage} in the message body
+     * of the exchange. The method sends a reply to the topic specified in the headers of the
+     * incoming exchange if the discovery is successful and adds the deployment location as header
+     * to the outgoing exchange. Otherwise no response is send.
      *
      * @param exchange the exchange containing the needed information as headers and body
      */
@@ -73,8 +70,7 @@ public class RequestReceiver {
                 final BodyType body = collMsg.getBody();
 
                 if (body != null) {
-                    final InstanceDataMatchingRequest request = body.getInstanceDataMatchingRequest();
-
+                    final DiscoveryRequest request = body.getDiscoveryRequest();
                     if (request != null) {
 
                         // get NodeType and properties from the request
@@ -84,7 +80,7 @@ public class RequestReceiver {
                             properties.put(property.getKey(), property.getValue());
                         }
 
-                        RequestReceiver.LOG.debug("Performing discover for NodeType: {} and properties: {}", nodeType,
+                        RequestReceiver.LOG.debug("Performing discovery for NodeType: {} and properties: {}", nodeType,
                                                   properties.toString());
 
                         final IManagementBusDiscoveryPluginService plugin =
@@ -109,7 +105,7 @@ public class RequestReceiver {
                             RequestReceiver.LOG.debug("Device/service discovery was not successful.");
                         }
                     } else {
-                        RequestReceiver.LOG.error("Body contains no InstanceDataMatchingRequest. Aborting operation!");
+                        RequestReceiver.LOG.error("Body contains no DiscoveryRequest. Aborting operation!");
                     }
                 } else {
                     RequestReceiver.LOG.error("Collaboration message contains no body. Aborting operation!");

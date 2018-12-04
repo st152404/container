@@ -20,7 +20,7 @@ import javax.xml.bind.annotation.XmlType;
  *   &lt;complexContent>
  *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *       &lt;choice>
- *         &lt;element name="InstanceDataMatchingRequest" type="{http://collaboration.org/schema}InstanceDataMatchingRequest" minOccurs="0"/>
+ *         &lt;element name="DiscoveryRequest" type="{http://collaboration.org/schema}DiscoveryRequest" minOccurs="0"/>
  *         &lt;element name="IAInvocationRequest" type="{http://collaboration.org/schema}IAInvocationRequest" minOccurs="0"/>
  *       &lt;/choice>
  *     &lt;/restriction>
@@ -31,11 +31,11 @@ import javax.xml.bind.annotation.XmlType;
  *
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "BodyType", propOrder = {"instanceDataMatchingRequest", "iaInvocationRequest"})
+@XmlType(name = "BodyType", propOrder = {"discoveryRequest", "iaInvocationRequest"})
 public class BodyType {
 
-    @XmlElement(name = "InstanceDataMatchingRequest")
-    protected InstanceDataMatchingRequest instanceDataMatchingRequest;
+    @XmlElement(name = "DiscoveryRequest")
+    protected DiscoveryRequest discoveryRequest;
     @XmlElement(name = "IAInvocationRequest")
     protected IAInvocationRequest iaInvocationRequest;
 
@@ -45,28 +45,28 @@ public class BodyType {
         this.iaInvocationRequest = iaInvocationRequest;
     }
 
-    public BodyType(final InstanceDataMatchingRequest instanceDataMatchingRequest) {
-        this.instanceDataMatchingRequest = instanceDataMatchingRequest;
+    public BodyType(final DiscoveryRequest discoveryRequest) {
+        this.discoveryRequest = discoveryRequest;
     }
 
     /**
-     * Gets the value of the instanceDataMatchingRequest property.
+     * Gets the value of the discoveryRequest property.
      *
-     * @return possible object is {@link InstanceDataMatchingRequest }
+     * @return possible object is {@link DiscoveryRequest }
      *
      */
-    public InstanceDataMatchingRequest getInstanceDataMatchingRequest() {
-        return this.instanceDataMatchingRequest;
+    public DiscoveryRequest getDiscoveryRequest() {
+        return this.discoveryRequest;
     }
 
     /**
-     * Sets the value of the instanceDataMatchingRequest property.
+     * Sets the value of the discoveryRequest property.
      *
-     * @param value allowed object is {@link InstanceDataMatchingRequest }
+     * @param value allowed object is {@link DiscoveryRequest }
      *
      */
-    public void setInstanceDataMatchingRequest(final InstanceDataMatchingRequest value) {
-        this.instanceDataMatchingRequest = value;
+    public void setDiscoveryRequest(final DiscoveryRequest value) {
+        this.discoveryRequest = value;
     }
 
     /**
