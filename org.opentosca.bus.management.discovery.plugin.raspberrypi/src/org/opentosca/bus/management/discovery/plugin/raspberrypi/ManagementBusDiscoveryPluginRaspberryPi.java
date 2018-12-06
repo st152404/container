@@ -18,10 +18,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Management Bus Plug-in for the discovery of RaspberryPi nodes.<br>
+ * Management Bus Plug-in for the discovery of RaspberryPi devices.<br>
  * <br>
  *
- * TODO
+ * This plug-in is capable of detecting RaspberryPi devices which correspond to topology fragments
+ * of a ServiceTemplate. It can handle topology fragments which contain a RaspbianJessie
+ * NodeTemplate hostedOn a RaspberryPI3 NodeTemplate. The RaspbianJessie NodeTemplate needs a
+ * defined IP property and the RaspberryPI3 NodeTemplate a MAC property for the discovery. If the
+ * plug-in detects a device, which has to be accessed to provision a ServiceTemplate, in his local
+ * network, the local OpenTOSCA Container is responsible for the operations on this device.
  *
  * Copyright 2018 IAAS University of Stuttgart
  */
@@ -65,7 +70,10 @@ public class ManagementBusDiscoveryPluginRaspberryPi implements IManagementBusDi
     }
 
     /**
-     * TODO
+     * Check if the given topology fragment contains a stack with a Raspbian node hosted on a
+     * RaspberryPi node. Such a stack is only considered as valid if the properties that are needed
+     * for the device discovery are defined. If a valid stack is found, the IP and MAC properties
+     * are returned in a special holder object.
      *
      * @param discoveryRequest the request containing the topology fragment to check for the
      *        existence of the needed NodeTemplates and properties

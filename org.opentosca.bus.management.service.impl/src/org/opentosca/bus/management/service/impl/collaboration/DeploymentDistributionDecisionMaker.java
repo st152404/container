@@ -75,6 +75,7 @@ public class DeploymentDistributionDecisionMaker {
 
                 // if there is no suited discovery plug-in, local deployment has to be performed
                 if (op.isPresent()) {
+                    LOG.debug("Found suited discovery plug-in.");
                     final IManagementBusDiscoveryPluginService plugin = op.get();
 
                     // perform local device/service discovery
