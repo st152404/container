@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
 
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
@@ -13,19 +15,19 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.commons.lang3.StringUtils;
+import org.opentosca.bus.management.collaboration.model.BodyType;
+import org.opentosca.bus.management.collaboration.model.CollaborationMessage;
+import org.opentosca.bus.management.collaboration.model.DiscoveryRequest;
+import org.opentosca.bus.management.collaboration.model.Doc;
+import org.opentosca.bus.management.collaboration.model.IAInvocationRequest;
+import org.opentosca.bus.management.collaboration.model.KeyValueMap;
+import org.opentosca.bus.management.collaboration.model.KeyValueType;
 import org.opentosca.bus.management.deployment.plugin.IManagementBusDeploymentPluginService;
 import org.opentosca.bus.management.discovery.plugin.IManagementBusDiscoveryPluginService;
 import org.opentosca.bus.management.header.MBHeader;
 import org.opentosca.bus.management.invocation.plugin.IManagementBusInvocationPluginService;
 import org.opentosca.bus.management.service.impl.Activator;
 import org.opentosca.bus.management.service.impl.ManagementBusServiceImpl;
-import org.opentosca.bus.management.service.impl.collaboration.model.BodyType;
-import org.opentosca.bus.management.service.impl.collaboration.model.CollaborationMessage;
-import org.opentosca.bus.management.service.impl.collaboration.model.DiscoveryRequest;
-import org.opentosca.bus.management.service.impl.collaboration.model.Doc;
-import org.opentosca.bus.management.service.impl.collaboration.model.IAInvocationRequest;
-import org.opentosca.bus.management.service.impl.collaboration.model.KeyValueMap;
-import org.opentosca.bus.management.service.impl.collaboration.model.KeyValueType;
 import org.opentosca.bus.management.service.impl.collaboration.route.ReceiveRequestRoute;
 import org.opentosca.bus.management.service.impl.servicehandler.ServiceHandler;
 import org.opentosca.container.core.common.Settings;
@@ -63,30 +65,26 @@ public class RequestReceiver {
 
         // check whether the request contains the needed header fields to send a response
         final Map<String, Object> headers = getResponseHeaders(message);
+        if (Objects.isNull(headers)) {
+            RequestReceiver.LOG.error("Request does not contain all needed header fields to send a response. Aborting operation!");
+            return;
+        }
 
-        if (headers != null) {
-            if (message.getBody() instanceof CollaborationMessage) {
-                final CollaborationMessage collMsg = (CollaborationMessage) message.getBody();
-                final BodyType body = collMsg.getBody();
+        if (message.getBody() instanceof CollaborationMessage) {
+            final CollaborationMessage collMsg = (CollaborationMessage) message.getBody();
+            final BodyType body = collMsg.getBody();
 
-                if (body != null) {
-                    final DiscoveryRequest request = body.getDiscoveryRequest();
-                    if (request != null) {
+            if (Objects.nonNull(body)) {
+                final DiscoveryRequest discoveryRequest = body.getDiscoveryRequest();
+                if (Objects.nonNull(discoveryRequest)) {
 
-                        // get NodeType and properties from the request
-                        final QName nodeType = request.getNodeType();
-                        final Map<String, String> properties = new HashMap<>();
-                        for (final KeyValueType property : request.getProperties().getKeyValuePair()) {
-                            properties.put(property.getKey(), property.getValue());
-                        }
+                    final Optional<IManagementBusDiscoveryPluginService> op =
+                        DeploymentDistributionDecisionMaker.getDiscoveryPlugin(discoveryRequest);
 
-                        RequestReceiver.LOG.debug("Performing discovery for NodeType: {} and properties: {}", nodeType,
-                                                  properties.toString());
+                    if (op.isPresent()) {
+                        final IManagementBusDiscoveryPluginService plugin = op.get();
 
-                        final IManagementBusDiscoveryPluginService plugin =
-                            ServiceHandler.discoveryPluginServices.get(nodeType);
-
-                        if (plugin.invokeNodeTemplateDiscovery(nodeType, properties)) {
+                        if (plugin.invokeDiscovery(discoveryRequest)) {
                             RequestReceiver.LOG.debug("Device/service discovery was successful. Sending response to requestor...");
                             RequestReceiver.LOG.debug("Broker: {} Topic: {} Correlation: {}",
                                                       headers.get(MBHeader.MQTTBROKERHOSTNAME_STRING.toString()),
@@ -105,17 +103,17 @@ public class RequestReceiver {
                             RequestReceiver.LOG.debug("Device/service discovery was not successful.");
                         }
                     } else {
-                        RequestReceiver.LOG.error("Body contains no DiscoveryRequest. Aborting operation!");
+                        RequestReceiver.LOG.error("Unable to find suited discovery plugin.");
                     }
                 } else {
-                    RequestReceiver.LOG.error("Collaboration message contains no body. Aborting operation!");
+                    RequestReceiver.LOG.error("Body contains no DiscoveryRequest. Aborting operation!");
                 }
             } else {
-                RequestReceiver.LOG.error("Message body has invalid class: {}. Aborting operation!",
-                                          message.getBody().getClass());
+                RequestReceiver.LOG.error("Collaboration message contains no body. Aborting operation!");
             }
         } else {
-            RequestReceiver.LOG.error("Request does not contain all needed header fields to send a response. Aborting operation!");
+            RequestReceiver.LOG.error("Message body has invalid class: {}. Aborting operation!",
+                                      message.getBody().getClass());
         }
     }
 

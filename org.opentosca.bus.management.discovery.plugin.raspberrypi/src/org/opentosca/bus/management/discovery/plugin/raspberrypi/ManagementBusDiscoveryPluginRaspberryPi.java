@@ -1,18 +1,18 @@
 package org.opentosca.bus.management.discovery.plugin.raspberrypi;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.xml.namespace.QName;
 
+import org.opentosca.bus.management.collaboration.model.DiscoveryRequest;
+import org.opentosca.bus.management.collaboration.model.NodeTemplate;
 import org.opentosca.bus.management.discovery.plugin.IManagementBusDiscoveryPluginService;
-import org.opentosca.container.core.common.Settings;
+import org.opentosca.bus.management.discovery.plugin.raspberrypi.model.MacIpPair;
 import org.opentosca.container.core.tosca.convention.Types;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,10 +21,7 @@ import org.slf4j.LoggerFactory;
  * Management Bus Plug-in for the discovery of RaspberryPi nodes.<br>
  * <br>
  *
- * This plug-in can be used to discover devices that correspond to NodeTemplates of NodeType
- * RaspberryPI3. It needs the MAC-address property of the NodeTemplate as input and performs a
- * discovery of all MAC-addresses that are in the local network of the host where this OpenTOSCA
- * Container runs on.
+ * TODO
  *
  * Copyright 2018 IAAS University of Stuttgart
  */
@@ -32,98 +29,117 @@ public class ManagementBusDiscoveryPluginRaspberryPi implements IManagementBusDi
 
     static final private Logger LOG = LoggerFactory.getLogger(ManagementBusDiscoveryPluginRaspberryPi.class);
 
-    // all NodeTypes that can be detected by this plug-in
-    static final private List<QName> supportedTypes = Arrays.asList(Types.raspberryPI3NodeType);
-
-    // expected properties for NodeTemplates of the supported NodeTypes
-    static final private String macProperty = "MAC";
-    static final private List<String> expectedProperties = Arrays.asList(macProperty);
-
-    // prefix of the nmap response lines which contain MAC addresses
-    static final private String NMAP_LINE_PREFIX_MAC = "MAC Address:";
+    // properties that have to be present for the discovery
+    static final private String MAC_PROPERTY = "MAC";
+    static final private String IP_PROPERTY = "IP";
 
     @Override
-    public boolean invokeNodeTemplateDiscovery(final QName nodeType, final Map<String, String> properties) {
-        LOG.debug("RaspberryPi discovery plug-in invoked for NodeType: {} and Properties: {}", nodeType, properties);
+    public boolean invokeDiscovery(final DiscoveryRequest discoveryRequest) {
+        LOG.debug("Invoking discovery with ManagementBusDiscoveryPluginRaspberryPi plugin");
 
-        if (!supportedTypes.contains(nodeType)) {
-            LOG.error("Discovery plug-in invoked for invalid NodeType.");
+        final Optional<MacIpPair> opt = getIdentifyingPropertiesFromRequest(discoveryRequest);
+        if (opt.isPresent()) {
+            final MacIpPair macIp = opt.get();
+            LOG.debug("Discovery is performed for Raspbian-PI stack with IP: {} and MAC: {}", macIp.getIp(),
+                      macIp.getMac());
+
+            // TODO: perform discovery
             return false;
-        }
-
-        if (!allPropertiesAvailable(properties.keySet())) {
-            LOG.error("Given properties do not contain all expected propteries.");
-            return false;
-        }
-
-        LOG.debug("Performing device discovery with local IP: {}", Settings.OPENTOSCA_CONTAINER_HOSTNAME);
-
-        // search for a device with a matching MAC address
-        final List<String> macAddresses = getMacOfLocalDevices(Settings.OPENTOSCA_CONTAINER_HOSTNAME);
-        if (macAddresses.contains(properties.get(macProperty))) {
-            // TODO: check if MAC address belongs to a Pi required?
-
-            LOG.debug("Found device with matching MAC address locally.");
-            return true;
         } else {
-            LOG.debug("No device with matching MAC address found locally.");
+            LOG.error("Unable to find valid NodeTemplates and needed properties in the request!");
             return false;
         }
     }
 
     @Override
-    public List<QName> getSupportedNodeTypes() {
-        return supportedTypes;
+    public boolean canHandle(final DiscoveryRequest discoveryRequest) {
+        LOG.debug("Checking if ManagementBusDiscoveryPluginRaspberryPi plugin can handle the discovery");
+
+        if (Objects.isNull(discoveryRequest)) {
+            LOG.error("DiscoveryRequest is null");
+            return false;
+        }
+
+        // check if the fragment from the request contains the needed templates and properties
+        return getIdentifyingPropertiesFromRequest(discoveryRequest).isPresent();
     }
 
     /**
-     * Checks if the given properties contain all expected properties of the plug-in. Passing more
-     * properties than expected is allowed too.
+     * TODO
      *
-     * @param properties the properties to check
-     * @return <tt>true</tt> if all expected properties are defined in the given properties,
-     *         <tt>false</tt> otherwise.
+     * @param discoveryRequest the request containing the topology fragment to check for the
+     *        existence of the needed NodeTemplates and properties
+     * @return an optional containing a MacIpPair with the extracted IP and MAC address from the
+     *         topology fragment or an empty optional if the topology fragment can not be handled
      */
-    private boolean allPropertiesAvailable(final Set<String> properties) {
-        return expectedProperties.stream().filter(prop -> !properties.contains(prop)).collect(Collectors.toList())
-                                 .isEmpty();
-    }
+    private Optional<MacIpPair> getIdentifyingPropertiesFromRequest(final DiscoveryRequest discoveryRequest) {
 
-    /**
-     * Get a List of the MAC addresses of all devices in the local network which is identified by
-     * the given IP.
-     *
-     * @param ip the IP address of the device running the JVM
-     * @return A List of Strings which represent the MAC addresses of the discovered devices.
-     */
-    private static List<String> getMacOfLocalDevices(final String ip) {
-        final List<String> macAddresses = new ArrayList<>();
+        if (Objects.nonNull(discoveryRequest.getServiceTemplateFragment())) {
+            final List<NodeTemplate> nodeTemplates = discoveryRequest.getServiceTemplateFragment().getNodeTemplate();
 
-        try {
-            // Create subnet mask for the local network. Here we assume private networks of class C,
-            // which means with a maximum of 256 hosts and therefore we use only a wildcard for the
-            // last digit of the IP address.
-            final String subnetMask = ip.substring(0, ip.lastIndexOf(".")) + ".*";
-            LOG.debug("Subnet mask for device discovery in local network: {}", subnetMask);
+            LOG.debug("Received topology fragment with {} NodeTemplates.", nodeTemplates.size());
 
-            // run nmap to get all MAC addresses of devices in the local network
-            final Process p = Runtime.getRuntime().exec(new String[] {"nmap", "-sn", subnetMask});
-            final BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            String line;
-            while ((line = in.readLine()) != null) {
-                // retrieve MAC from textual output of nmap
-                if (line.startsWith(NMAP_LINE_PREFIX_MAC)) {
-                    final String macAddress = line.split("\\s+")[2];
-                    LOG.debug("Found MAC address: {}", macAddress);
-                    macAddresses.add(macAddress);
+            // get all RaspbianJessie NodeTemplates with defined IP property
+            final List<NodeTemplate> raspbianNodes =
+                nodeTemplates.stream().filter(node -> node.getTemplateType().equals(Types.raspbianJessieOSNodeType))
+                             .filter(containsProperty(IP_PROPERTY)).collect(Collectors.toList());
+
+            // get all RaspberryPi3 NodeTemplates with defined MAC property which are not hostedOn
+            // another node
+            final List<NodeTemplate> piNodes =
+                nodeTemplates.stream().filter(node -> node.getTemplateType().equals(Types.raspberryPI3NodeType))
+                             .filter(containsProperty(MAC_PROPERTY)).filter(pi -> Objects.isNull(pi.getHostedOn()))
+                             .collect(Collectors.toList());
+
+            LOG.debug("Topology fragment contains {} RaspbianJessie and {} RaspberryPI3 NodeTemplates with expcected properties.",
+                      raspbianNodes.size(), piNodes.size());
+
+            // check if one of the raspbian NodeTemplates is hosted on a pi NodeTemplate
+            for (final NodeTemplate rasbian : raspbianNodes) {
+                final Optional<String> ipOptional = getProperty(IP_PROPERTY).apply(rasbian);
+                if (ipOptional.isPresent()) {
+
+                    final QName hostedOn = rasbian.getHostedOn();
+                    for (final NodeTemplate pi : piNodes) {
+                        if (pi.getTemplateID().equals(hostedOn)) {
+
+                            final Optional<String> macOptional = getProperty(MAC_PROPERTY).apply(pi);
+                            if (ipOptional.isPresent()) {
+                                LOG.debug("Found valid Radbian-Pi stack in the topology fragment.");
+                                return Optional.of(new MacIpPair(macOptional.get(), ipOptional.get()));
+                            }
+                        }
+                    }
                 }
             }
-            in.close();
-        }
-        catch (final Exception e) {
-            LOG.error("Exception while retrieving the MAC addresses of all local devices: {}", e.getMessage());
+            LOG.debug("No Radbian-Pi stack with needed properties found in the topology fragment.");
+        } else {
+            LOG.error("DiscoveryRequest contains no ServiceTemplateFragment");
         }
 
-        return macAddresses;
+        return Optional.empty();
+    }
+
+    /**
+     * Returns a functions which takes a NodeTemplate as input and returns the property identified
+     * by the given property name from it, if it is present.
+     *
+     * @param propertyName the name of the property that shall be returned by the function
+     * @return the function
+     */
+    private Function<NodeTemplate, Optional<String>> getProperty(final String propertyName) {
+        return node -> node.getProperties().getKeyValuePair().stream()
+                           .filter(pair -> pair.getKey().equals(propertyName)).findFirst().map(pair -> pair.getValue());
+    }
+
+    /**
+     * Creates a predicate which checks if a NodeTemplate contains a property.
+     *
+     * @param propertyName the name of the property which shall be checked by the predicate
+     * @return the predicate
+     */
+    private Predicate<NodeTemplate> containsProperty(final String propertyName) {
+        return node -> node.getProperties().getKeyValuePair().stream()
+                           .filter(pair -> pair.getKey().equals(propertyName)).findFirst().isPresent();
     }
 }

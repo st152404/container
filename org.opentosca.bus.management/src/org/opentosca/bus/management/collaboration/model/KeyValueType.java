@@ -7,7 +7,7 @@
 //
 
 
-package org.opentosca.bus.management.service.impl.collaboration.model;
+package org.opentosca.bus.management.collaboration.model;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;

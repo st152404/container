@@ -1,18 +1,17 @@
-package org.opentosca.bus.management.service.impl.collaboration.model;
+package org.opentosca.bus.management.collaboration.model;
 
 /**
  * Enum which contains all possible operations which can currently be requested on other OpenTOSCA
  * Containers by sending a collaboration message via MQTT.<br>
  * <br>
  *
- * Copyright 2018 IAAS University of Stuttgart <br>
- * <br>
+ * Copyright 2018 IAAS University of Stuttgart
  */
 public enum RemoteOperations {
 
     /**
-     * Requests the conduct of device/service discovery for the NodeType and properties contained in
-     * the collaboration message.
+     * Requests the conduct of device/service discovery for the topology fragment contained in the
+     * collaboration message.
      */
     invokeDiscovery,
 

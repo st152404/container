@@ -1,30 +1,30 @@
 package org.opentosca.bus.management.service.impl.collaboration;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-
-import javax.xml.namespace.QName;
+import java.util.stream.Collectors;
 
 import org.apache.camel.ConsumerTemplate;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.ExchangeBuilder;
+import org.opentosca.bus.management.collaboration.model.BodyType;
+import org.opentosca.bus.management.collaboration.model.CollaborationMessage;
+import org.opentosca.bus.management.collaboration.model.DiscoveryRequest;
+import org.opentosca.bus.management.collaboration.model.KeyValueMap;
+import org.opentosca.bus.management.collaboration.model.KeyValueType;
+import org.opentosca.bus.management.collaboration.model.NodeTemplate;
+import org.opentosca.bus.management.collaboration.model.RemoteOperations;
+import org.opentosca.bus.management.collaboration.model.ServiceTemplateFragmentType;
 import org.opentosca.bus.management.discovery.plugin.IManagementBusDiscoveryPluginService;
 import org.opentosca.bus.management.header.MBHeader;
 import org.opentosca.bus.management.service.impl.Activator;
-import org.opentosca.bus.management.service.impl.collaboration.model.BodyType;
-import org.opentosca.bus.management.service.impl.collaboration.model.CollaborationMessage;
-import org.opentosca.bus.management.service.impl.collaboration.model.DiscoveryRequest;
-import org.opentosca.bus.management.service.impl.collaboration.model.KeyValueMap;
-import org.opentosca.bus.management.service.impl.collaboration.model.KeyValueType;
-import org.opentosca.bus.management.service.impl.collaboration.model.RemoteOperations;
 import org.opentosca.bus.management.service.impl.servicehandler.ServiceHandler;
 import org.opentosca.container.core.common.Settings;
 import org.opentosca.container.core.next.model.NodeTemplateInstance;
 import org.opentosca.container.core.next.model.RelationshipTemplateInstance;
-import org.opentosca.container.core.next.repository.NodeTemplateInstanceRepository;
 import org.opentosca.container.core.tosca.convention.Types;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,14 +34,6 @@ import org.slf4j.LoggerFactory;
  * service instance has to be deployed. It returns the host name of this Container node which can
  * then be used by the deployment and invocation plug-ins to perform operations with the
  * Implementation Artifact.<br>
- * <br>
- *
- * To determine the responsible OpenTOSCA Container, a device/service discovery at the distributed
- * Containers is performed. Therefore, the infrastructure NodeTemplateInstance of the topology stack
- * of the IA is retrieved. Afterwards, its NodeType and properties are used to detect a matching
- * device/service locally. If this is not successful, the discovery is distributed to other
- * Containers via MQTT. In case there is also no matching device/service, the local Container is
- * used as default deployment location.<br>
  * <br>
  *
  * {@link Settings#OPENTOSCA_COLLABORATION_MODE} and the respective config.ini entry can be used to
@@ -57,17 +49,11 @@ public class DeploymentDistributionDecisionMaker {
 
     private final static Logger LOG = LoggerFactory.getLogger(DeploymentDistributionDecisionMaker.class);
 
-    // repository to access instance data via NodeTemplate identifiers
-    private final static NodeTemplateInstanceRepository nodeTemplateInstanceRepository =
-        new NodeTemplateInstanceRepository();
-
     /**
-     * Get the deployment location for IAs which are attached to the NodeTemplateInstance. If the
+     * Get the deployment location for IAs which are attached to a NodeTemplateInstance. If the
      * collaboration mode is turned on, this method performs a device/service discovery to determine
-     * the deployment location. Therefore, the infrastructure NodeTemplateInstance is searched in
-     * the topology. Afterwards, its NodeType and properties are used to detect a matching
-     * device/service locally and remotely. If the matching is not successful, the local OpenTOSCA
-     * Container is returned as default deployment location.
+     * the deployment location. If the discovery is not successful, the local OpenTOSCA Container is
+     * returned as default deployment location.
      *
      * @param nodeTemplateInstance the NodeTemplateInstance for which the IAs have to be deployed
      * @return the location where the IAs should be deployed
@@ -82,67 +68,36 @@ public class DeploymentDistributionDecisionMaker {
                 LOG.debug("Deployment distribution decision for IAs from NodeTemplateInstance with ID: {}",
                           nodeTemplateInstance.getId());
 
-                // get infrastructure NodeTemplate
-                final NodeTemplateInstance infrastructureNodeTemplateInstance =
-                    searchInfrastructureNode(nodeTemplateInstance);
+                // create DiscoveryRequest containing the topology fragments which represent the
+                // searched device/service
+                final DiscoveryRequest discoveryRequest = createDiscoveryRequest(nodeTemplateInstance);
+                final Optional<IManagementBusDiscoveryPluginService> op = getDiscoveryPlugin(discoveryRequest);
 
-                LOG.debug("Infrastructure NodeTemplateInstance has ID: {} and NodeType: {}",
-                          infrastructureNodeTemplateInstance.getId(),
-                          infrastructureNodeTemplateInstance.getTemplateType());
+                // if there is no suited discovery plug-in, local deployment has to be performed
+                if (op.isPresent()) {
+                    final IManagementBusDiscoveryPluginService plugin = op.get();
 
-                // check if "managingContainer" is already set for the infrastructure
-                // NodeTemplateInstance
-                if (infrastructureNodeTemplateInstance.getManagingContainer() != null) {
-                    LOG.debug("Infrastructure NodeTemplateInstance has set managingContainer attribute.");
-
-                    // no instance data matching needed, as it was already performed for the
-                    // infrastructure NodeTemplateInstance
-                    final String managingContainer = infrastructureNodeTemplateInstance.getManagingContainer();
-
-                    LOG.debug("Result of deployment distribution decision: {}", managingContainer);
-                    return managingContainer;
-                } else {
-                    final String deploymentLocation;
-                    final QName infrastructureNodeType = infrastructureNodeTemplateInstance.getTemplateType();
-
-                    // if there is no discovery plug-in for the type, local deployment has to be
-                    // performed
-                    if (ServiceHandler.discoveryPluginServices.containsKey(infrastructureNodeType)) {
-                        final IManagementBusDiscoveryPluginService plugin =
-                            ServiceHandler.discoveryPluginServices.get(infrastructureNodeType);
-
-                        final Map<String, String> infrastructureProperties =
-                            infrastructureNodeTemplateInstance.getPropertiesAsMap();
-
-                        // perform local device/service discovery
-                        if (plugin.invokeNodeTemplateDiscovery(infrastructureNodeType, infrastructureProperties)) {
-                            LOG.debug("Local discovery was successful. Performing local deployment...");
-                            deploymentLocation = Settings.OPENTOSCA_CONTAINER_HOSTNAME;
-                        } else {
-                            // no matching local device/service --> perform remote discovery
-                            LOG.debug("Local discovery was not successful. Performing remote discovery...");
-                            final Optional<String> deploymentLocationOptional =
-                                performRemoteDiscovery(infrastructureNodeType, infrastructureProperties);
-
-                            if (deploymentLocationOptional.isPresent()) {
-                                deploymentLocation = deploymentLocationOptional.get();
-                                LOG.debug("Found matching device/service remotely. Deployment will be done on OpenTOSCA Container with host name: {}",
-                                          deploymentLocation);
-                            } else {
-                                LOG.warn("Remote discovery was not successful. Performing local deployment as default.");
-                                deploymentLocation = Settings.OPENTOSCA_CONTAINER_HOSTNAME;
-                            }
-                        }
+                    // perform local device/service discovery
+                    if (plugin.invokeDiscovery(discoveryRequest)) {
+                        LOG.debug("Local discovery was successful. Performing local deployment...");
+                        return Settings.OPENTOSCA_CONTAINER_HOSTNAME;
                     } else {
-                        LOG.warn("No discovery plug-in for this NodeType available. Performing local deployment.");
-                        deploymentLocation = Settings.OPENTOSCA_CONTAINER_HOSTNAME;
+                        // no matching local device/service --> perform remote discovery
+                        LOG.debug("Local discovery was not successful. Performing remote discovery...");
+                        final Optional<String> deploymentLocationOptional = performRemoteDiscovery(discoveryRequest);
+
+                        if (deploymentLocationOptional.isPresent()) {
+                            LOG.debug("Found matching device/service remotely. Deployment will be done on OpenTOSCA Container with host name: {}",
+                                      deploymentLocationOptional.get());
+                            return deploymentLocationOptional.get();
+                        } else {
+                            LOG.warn("Remote discovery was not successful. Performing local deployment as default.");
+                            return Settings.OPENTOSCA_CONTAINER_HOSTNAME;
+                        }
                     }
-
-                    // set property to speed up future distribution decisions
-                    infrastructureNodeTemplateInstance.setManagingContainer(deploymentLocation);
-                    nodeTemplateInstanceRepository.update(infrastructureNodeTemplateInstance);
-
-                    return deploymentLocation;
+                } else {
+                    LOG.warn("No suited discovery plug-in available. Performing local deployment.");
+                    return Settings.OPENTOSCA_CONTAINER_HOSTNAME;
                 }
             } else {
                 LOG.debug("Distributed IA deployment disabled. Performing local deployment.");
@@ -155,74 +110,19 @@ public class DeploymentDistributionDecisionMaker {
     }
 
     /**
-     * Search for the infrastructure NodeTemplateInstance on which the given NodeTemplateInstance is
-     * hosted/deployed/based. In the context of device discovery the infrastructure Node should
-     * always be the Node at the bottom of a stack in the topology. If an OpenTOSCA Container
-     * manages this bottom Node, it can be used to deploy all IAs attached to Nodes that are above
-     * the infrastructure Node in the topology.
+     * Send a discovery request to all remote OpenTOSCA Containers and wait for a reply, containing
+     * the host name of the Container which is responsible for this request. If no reply is received
+     * an empty optional is returned.
      *
-     * @param nodeTemplateInstance the NodeTemplateInstance for which the infrastructure is searched
-     * @return the infrastructure NodeTemplateInstance
-     */
-    private static NodeTemplateInstance searchInfrastructureNode(final NodeTemplateInstance nodeTemplateInstance) {
-        LOG.debug("Looking for infrastructure NodeTemplate at NodeTemplate {} and below...",
-                  nodeTemplateInstance.getTemplateId());
-
-        final Collection<RelationshipTemplateInstance> outgoingRelationships =
-            nodeTemplateInstance.getOutgoingRelations();
-
-        // terminate search if bottom NodeTemplate is found
-        if (outgoingRelationships.isEmpty()) {
-            LOG.debug("NodeTemplate {} is the infrastructure NodeTemplate", nodeTemplateInstance.getTemplateId());
-            return nodeTemplateInstance;
-        } else {
-            LOG.debug("NodeTemplate {} has outgoing RelationshipTemplates...", nodeTemplateInstance.getTemplateId());
-
-            for (final RelationshipTemplateInstance relation : outgoingRelationships) {
-                final QName relationType = relation.getTemplateType();
-                LOG.debug("Found outgoing RelationshipTemplate of type: {}", relationType);
-
-                // traverse topology stack downwards
-                if (isInfrastructureRelationshipType(relationType)) {
-                    LOG.debug("Continue search with the target of the RelationshipTemplate...");
-                    return searchInfrastructureNode(relation.getTarget());
-                } else {
-                    LOG.debug("RelationshipType is not valid for infrastructure search (e.g. hostedOn).");
-                }
-            }
-        }
-
-        // if all outgoing relationships are not of the searched types, the NodeTemplate is the
-        // bottom one
-        return nodeTemplateInstance;
-    }
-
-    /**
-     * The method sends a request to discover a certain device/service via MQTT to all subscribed
-     * OpenTOSCA Container nodes. Afterwards, it waits for a reply which contains the host name of
-     * the OpenTOSCA Container that found the device/service locally. If it receives a reply in
-     * time, it returns the host name. Otherwise, it returns null.
-     *
-     * @param infrastructureNodeType the NodeType of the NodeTemplate which has to be discovered
-     * @param infrastructureProperties the set of properties of the NodeTemplate which has to be
-     *        discovered
+     * @param discoveryRequest the request for the remote device/service discovery
      * @return an optional containing the host name of the OpenTOSCA Container which found a
      *         matching device/service if one is found, an empty optional otherwise.
      */
-    private static Optional<String> performRemoteDiscovery(final QName infrastructureNodeType,
-                                                           final Map<String, String> infrastructureProperties) {
-
-        LOG.debug("Creating collaboration message for remote device/service discovery...");
-
-        // transform infrastructureProperties for the message body
-        final KeyValueMap properties = new KeyValueMap();
-        final List<KeyValueType> propertyList = properties.getKeyValuePair();
-        infrastructureProperties.entrySet().forEach((entry) -> propertyList.add(new KeyValueType(entry.getKey(),
-            entry.getValue())));
+    private static Optional<String> performRemoteDiscovery(final DiscoveryRequest discoveryRequest) {
 
         // create collaboration message
-        final BodyType content = new BodyType(new DiscoveryRequest(infrastructureNodeType, properties));
-        final CollaborationMessage collaborationMessage = new CollaborationMessage(new KeyValueMap(), content);
+        final CollaborationMessage collaborationMessage =
+            new CollaborationMessage(new KeyValueMap(), new BodyType(discoveryRequest));
 
         // create an unique correlation ID for the request
         final String correlationID = UUID.randomUUID().toString();
@@ -263,9 +163,9 @@ public class DeploymentDistributionDecisionMaker {
         final String callbackEndpoint = "direct:Callback-" + correlationID;
         LOG.debug("Waiting for response at endpoint: {}", callbackEndpoint);
 
-        // wait for a response and consume it or timeout after 60s
+        // wait for a response and consume it or timeout after 30s
         final ConsumerTemplate consumer = Activator.camelContext.createConsumerTemplate();
-        final Exchange response = consumer.receive(callbackEndpoint, 60000);
+        final Exchange response = consumer.receive(callbackEndpoint, 30000);
 
         // release resources
         try {
@@ -275,10 +175,10 @@ public class DeploymentDistributionDecisionMaker {
             LOG.warn("Unable to stop consumer: {}", e.getMessage());
         }
 
-        if (response != null) {
+        if (Objects.nonNull(response)) {
             LOG.debug("Received a response in time.");
 
-            // read the deployment location from the reply
+            // read the deployment location from the response
             return Optional.ofNullable(response.getIn().getHeader(MBHeader.DEPLOYMENTLOCATION_STRING.toString(),
                                                                   String.class));
         } else {
@@ -288,15 +188,86 @@ public class DeploymentDistributionDecisionMaker {
     }
 
     /**
-     * Check whether a given Relationship Type is used to connect parts of a topology stack
-     * (infrastructure type) or different topology stacks.
+     * Creates a DiscoveryRequest containing the ServiceTemplate fragment on which the given
+     * NodeTemplateInstance is hosted. To create the fragment, the hostedOn RelationshipTemplate
+     * path is followed from the given NodeTemplateInstance to the bottom one. For all found
+     * NodeTemplateInstance objects the properties, the id, the type and the id of the
+     * NodeTemplateInstance on which it is hosted are stored.
      *
-     * @param relationType The Relationship Type to check
-     * @return <tt>true</tt> if the Relationship Type is hostedOn, deployedOn or dependsOn and
-     *         <tt>false</tt> otherwise
+     * @param node the NodeTemplateInstance for which the deployment distribution decision has to be
+     *        made
+     * @return a discovery request for the given NodeTemplateInstance which can be used by the
+     *         discovery plug-ins
      */
-    private static boolean isInfrastructureRelationshipType(final QName relationType) {
-        return relationType.equals(Types.hostedOnRelationType) || relationType.equals(Types.deployedOnRelationType)
-            || relationType.equals(Types.dependsOnRelationType);
+    private static DiscoveryRequest createDiscoveryRequest(NodeTemplateInstance node) {
+        final DiscoveryRequest discoveryRequest = new DiscoveryRequest(new ServiceTemplateFragmentType());
+        final List<NodeTemplate> nodeTemplates = discoveryRequest.getServiceTemplateFragment().getNodeTemplate();
+
+        // create ServiceTemplate fragment consisting of all NodeTemplates from the given
+        // NodeTemplate downwards connected via hostedOn RelationshipTemplates
+        List<RelationshipTemplateInstance> outgoingHostedOn = getOutgoingHostedOn(node);
+        NodeTemplateInstance upperNode;
+        while (!outgoingHostedOn.isEmpty()) {
+            upperNode = node;
+            node = outgoingHostedOn.get(0).getTarget();
+
+            // create NodeTemplate corresponding to the upperNode NodeTemplateInstance
+            nodeTemplates.add(new NodeTemplate(parsePropertiesToKeyValueMap(upperNode.getPropertiesAsMap()),
+                upperNode.getTemplateId(), upperNode.getTemplateType(), node.getTemplateId()));
+
+            outgoingHostedOn = getOutgoingHostedOn(node);
+        }
+
+        // create bottom NodeTemplate of the fragment
+        nodeTemplates.add(new NodeTemplate(parsePropertiesToKeyValueMap(node.getPropertiesAsMap()),
+            node.getTemplateId(), node.getTemplateType(), null));
+
+        return discoveryRequest;
+    }
+
+    /**
+     * Parse properties of type Map to the KeyValueMap type of the collaboration model.
+     *
+     * @param properties the properties as Map
+     * @return the properties as KeyValueMap
+     */
+    private static KeyValueMap parsePropertiesToKeyValueMap(final Map<String, String> properties) {
+        final KeyValueMap kvProperties = new KeyValueMap();
+        if (Objects.nonNull(properties)) {
+            final List<KeyValueType> propertyList = kvProperties.getKeyValuePair();
+            properties.entrySet()
+                      .forEach((entry) -> propertyList.add(new KeyValueType(entry.getKey(), entry.getValue())));
+        } else {
+            LOG.warn("Properties are null. Unable to parse them.");
+        }
+        return kvProperties;
+    }
+
+    /**
+     * Get all outgoing hostedOn RelationshipTemplateInstances of a NodeTemplateInstance.
+     *
+     * @param node the NodeTemplateInstance to check
+     * @return a list with all outgoing RelationshipTemplateInstances
+     */
+    private static List<RelationshipTemplateInstance> getOutgoingHostedOn(final NodeTemplateInstance node) {
+        return node.getOutgoingRelations().stream()
+                   .filter(rel -> rel.getTemplateType().equals(Types.hostedOnRelationType))
+                   .collect(Collectors.toList());
+    }
+
+    /**
+     * Search for a discovery plug-in that can handle the given request.
+     *
+     * @param request the request containing all information needed to check if discovery can be
+     *        performed by a plug-in
+     * @return an optional containing the plug-in if a suited is found, an empty optional otherwise
+     */
+    public static Optional<IManagementBusDiscoveryPluginService> getDiscoveryPlugin(final DiscoveryRequest request) {
+        for (final IManagementBusDiscoveryPluginService plugin : ServiceHandler.discoveryPluginServices) {
+            if (plugin.canHandle(request)) {
+                return Optional.of(plugin);
+            }
+        }
+        return Optional.empty();
     }
 }

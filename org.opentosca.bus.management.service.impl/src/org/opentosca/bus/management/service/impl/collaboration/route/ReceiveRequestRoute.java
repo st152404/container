@@ -6,8 +6,8 @@ import org.apache.camel.LoggingLevel;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.converter.jaxb.JaxbDataFormat;
+import org.opentosca.bus.management.collaboration.model.RemoteOperations;
 import org.opentosca.bus.management.header.MBHeader;
-import org.opentosca.bus.management.service.impl.collaboration.model.RemoteOperations;
 import org.opentosca.bus.management.service.impl.collaboration.processor.IncomingProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,9 +69,8 @@ public class ReceiveRequestRoute extends RouteBuilder {
 
         // JAXB definitions to unmarshal the incoming message body
         final ClassLoader classLoader =
-            org.opentosca.bus.management.service.impl.collaboration.model.ObjectFactory.class.getClassLoader();
-        final JAXBContext jc =
-            JAXBContext.newInstance("org.opentosca.bus.management.service.impl.collaboration.model", classLoader);
+            org.opentosca.bus.management.collaboration.model.ObjectFactory.class.getClassLoader();
+        final JAXBContext jc = JAXBContext.newInstance("org.opentosca.bus.management.collaboration.model", classLoader);
         final JaxbDataFormat jaxb = new JaxbDataFormat(jc);
 
         // extracts headers from the marshaled object and adds them to the exchange

@@ -1,11 +1,10 @@
 package org.opentosca.bus.management.service.impl.servicehandler;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.xml.namespace.QName;
 
 import org.opentosca.bus.management.deployment.plugin.IManagementBusDeploymentPluginService;
 import org.opentosca.bus.management.discovery.plugin.IManagementBusDiscoveryPluginService;
@@ -43,8 +42,8 @@ public class ServiceHandler {
         Collections.synchronizedMap(new HashMap<String, IManagementBusInvocationPluginService>());
     public static Map<String, IManagementBusDeploymentPluginService> deploymentPluginServices =
         Collections.synchronizedMap(new HashMap<String, IManagementBusDeploymentPluginService>());
-    public static Map<QName, IManagementBusDiscoveryPluginService> discoveryPluginServices =
-        Collections.synchronizedMap(new HashMap<QName, IManagementBusDiscoveryPluginService>());
+    public static List<IManagementBusDiscoveryPluginService> discoveryPluginServices =
+        Collections.synchronizedList(new ArrayList<IManagementBusDiscoveryPluginService>());
     public static ICoreEndpointService endpointService;
     public static IToscaEngineService toscaEngineService;
     public static ICoreCapabilityService capabilityService;
@@ -221,13 +220,8 @@ public class ServiceHandler {
      */
     public void bindDiscoveryPluginService(final IManagementBusDiscoveryPluginService plugin) {
         if (plugin != null) {
-
-            final List<QName> types = plugin.getSupportedNodeTypes();
-
-            for (final QName type : types) {
-                discoveryPluginServices.put(type, plugin);
-                LOG.debug("Bound Management Bus Discovery plug-in: {} for Type: {}", plugin.toString(), type);
-            }
+            discoveryPluginServices.add(plugin);
+            LOG.debug("Bound Management Bus Discovery plug-in: {}", plugin.toString());
         } else {
             LOG.error("Bind Management Bus Discovery plug-in: Supplied parameter is null!");
         }
@@ -240,19 +234,8 @@ public class ServiceHandler {
      */
     public void unbindDiscoveryPluginService(final IManagementBusDiscoveryPluginService plugin) {
         if (plugin != null) {
-
-            final List<QName> types = plugin.getSupportedNodeTypes();
-
-            for (final QName type : types) {
-                final Object deletedObject = discoveryPluginServices.remove(type);
-                if (deletedObject != null) {
-                    LOG.debug("Unbound Management Bus Discovery plug-in Service: {} for Type: {}", plugin.toString(),
-                              type);
-                } else {
-                    LOG.debug("Management Bus Discovery plug-in {} could not be unbound, because it is not bound!",
-                              plugin.toString());
-                }
-            }
+            discoveryPluginServices.remove(plugin);
+            LOG.debug("Unbound Management Bus Discovery plug-in Service: {}", plugin.toString());
         } else {
             LOG.error("Unbind Management Bus Discovery plug-in: Supplied parameter is null!");
         }

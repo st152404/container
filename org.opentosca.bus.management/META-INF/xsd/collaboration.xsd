@@ -18,10 +18,22 @@
             <xs:any minOccurs="0" maxOccurs="1" processContents="skip" />
         </xs:sequence>
     </xs:complexType>
+    <xs:complexType name="NodeTemplate">
+        <xs:sequence>
+            <xs:element minOccurs="1" maxOccurs="1" name="Properties" type="ns:KeyValueMap" />
+        </xs:sequence>
+        <xs:attribute name="templateID" type="xs:QName" use="required" />
+        <xs:attribute name="templateType" type="xs:QName" use="required" />
+        <xs:attribute name="hostedOn" type="xs:QName" />
+    </xs:complexType>
+    <xs:complexType name="ServiceTemplateFragmentType">
+        <xs:sequence>
+            <xs:element minOccurs="1" maxOccurs="unbounded" name="NodeTemplate" type="ns:NodeTemplate" />
+        </xs:sequence>
+    </xs:complexType>
     <xs:complexType name="DiscoveryRequest">
         <xs:sequence>
-            <xs:element minOccurs="1" maxOccurs="1" name="NodeType" type="xs:QName" />
-            <xs:element minOccurs="1" maxOccurs="1" name="Properties" type="ns:KeyValueMap" />
+            <xs:element minOccurs="1" maxOccurs="1" name="ServiceTemplateFragment" type="ns:ServiceTemplateFragmentType" />
         </xs:sequence>
     </xs:complexType>
     <xs:complexType name="IAInvocationRequest">

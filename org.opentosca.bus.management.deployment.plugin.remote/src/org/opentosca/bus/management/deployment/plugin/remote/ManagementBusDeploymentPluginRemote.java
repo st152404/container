@@ -10,13 +10,13 @@ import java.util.UUID;
 import org.apache.camel.ConsumerTemplate;
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
+import org.opentosca.bus.management.collaboration.model.CollaborationMessage;
+import org.opentosca.bus.management.collaboration.model.KeyValueMap;
+import org.opentosca.bus.management.collaboration.model.RemoteOperations;
 import org.opentosca.bus.management.deployment.plugin.IManagementBusDeploymentPluginService;
 import org.opentosca.bus.management.header.MBHeader;
 import org.opentosca.bus.management.service.impl.Activator;
 import org.opentosca.bus.management.service.impl.collaboration.Constants;
-import org.opentosca.bus.management.service.impl.collaboration.model.CollaborationMessage;
-import org.opentosca.bus.management.service.impl.collaboration.model.KeyValueMap;
-import org.opentosca.bus.management.service.impl.collaboration.model.RemoteOperations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

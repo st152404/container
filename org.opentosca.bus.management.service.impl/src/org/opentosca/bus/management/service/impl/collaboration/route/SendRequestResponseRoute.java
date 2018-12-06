@@ -60,9 +60,8 @@ public class SendRequestResponseRoute extends RouteBuilder {
 
         // JAXB definitions to marshal the outgoing message body
         final ClassLoader classLoader =
-            org.opentosca.bus.management.service.impl.collaboration.model.ObjectFactory.class.getClassLoader();
-        final JAXBContext jc =
-            JAXBContext.newInstance("org.opentosca.bus.management.service.impl.collaboration.model", classLoader);
+            org.opentosca.bus.management.collaboration.model.ObjectFactory.class.getClassLoader();
+        final JAXBContext jc = JAXBContext.newInstance("org.opentosca.bus.management.collaboration.model", classLoader);
         final JaxbDataFormat jaxb = new JaxbDataFormat(jc);
 
         // extracts exchange headers and adds them to the marshaled object

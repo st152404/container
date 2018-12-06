@@ -2,18 +2,19 @@
 // Implementation, v2.2.4-2
 // See <a href="http://java.sun.com/xml/jaxb">http://java.sun.com/xml/jaxb</a>
 // Any modifications to this file will be lost upon recompilation of the source schema.
-// Generated on: 2018.07.05 at 09:07:58 PM CEST
+// Generated on: 2018.12.05 at 12:07:58 PM CEST
 
-package org.opentosca.bus.management.service.impl.collaboration.model;
+package org.opentosca.bus.management.collaboration.model;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.annotation.XmlElementDecl;
 import javax.xml.bind.annotation.XmlRegistry;
 import javax.xml.namespace.QName;
 
+
 /**
  * This object contains factory methods for each Java content interface and Java element interface
- * generated in the org.opentosca.bus.management.service.impl.collaboration.model package.
+ * generated in the org.opentosca.bus.management.collaboration.model package.
  * <p>
  * An ObjectFactory allows you to programmatically construct new instances of the Java
  * representation for XML content. The Java representation of XML content can consist of schema
@@ -29,7 +30,7 @@ public class ObjectFactory {
 
     /**
      * Create a new ObjectFactory that can be used to create new instances of schema derived classes
-     * for package: org.opentosca.bus.management.service.impl.collaboration.model
+     * for package: org.opentosca.bus.management.collaboration.model
      *
      */
     public ObjectFactory() {}
@@ -40,6 +41,14 @@ public class ObjectFactory {
      */
     public CollaborationMessage createCollaborationMessage() {
         return new CollaborationMessage();
+    }
+
+    /**
+     * Create an instance of {@link NodeTemplate }
+     *
+     */
+    public NodeTemplate createNodeTemplate() {
+        return new NodeTemplate();
     }
 
     /**
@@ -67,10 +76,18 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link ServiceTemplateFragmentType }
+     *
+     */
+    public ServiceTemplateFragmentType createServiceTemplateFragmentType() {
+        return new ServiceTemplateFragmentType();
+    }
+
+    /**
      * Create an instance of {@link DiscoveryRequest }
      *
      */
-    public DiscoveryRequest createInstanceDataMatchingRequest() {
+    public DiscoveryRequest createDiscoveryRequest() {
         return new DiscoveryRequest();
     }
 

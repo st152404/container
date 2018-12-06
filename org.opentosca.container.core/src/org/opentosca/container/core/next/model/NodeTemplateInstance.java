@@ -67,9 +67,6 @@ public class NodeTemplateInstance extends PersistenceObject {
     @JsonIgnore
     private List<DeploymentTestResult> deploymentTestResults = Lists.newArrayList();
 
-    @Column(name = "managingContainer")
-    private String managingContainer;
-
     public NodeTemplateInstance() {}
 
     public String getName() {
@@ -188,13 +185,5 @@ public class NodeTemplateInstance extends PersistenceObject {
         if (deploymentTestResult.getNodeTemplateInstance() != this) {
             deploymentTestResult.setNodeTemplateInstance(this);
         }
-    }
-
-    public String getManagingContainer() {
-        return this.managingContainer;
-    }
-
-    public void setManagingContainer(final String managingContainer) {
-        this.managingContainer = managingContainer;
     }
 }
