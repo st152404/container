@@ -6,11 +6,11 @@ import javax.xml.namespace.QName;
 
 import org.opentosca.planbuilder.model.plan.ARelationshipTemplateActivity;
 import org.opentosca.planbuilder.model.plan.AbstractActivity;
-import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.plan.ActivityType;
 import org.opentosca.planbuilder.model.tosca.AbstractDefinitions;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipTemplate;
+import org.opentosca.planbuilder.model.tosca.AbstractServiceTemplate;
 import org.opentosca.planbuilder.plugins.IPlanBuilderPolicyAwareTypePlugin;
 import org.opentosca.planbuilder.plugins.IPlanBuilderTypePlugin;
 import org.opentosca.planbuilder.plugins.context.PlanContext;
@@ -20,36 +20,20 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractPlanBuilder {
 
-    protected final PluginRegistry pluginRegistry = new PluginRegistry();
+    public final PluginRegistry pluginRegistry = new PluginRegistry();
 
     private final static Logger LOG = LoggerFactory.getLogger(AbstractPlanBuilder.class);
 
-    /**
-     * <p>
-     * Creates a BuildPlan in WS-BPEL 2.0 for the specified values csarName, definitions and
-     * serviceTemplateId. Where csarName denotes the fileName of the CSAR, definitions denotes the
-     * Definitions document and serviceTemplateId a QName denoting the ServiceTemplate inside the
-     * Definitions document
-     * </p>
-     *
-     * @param csarName the file name of the CSAR as String
-     * @param definitions the Definitions document as AbstractDefinitions Object
-     * @param serviceTemplateId a QName denoting a ServiceTemplate inside the Definitions document
-     * @return a complete BuildPlan for the given ServiceTemplate, if the ServiceTemplate denoted by the
-     *         given QName isn't found inside the Definitions document null is returned instead
-     */
-    abstract public AbstractPlan buildPlan(String csarName, AbstractDefinitions definitions, QName serviceTemplateId);
-
-    /**
-     * <p>
-     * Returns a List of BuildPlans for the ServiceTemplates contained in the given Definitions document
-     * </p>
-     *
-     * @param csarName the file name of CSAR
-     * @param definitions a AbstractDefinitions Object denoting the Definitions document
-     * @return a List of Build Plans for each ServiceTemplate contained inside the Definitions document
-     */
-    abstract public List<AbstractPlan> buildPlans(String csarName, AbstractDefinitions definitions);
+    public AbstractServiceTemplate getServiceTemplate(final AbstractDefinitions definitions,
+                                                      final QName serviceTemplate) {
+        for (final AbstractServiceTemplate servTemp : definitions.getServiceTemplates()) {
+            if (servTemp.getId().equals(serviceTemplate.getLocalPart())
+                && servTemp.getTargetNamespace().equals(serviceTemplate.getNamespaceURI())) {
+                return servTemp;
+            }
+        }
+        return null;
+    }
 
     /**
      * <p>
@@ -145,9 +129,9 @@ public abstract class AbstractPlanBuilder {
      * @param type the type of the activity
      * @return an AbstractActivity
      */
-    protected AbstractActivity findRelationshipTemplateActivity(final List<AbstractActivity> activities,
-                                                                final AbstractRelationshipTemplate relationshipTemplate,
-                                                                final ActivityType type) {
+    public AbstractActivity findRelationshipTemplateActivity(final List<AbstractActivity> activities,
+                                                             final AbstractRelationshipTemplate relationshipTemplate,
+                                                             final ActivityType type) {
         for (final AbstractActivity activity : activities) {
             if (activity.getType().equals(type)) {
                 if (activity instanceof ARelationshipTemplateActivity) {
@@ -160,4 +144,5 @@ public abstract class AbstractPlanBuilder {
         }
         return null;
     }
+
 }

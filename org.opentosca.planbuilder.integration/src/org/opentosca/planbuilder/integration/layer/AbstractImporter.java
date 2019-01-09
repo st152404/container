@@ -5,10 +5,12 @@ import java.util.List;
 
 import javax.xml.namespace.QName;
 
-import org.opentosca.planbuilder.AbstractPlanBuilder;
+import org.opentosca.planbuilder.AbstractBasicPlanBuilder;
+import org.opentosca.planbuilder.AbstractTransformingPlanBuilder;
 import org.opentosca.planbuilder.core.bpel.BPELBuildProcessBuilder;
 import org.opentosca.planbuilder.core.bpel.BPELScaleOutProcessBuilder;
 import org.opentosca.planbuilder.core.bpel.BPELTerminationProcessBuilder;
+import org.opentosca.planbuilder.core.bpel.BPELUpdateProcessBuilder;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.tosca.AbstractDefinitions;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
@@ -36,7 +38,7 @@ public abstract class AbstractImporter {
      * @return a BuildPlan if generating a BuildPlan was successful, else null
      */
     public AbstractPlan buildPlan(final AbstractDefinitions defs, final String csarName, final QName serviceTemplate) {
-        final AbstractPlanBuilder planBuilder = new BPELBuildProcessBuilder();
+        final AbstractBasicPlanBuilder planBuilder = new BPELBuildProcessBuilder();
         return planBuilder.buildPlan(csarName, defs, serviceTemplate);
     }
 
@@ -51,7 +53,7 @@ public abstract class AbstractImporter {
         final List<AbstractPlan> plans = new ArrayList<>();
 
 
-        final AbstractPlanBuilder buildPlanBuilder = new BPELBuildProcessBuilder();
+        final AbstractBasicPlanBuilder buildPlanBuilder = new BPELBuildProcessBuilder();
 
         // FIXME: This does not work for me (Michael W. - 2018-02-19)
         // if (!this.hasPolicies(defs)) {
@@ -60,12 +62,18 @@ public abstract class AbstractImporter {
         // buildPlanBuilder = new PolicyAwareBPELBuildProcessBuilder();
         // }
 
-        final AbstractPlanBuilder terminationPlanBuilder = new BPELTerminationProcessBuilder();
-        final AbstractPlanBuilder scalingPlanBuilder = new BPELScaleOutProcessBuilder();
+        final AbstractBasicPlanBuilder terminationPlanBuilder = new BPELTerminationProcessBuilder();
+        final AbstractBasicPlanBuilder scalingPlanBuilder = new BPELScaleOutProcessBuilder();
+        final AbstractTransformingPlanBuilder updatePlanBuilder = new BPELUpdateProcessBuilder();
+
+        //updatePlanBuilder.buildPlan(csarName, defs, defs.getServiceTemplates().get(0).getQName(), csarName, defs,
+        //                            defs.getServiceTemplates().get(0).getQName());
+
 
         plans.addAll(scalingPlanBuilder.buildPlans(csarName, defs));
         plans.addAll(buildPlanBuilder.buildPlans(csarName, defs));
         plans.addAll(terminationPlanBuilder.buildPlans(csarName, defs));
+
         return plans;
     }
 
