@@ -22,7 +22,7 @@ import org.opentosca.planbuilder.model.tosca.AbstractServiceTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractTopologyTemplate;
 import org.opentosca.planbuilder.model.utils.ModelUtils;
 
-public abstract class AbstractTerminationPlanBuilder extends AbstractPlanBuilder {
+public abstract class AbstractTerminationPlanBuilder extends AbstractBasicPlanBuilder {
 
     protected AbstractPlan generateTOG(final String id, final AbstractDefinitions definitions,
                                        final AbstractServiceTemplate serviceTemplate) {

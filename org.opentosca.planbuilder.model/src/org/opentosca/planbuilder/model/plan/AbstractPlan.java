@@ -60,9 +60,13 @@ public abstract class AbstractPlan {
 
     private final AbstractServiceTemplate serviceTemplate;
 
+    private AbstractServiceTemplate goalServiceTemplate;
+
     private PlanType type;
 
     private final AbstractDefinitions definitions;
+
+    private AbstractDefinitions goalDefinitions;
 
     private final Collection<AbstractActivity> activites;
 
@@ -78,6 +82,20 @@ public abstract class AbstractPlan {
         this.type = type;
         this.definitions = definitions;
         this.serviceTemplate = serviceTemplate;
+        this.activites = activities;
+        this.links = links;
+    }
+
+    public AbstractPlan(final String id, final PlanType type, final AbstractDefinitions definitions,
+                        final AbstractDefinitions goalDefinitions, final AbstractServiceTemplate initialServiceTemplate,
+                        final AbstractServiceTemplate goalServiceTemplate,
+                        final Collection<AbstractActivity> activities, final Set<Link> links) {
+        this.id = id;
+        this.type = type;
+        this.definitions = definitions;
+        this.goalDefinitions = goalDefinitions;
+        this.serviceTemplate = initialServiceTemplate;
+        this.goalServiceTemplate = goalServiceTemplate;
         this.activites = activities;
         this.links = links;
     }
@@ -117,6 +135,10 @@ public abstract class AbstractPlan {
      */
     public AbstractServiceTemplate getServiceTemplate() {
         return this.serviceTemplate;
+    }
+
+    public AbstractServiceTemplate getDesiredServiceTemplate() {
+        return this.goalServiceTemplate;
     }
 
     public Collection<AbstractActivity> getActivites() {

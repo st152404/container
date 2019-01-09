@@ -590,15 +590,6 @@ public class BPELScaleOutProcessBuilder extends AbstractScaleOutPlanBuilder {
         return null;
     }
 
-    private AbstractServiceTemplate getServiceTemplate(final AbstractDefinitions defs, final QName serviceTemplateId) {
-        for (final AbstractServiceTemplate serviceTemplate : defs.getServiceTemplates()) {
-            if (serviceTemplate.getTargetNamespace().equals(serviceTemplateId.getNamespaceURI())
-                && serviceTemplate.getId().equals(serviceTemplateId.getLocalPart())) {
-                return serviceTemplate;
-            }
-        }
-        return null;
-    }
 
     private void printGraph(final AbstractPlan abstractScaleOutPlan) {
 

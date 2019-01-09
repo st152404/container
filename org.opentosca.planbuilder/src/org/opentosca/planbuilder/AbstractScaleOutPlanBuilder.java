@@ -27,7 +27,7 @@ import org.opentosca.planbuilder.model.utils.ModelUtils;
  * @author Kalman Kepes - kalman.kepes@iaas.uni-stuttgart.de
  *
  */
-public abstract class AbstractScaleOutPlanBuilder extends AbstractPlanBuilder {
+public abstract class AbstractScaleOutPlanBuilder extends AbstractBasicPlanBuilder {
 
     public AbstractPlan generateSOG(final String id, final AbstractDefinitions defintions,
                                     final AbstractServiceTemplate serviceTemplate,

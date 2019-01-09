@@ -515,6 +515,7 @@ public class BPELInvokerPluginHandler implements InvokerPluginHandler<BPELPlanCo
         final String requestVariableName =
             invokerPortType.getLocalPart() + InputMessageId.getLocalPart() + "Request" + context.getIdForNames();
         context.addVariable(requestVariableName, BPELPlan.VariableType.MESSAGE, InputMessageId);
+
         final String responseVariableName = invokerCallbackPortType.getLocalPart() + OutputMessageId.getLocalPart()
             + "Response" + context.getIdForNames();
         context.addVariable(responseVariableName, BPELPlan.VariableType.MESSAGE, OutputMessageId);
@@ -612,6 +613,7 @@ public class BPELInvokerPluginHandler implements InvokerPluginHandler<BPELPlanCo
                 this.resHandler.generateAddressingCopyAsNode(partnerLinkName, requestVariableName);
             addressingCopyNode = context.importNode(addressingCopyNode);
             assignNode.appendChild(addressingCopyNode);
+
 
             // if (callbackAddressVarName == null) {
             // if the plan doesn't have an input message for the address of
