@@ -51,7 +51,7 @@ import javax.xml.namespace.QName;
  *
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "tServiceTemplate", propOrder = {"tags", "boundaryDefinitions", "topologyTemplate", "plans"})
+@XmlType(name = "tServiceTemplate", propOrder = {"tags", "boundaryDefinitions", "topologyTemplate", "plans", "groups"})
 public class TServiceTemplate extends TExtensibleElements {
 
     @XmlElement(name = "Tags")
@@ -62,6 +62,8 @@ public class TServiceTemplate extends TExtensibleElements {
     protected TTopologyTemplate topologyTemplate;
     @XmlElement(name = "Plans")
     protected TPlans plans;
+    @XmlElement(name = "Groups")
+    protected TGroups groups;
     @XmlAttribute(required = true)
     @XmlJavaTypeAdapter(CollapsedStringAdapter.class)
     @XmlID
@@ -135,6 +137,15 @@ public class TServiceTemplate extends TExtensibleElements {
         this.topologyTemplate = value;
     }
 
+
+    public TGroups getGroups() {
+    	return groups;
+    }
+    
+    public void setGroups(TGroups value){
+    	this.groups = value;
+    }
+    
     /**
      * Gets the value of the plans property.
      *

@@ -107,6 +107,7 @@ public class TDefinitions extends TExtensibleElements {
                   @XmlElement(name = "RequirementType", type = TRequirementType.class),
                   @XmlElement(name = "NodeTypeImplementation", type = TNodeTypeImplementation.class),
                   @XmlElement(name = "ArtifactType", type = TArtifactType.class),
+                  @XmlElement(name = "GroupType", type = TGroupType.class),
                   @XmlElement(name = "PolicyTemplate", type = TPolicyTemplate.class),
                   @XmlElement(name = "ArtifactTemplate", type = TArtifactTemplate.class),
                   @XmlElement(name = "RelationshipTypeImplementation", type = TRelationshipTypeImplementation.class),

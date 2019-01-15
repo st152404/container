@@ -279,6 +279,10 @@ public class DefinitionsResolver {
                     final String location =
                         PathResolver.resolveRelativePath(file.getPath(), oldLocation, this.csarContent);
 
+                    if(location == null) {
+                    	throw new RuntimeException("Parsed location is null, for file " + file.toString() + " and location " + oldLocation + " in def " + def.getId());
+                    }
+                    
                     this.LOG.trace("Import (at \"" + oldLocation + "\") should be at \"" + location + "\".");
 
                     AbstractFile newFile;

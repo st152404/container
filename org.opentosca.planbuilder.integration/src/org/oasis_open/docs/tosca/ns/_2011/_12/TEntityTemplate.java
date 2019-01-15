@@ -76,7 +76,7 @@ import org.w3c.dom.Element;
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "tEntityTemplate", propOrder = {"properties", "propertyConstraints"})
 @XmlSeeAlso({TArtifactTemplate.class, TPolicyTemplate.class, TNodeTemplate.class, TCapability.class,
-             TRelationshipTemplate.class, TRequirement.class})
+             TRelationshipTemplate.class, TRequirement.class, TGroup.class})
 public abstract class TEntityTemplate extends TExtensibleElements {
 
     @XmlElement(name = "Properties")

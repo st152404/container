@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,23 +26,20 @@ import org.opentosca.planbuilder.model.utils.ModelUtils;
 public abstract class AbstractTerminationPlanBuilder extends AbstractPlanBuilder {
 
     protected AbstractPlan generateTOG(final String id, final AbstractDefinitions definitions,
-                                       final AbstractServiceTemplate serviceTemplate) {
+                                       final AbstractServiceTemplate serviceTemplate, List<AbstractNodeTemplate> nodeTemplates, List<AbstractRelationshipTemplate> relationshipTemplates) {
 
         final Collection<AbstractActivity> activities = new ArrayList<>();
         final Set<Link> links = new HashSet<>();
-        final Map<AbstractNodeTemplate, AbstractActivity> mapping = new HashMap<>();
+        final Map<AbstractNodeTemplate, AbstractActivity> mapping = new HashMap<>();        
 
-
-        final AbstractTopologyTemplate topology = serviceTemplate.getTopologyTemplate();
-
-        for (final AbstractNodeTemplate nodeTemplate : topology.getNodeTemplates()) {
+        for (final AbstractNodeTemplate nodeTemplate : nodeTemplates) {
             final ANodeTemplateActivity activity = new ANodeTemplateActivity(
                 nodeTemplate.getId() + "_termination_activity", ActivityType.TERMINATION, nodeTemplate);
             activities.add(activity);
             mapping.put(nodeTemplate, activity);
         }
 
-        for (final AbstractRelationshipTemplate relationshipTemplate : topology.getRelationshipTemplates()) {
+        for (final AbstractRelationshipTemplate relationshipTemplate : relationshipTemplates) {
             final ARelationshipTemplateActivity activity = new ARelationshipTemplateActivity(
                 relationshipTemplate.getId() + "_termination_activity", ActivityType.TERMINATION, relationshipTemplate);
             activities.add(activity);

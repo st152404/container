@@ -69,7 +69,7 @@ import javax.xml.namespace.QName;
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "tEntityType", propOrder = {"tags", "derivedFrom", "propertiesDefinition"})
 @XmlSeeAlso({TNodeType.class, TRelationshipType.class, TRequirementType.class, TCapabilityType.class,
-             TArtifactType.class, TPolicyType.class})
+             TArtifactType.class, TPolicyType.class, TGroupType.class})
 public abstract class TEntityType extends TExtensibleElements {
 
     @XmlElement(name = "Tags")

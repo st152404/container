@@ -96,7 +96,7 @@ public class ServiceInstanceVariablesHandler {
 
     }
 
-    protected static String findServiceInstanceIdVarName(final BPELPlanHandler bpelplanHandler, final BPELPlan plan) {
+    public static String findServiceInstanceIdVarName(final BPELPlanHandler bpelplanHandler, final BPELPlan plan) {
         for (final String varName : bpelplanHandler.getMainVariableNames(plan)) {
             if (varName.contains(ServiceInstanceIDVarKeyword)) {
                 return varName;

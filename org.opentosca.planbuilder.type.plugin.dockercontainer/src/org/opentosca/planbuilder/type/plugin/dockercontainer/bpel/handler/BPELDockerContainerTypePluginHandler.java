@@ -159,6 +159,9 @@ public class BPELDockerContainerTypePluginHandler implements DockerContainerType
             // handle with DA -> construct URL to the DockerImage .zip
 
             final AbstractDeploymentArtifact da = fetchFirstDockerContainerDA(nodeTemplate);
+            if(da == null) {
+            	return false;
+            }
             return handleWithDA(templateContext, dockerEngineNode, da, portMappingVar, dockerEngineUrlVar, sshPortVar,
                                 containerIpVar, containerIdVar,
                                 fetchEnvironmentVariables(templateContext, nodeTemplate), null, null,

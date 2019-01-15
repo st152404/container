@@ -201,10 +201,12 @@ public class CsarController {
             csarId = this.fileService.storeCSAR(file.toPath());
         }
         catch (final EntityExistsException e) {
+        	e.printStackTrace();
             logger.error("Failed to store CSAR: {}", e.getMessage(), e);
             return Response.status(Status.CONFLICT).build();
         }
         catch (final Exception e) {
+        	e.printStackTrace();
             logger.error("Failed to store CSAR: {}", e.getMessage(), e);
             return Response.serverError().build();
         }
@@ -234,6 +236,7 @@ public class CsarController {
             }
         }
         catch (final Exception e) {
+        	e.printStackTrace();
             logger.error("Error resolving open requirements: {}", e.getMessage(), e);
             return Response.serverError().build();
         }
@@ -243,6 +246,7 @@ public class CsarController {
             csarId = this.fileService.storeCSAR(file.toPath());
         }
         catch (UserException | SystemException e) {
+        	e.printStackTrace();
             logger.error("Failed to store CSAR: {}", e.getMessage(), e);
             return Response.serverError().build();
         }

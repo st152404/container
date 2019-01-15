@@ -1,4 +1,4 @@
-package org.opentosca.planbuilder;
+package org.opentosca.planbuilder.model.utils;
 
 import java.util.Objects;
 import java.util.regex.Matcher;

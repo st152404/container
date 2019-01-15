@@ -926,17 +926,6 @@ public class BPELPlanContext implements PlanContext {
         return this.bpelProcessHandler.getMainVariableNames(this.templateBuildPlan.getBuildPlan());
     }
 
-    /**
-     * Returns a NCName String of the given String
-     *
-     * @param string a String to convert
-     * @return the String which is a NCName
-     */
-    public String getNCNameFromString(final String string) {
-        // TODO check if this enough
-        return string.replace(" ", "_");
-    }
-
     public boolean executeOperation(final AbstractRelationshipTemplate relationshipTemplate, final String interfaceName,
                                     final String operationName, Map<AbstractParameter, Variable> inputPropertyMapping,
                                     Map<AbstractParameter, Variable> outputPropertyMapping) {

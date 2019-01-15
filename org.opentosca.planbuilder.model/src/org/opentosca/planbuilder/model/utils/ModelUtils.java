@@ -18,6 +18,10 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 
 import org.opentosca.planbuilder.model.tosca.AbstractArtifactTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractArtifactType;
@@ -25,8 +29,10 @@ import org.opentosca.planbuilder.model.tosca.AbstractDeploymentArtifact;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeType;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTypeImplementation;
+import org.opentosca.planbuilder.model.tosca.AbstractProperties;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipType;
+import org.opentosca.planbuilder.model.tosca.AbstractServiceTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -72,7 +78,30 @@ public class ModelUtils {
     public final static QName externalResourceNodeType =
         new QName("http://opentosca.org/nodetypes", "ExternalResource");
 
-
+    public static NodeList queryNodeSet(final Node rootElement, final String xpathQuery) throws XPathExpressionException {
+        final XPathExpression expr = XPathFactory.newInstance().newXPath().compile(xpathQuery);
+        final Object result = expr.evaluate(rootElement, XPathConstants.NODESET);
+        final NodeList list = (NodeList) result;
+        return list;
+    }
+    
+    public static String getNodeContent(final Node node) {
+        return node.getTextContent();
+    }
+    
+    public static Element getBoundaryPropertiesSafely(final AbstractServiceTemplate serviceTemplate) {    	
+        if (serviceTemplate.getBoundaryDefinitions() != null) {
+            if (serviceTemplate.getBoundaryDefinitions().getProperties() != null) {
+                if (serviceTemplate.getBoundaryDefinitions().getProperties().getProperties() != null) {
+                    if (serviceTemplate.getBoundaryDefinitions().getProperties().getProperties()
+                                       .getDOMElement() != null) {
+                        return serviceTemplate.getBoundaryDefinitions().getProperties().getProperties().getDOMElement();
+                    }
+                }
+            }
+        }
+        return null;
+    }
 
     public static String makeValidNCName(final String string) {
         return string.replaceAll("\\.", "_").replaceAll(" ", "_");
@@ -641,16 +670,31 @@ public class ModelUtils {
             | relationshipType.equals(ModelUtils.TOSCABASETYPE_DEPLOYEDON);
     }
 
-    public static List<String> getPropertyNames(final AbstractNodeTemplate nodeTemplate) {
-        final List<String> propertyNames = new ArrayList<>();
-        final NodeList propertyNodes = nodeTemplate.getProperties().getDOMElement().getChildNodes();
+    public static List<String> getPropertyNames(final AbstractNodeTemplate nodeTemplate) {        
+        return ModelUtils.getPropertyNames(nodeTemplate.getProperties());
+    }
+    
+    public static List<String> getPropertyNames(final AbstractProperties props) {
+    	 final List<String> propertyNames = new ArrayList<>();
+         final NodeList propertyNodes = props.getDOMElement().getChildNodes();
+         for (int index = 0; index < propertyNodes.getLength(); index++) {
+             final Node propertyNode = propertyNodes.item(index);
+             if (propertyNode.getNodeType() == Node.ELEMENT_NODE) {
+                 propertyNames.add(propertyNode.getLocalName());
+             }
+         }
+         return propertyNames;
+    }
+    
+    public static String getPropertyValue(final AbstractProperties props, String propName) {
+    	final NodeList propertyNodes = props.getDOMElement().getChildNodes();
         for (int index = 0; index < propertyNodes.getLength(); index++) {
             final Node propertyNode = propertyNodes.item(index);
-            if (propertyNode.getNodeType() == Node.ELEMENT_NODE) {
-                propertyNames.add(propertyNode.getLocalName());
+            if (propertyNode.getNodeType() == Node.ELEMENT_NODE && propertyNode.getLocalName().equals(propName)) {
+                return propertyNode.getTextContent();
             }
         }
-        return propertyNames;
+        return null;
     }
 
     /**

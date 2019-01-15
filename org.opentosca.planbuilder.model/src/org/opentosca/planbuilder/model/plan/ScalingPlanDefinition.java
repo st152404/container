@@ -1,4 +1,4 @@
-package org.opentosca.planbuilder;
+package org.opentosca.planbuilder.model.plan;
 
 import java.util.ArrayList;
 import java.util.Collection;

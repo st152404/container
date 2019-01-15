@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -45,17 +46,15 @@ public abstract class AbstractBuildPlanBuilder extends AbstractPlanBuilder {
     }
 
     public static AbstractPlan generatePOG(final String id, final AbstractDefinitions definitions,
-                                           final AbstractServiceTemplate serviceTemplate) {
+                                           final AbstractServiceTemplate serviceTemplate, List<AbstractNodeTemplate> nodeTemplates, List<AbstractRelationshipTemplate> relationshipTemplates) {
 
         final Collection<AbstractActivity> activities = new ArrayList<>();
         final Set<Link> links = new HashSet<>();
         final Map<AbstractNodeTemplate, AbstractActivity> nodeMapping = new HashMap<>();
         final Map<AbstractRelationshipTemplate, AbstractActivity> relationMapping = new HashMap<>();
 
-        final AbstractTopologyTemplate topology = serviceTemplate.getTopologyTemplate();
-
-        generatePOGActivitesAndLinks(activities, links, nodeMapping, topology.getNodeTemplates(), relationMapping,
-                                     topology.getRelationshipTemplates());
+        generatePOGActivitesAndLinks(activities, links, nodeMapping, nodeTemplates, relationMapping,
+                                     relationshipTemplates);
 
         final AbstractPlan plan =
             new AbstractPlan(id, AbstractPlan.PlanType.BUILD, definitions, serviceTemplate, activities, links) {
