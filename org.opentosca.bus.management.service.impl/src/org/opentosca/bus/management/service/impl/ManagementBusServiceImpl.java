@@ -517,6 +517,7 @@ public class ManagementBusServiceImpl implements IManagementBusService {
 
             if (plan != null) {
                 LOG.debug("Plan ID: {}", plan.getTemplateId());
+                message.setHeader(MBHeader.PLANID_QNAME.toString(), plan.getTemplateId());
                 LOG.debug("Plan language: {}", plan.getLanguage().toString());
 
                 LOG.debug("Getting endpoint for the plan...");

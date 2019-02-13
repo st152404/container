@@ -20,8 +20,8 @@ public interface IPlanInvocationEngine {
                                       long serviceTemplateInstanceID, final TPlanDTO givenPlan);
 
     /**
-     * Invoke a PublicPlan for a CSAR. If this PublicPlan is of Type OTHERMANAGEMENT or TERMINATION, the
-     * information about the CSARInstance is stored inside the PublicPlan.
+     * Invoke a PublicPlan for a CSAR. If this PublicPlan is of Type OTHERMANAGEMENT or TERMINATION,
+     * the information about the CSARInstance is stored inside the PublicPlan.
      *
      * @param csarID
      * @param instance ID of a CSAR instance
@@ -31,9 +31,6 @@ public interface IPlanInvocationEngine {
      */
     public void invokePlan(CSARID csarID, QName serviceTemplateId, long serviceTemplateInstanceID, TPlanDTO plan,
                            String correlationID) throws UnsupportedEncodingException;
-
-    public String invokePlan(CSARID csarID, QName serviceTemplateId, long serviceTemplateInstanceID,
-                             TPlanDTO plan) throws UnsupportedEncodingException;
 
     public void correctCorrelationToServiceTemplateInstanceIdMapping(CSARID csarID, QName serviceTemplateId,
                                                                      String corrId, int correctSTInstanceId);
@@ -54,7 +51,4 @@ public interface IPlanInvocationEngine {
      * @return PublicPlan
      */
     public TPlanDTO getActivePublicPlanOfInstance(ServiceTemplateInstanceID csarInstanceID, String correlationID);
-
-    public IPlanLogHandler getPlanLogHandler();
-
 }

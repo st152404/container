@@ -1,5 +1,6 @@
 package org.opentosca.bus.management.api.osgievent;
 
+import org.apache.camel.ProducerTemplate;
 import org.apache.camel.core.osgi.OsgiDefaultCamelContext;
 import org.apache.camel.core.osgi.OsgiServiceRegistry;
 import org.apache.camel.impl.DefaultCamelContext;
@@ -25,12 +26,12 @@ import org.slf4j.LoggerFactory;
  */
 public class Activator implements BundleActivator {
 
-    static DefaultCamelContext camelContext;
+    protected static DefaultCamelContext camelContext;
+    protected static ProducerTemplate producer;
 
     public static String apiID;
 
     final private static Logger LOG = LoggerFactory.getLogger(Activator.class);
-
 
     @Override
     public void start(final BundleContext bundleContext) throws Exception {
@@ -38,17 +39,17 @@ public class Activator implements BundleActivator {
         Activator.apiID = bundleContext.getBundle().getSymbolicName();
 
         final OsgiServiceRegistry reg = new OsgiServiceRegistry(bundleContext);
-        Activator.camelContext = new OsgiDefaultCamelContext(bundleContext, reg);
-        Activator.camelContext.addRoutes(new Route());
-        Activator.camelContext.start();
-        Activator.LOG.info("Management Bus-OSGI-Event API started!");
+        camelContext = new OsgiDefaultCamelContext(bundleContext, reg);
+        camelContext.addRoutes(new Route());
+        camelContext.start();
+        LOG.info("Management Bus-OSGI-Event API started!");
 
+        producer = camelContext.createProducerTemplate();
     }
 
     @Override
     public void stop(final BundleContext arg0) throws Exception {
-        Activator.camelContext = null;
-        Activator.LOG.info("Management Bus-OSGI-Event API stopped!");
-
+        camelContext = null;
+        LOG.info("Management Bus-OSGI-Event API stopped!");
     }
 }

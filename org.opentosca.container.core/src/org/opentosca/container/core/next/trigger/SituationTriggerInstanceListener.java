@@ -116,12 +116,13 @@ public class SituationTriggerInstanceListener {
 
                 try {
                     final String correlationId =
-                        this.planInvocEngine.invokePlan(servInstance.getCsarId(), servInstance.getTemplateId(),
-                                                        servInstance.getId(), planDTO);
+                        this.planInvocEngine.createCorrelationId(servInstance.getCsarId(), servInstance.getTemplateId(),
+                                                                 servInstance.getId(), planDTO);
+
+                    this.planInvocEngine.invokePlan(servInstance.getCsarId(), servInstance.getTemplateId(),
+                                                    servInstance.getId(), planDTO, correlationId);
 
                     // now wait for finished execution
-
-
                     final ServiceTemplateInstanceID servInstanceId = new ServiceTemplateInstanceID(
                         servInstance.getCsarId(), servInstance.getTemplateId(), servInstance.getId().intValue());
 
@@ -134,8 +135,7 @@ public class SituationTriggerInstanceListener {
                     }
 
 
-                    // plan finished, write output to triggerinstance
-
+                    // plan finished, write output to trigger instance
                     runningPlan.getOutputParameters().getOutputParameter()
                                .forEach(x -> this.instance.getOutputs().add(new SituationTriggerInstanceProperty(
                                    x.getName(), x.getValue(), x.getType())));
@@ -168,7 +168,5 @@ public class SituationTriggerInstanceListener {
 
             return false;
         }
-
     }
-
 }

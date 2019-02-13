@@ -4,6 +4,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.xml.namespace.QName;
@@ -13,16 +14,12 @@ import org.opentosca.container.core.common.Settings;
 import org.opentosca.container.core.common.SystemException;
 import org.opentosca.container.core.common.UserException;
 import org.opentosca.container.core.engine.IToscaEngineService;
-import org.opentosca.container.core.engine.xml.IXMLSerializerService;
 import org.opentosca.container.core.model.csar.id.CSARID;
 import org.opentosca.container.core.model.deployment.process.DeploymentProcessOperation;
 import org.opentosca.container.core.model.deployment.process.DeploymentProcessState;
-import org.opentosca.container.core.model.instance.ServiceTemplateInstanceID;
-import org.opentosca.container.core.service.ICSARInstanceManagementService;
 import org.opentosca.container.core.service.ICoreDeploymentTrackerService;
 import org.opentosca.container.core.service.ICoreEndpointService;
 import org.opentosca.container.core.service.ICoreFileService;
-import org.opentosca.container.core.service.ICoreModelRepositoryService;
 import org.opentosca.container.core.service.IPlanInvocationEngine;
 import org.opentosca.container.core.tosca.extension.TPlanDTO;
 import org.opentosca.container.core.tosca.model.TPlan;
@@ -41,16 +38,12 @@ import org.slf4j.LoggerFactory;
  */
 public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
 
-    protected static IPlanEngineService planEngine = null;
-    protected static ICoreFileService fileService = null;
-    protected static IToscaEngineService toscaEngine = null;
-    protected static IXMLSerializerService xmlSerializerService = null;
-    protected static ICoreDeploymentTrackerService coreDeploymentTracker = null;
-    protected static ICoreModelRepositoryService modelRepositoryService = null;
-    protected static ICoreFileService coreFileService = null;
-    protected static ICoreEndpointService endpointService = null;
-    protected static IPlanInvocationEngine planInvocationEngine = null;
-    protected static ICSARInstanceManagementService instanceManagement = null;
+    private static IPlanEngineService planEngine = null;
+    private static ICoreFileService fileService = null;
+    private static IToscaEngineService toscaEngine = null;
+    private static ICoreDeploymentTrackerService coreDeploymentTracker = null;
+    private static ICoreEndpointService endpointService = null;
+    private static IPlanInvocationEngine planInvocationEngine = null;
 
     private final Logger LOG = LoggerFactory.getLogger(OpenToscaControlServiceImpl.class);
 
@@ -88,57 +81,54 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
         OpenToscaControlServiceImpl.coreDeploymentTracker.storeDeploymentState(csarID,
                                                                                DeploymentProcessState.PLAN_DEPLOYMENT_ACTIVE);
 
-        // list of failure - not deployed artifacts
-        final List<TPlan> listOfUndeployedPlans = new ArrayList<>();
-
         // invoke PlanEngine
         this.LOG.info("Invoke the PlanEngine for processing the Plans.");
-        if (OpenToscaControlServiceImpl.planEngine != null) {
-
-            final TServiceTemplate mainServiceTemplate =
-                (TServiceTemplate) OpenToscaControlServiceImpl.toscaEngine.getToscaReferenceMapper()
-                                                                          .getJAXBReference(csarID, serviceTemplateID);
-
-            if (mainServiceTemplate == null) {
-                this.LOG.error("Did not found the main ServiceTemplate \"" + serviceTemplateID + "\".");
-                OpenToscaControlServiceImpl.coreDeploymentTracker.storeDeploymentState(csarID,
-                                                                                       DeploymentProcessState.TOSCA_PROCESSED);
-                return false;
-            }
-
-            if (mainServiceTemplate.getPlans() == null) {
-                this.LOG.info("No plans to process ...");
-                return true;
-            }
-
-            this.LOG.debug("PlanEngine is alive!");
-
-            final TPlans plans = mainServiceTemplate.getPlans();
-
-            String namespace = plans.getTargetNamespace();
-
-            if (namespace == null) {
-                // the Plans element has no targetNamespace defined fallback to
-                // ServiceTemplate namespace
-                namespace = serviceTemplateID.getNamespaceURI();
-            }
-
-            for (final TPlan plan : plans.getPlan()) {
-                if (!OpenToscaControlServiceImpl.planEngine.deployPlan(plan, namespace, csarID)) {
-                    listOfUndeployedPlans.add(plan);
-                }
-            }
-
-            // check the success of the plan deployment
-            if (listOfUndeployedPlans.size() != 0) {
-                this.LOG.error("Plan deployment failed!");
-                OpenToscaControlServiceImpl.coreDeploymentTracker.storeDeploymentState(csarID,
-                                                                                       DeploymentProcessState.TOSCA_PROCESSED);
-                return false;
-            }
-
-        } else {
+        if (Objects.isNull(OpenToscaControlServiceImpl.planEngine)) {
             this.LOG.error("PlanEngine is not alive!");
+            OpenToscaControlServiceImpl.coreDeploymentTracker.storeDeploymentState(csarID,
+                                                                                   DeploymentProcessState.TOSCA_PROCESSED);
+            return false;
+        }
+
+        final TServiceTemplate mainServiceTemplate =
+            (TServiceTemplate) OpenToscaControlServiceImpl.toscaEngine.getToscaReferenceMapper()
+                                                                      .getJAXBReference(csarID, serviceTemplateID);
+
+        if (mainServiceTemplate == null) {
+            this.LOG.error("Did not found the main ServiceTemplate \"" + serviceTemplateID + "\".");
+            OpenToscaControlServiceImpl.coreDeploymentTracker.storeDeploymentState(csarID,
+                                                                                   DeploymentProcessState.TOSCA_PROCESSED);
+            return false;
+        }
+
+        if (mainServiceTemplate.getPlans() == null) {
+            this.LOG.info("No plans to process ...");
+            return true;
+        }
+
+        this.LOG.debug("PlanEngine is alive!");
+
+        final TPlans plans = mainServiceTemplate.getPlans();
+
+        String namespace = plans.getTargetNamespace();
+
+        if (namespace == null) {
+            // the Plans element has no targetNamespace defined fallback to ServiceTemplate
+            // namespace
+            namespace = serviceTemplateID.getNamespaceURI();
+        }
+
+        // list of failure - not deployed artifacts
+        final List<TPlan> listOfUndeployedPlans = new ArrayList<>();
+        for (final TPlan plan : plans.getPlan()) {
+            if (!OpenToscaControlServiceImpl.planEngine.deployPlan(plan, namespace, csarID)) {
+                listOfUndeployedPlans.add(plan);
+            }
+        }
+
+        // check the success of the plan deployment
+        if (!listOfUndeployedPlans.isEmpty()) {
+            this.LOG.error("Plan deployment failed!");
             OpenToscaControlServiceImpl.coreDeploymentTracker.storeDeploymentState(csarID,
                                                                                    DeploymentProcessState.TOSCA_PROCESSED);
             return false;
@@ -264,7 +254,7 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
                 break;
         }
 
-        for (final QName serviceTemplateID : this.toscaEngine.getServiceTemplatesInCSAR(csarID)) {
+        for (final QName serviceTemplateID : toscaEngine.getServiceTemplatesInCSAR(csarID)) {
 
             this.LOG.info("Invoke the PlanEngine for processing the Plans.");
             if (OpenToscaControlServiceImpl.planEngine != null) {
@@ -307,29 +297,6 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
             }
         }
         return true;
-    }
-
-    @Override
-    public int getCSARInstanceIDForCorrelationID(final String correlationID) {
-        return OpenToscaControlServiceImpl.instanceManagement.getInstanceForCorrelation(correlationID).getInstanceID();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public List<String> getCorrelationsOfServiceTemplateInstance(final ServiceTemplateInstanceID csarInstanceID) {
-        return OpenToscaControlServiceImpl.planInvocationEngine.getActiveCorrelationsOfInstance(csarInstanceID);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public TPlanDTO getActivePlanOfInstance(final ServiceTemplateInstanceID csarInstanceID,
-                                            final String correlationID) {
-        return OpenToscaControlServiceImpl.planInvocationEngine.getActivePublicPlanOfInstance(csarInstanceID,
-                                                                                              correlationID);
     }
 
     /**
@@ -454,34 +421,6 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
         OpenToscaControlServiceImpl.coreDeploymentTracker = null;
     }
 
-    protected void bindModelRepo(final ICoreModelRepositoryService service) {
-        if (service == null) {
-            this.LOG.error("Service ModelRepository is null.");
-        } else {
-            this.LOG.debug("Bind of the ModelRepository.");
-            OpenToscaControlServiceImpl.modelRepositoryService = service;
-        }
-    }
-
-    protected void unbindModelRepo(final ICoreModelRepositoryService service) {
-        this.LOG.debug("Unbind of the ModelRepository.");
-        OpenToscaControlServiceImpl.modelRepositoryService = null;
-    }
-
-    protected void bindIXMLSerializerService(final IXMLSerializerService service) {
-        if (service == null) {
-            this.LOG.error("Service IXMLSerializerService is null.");
-        } else {
-            this.LOG.debug("Bind of the IXMLSerializerService.");
-            OpenToscaControlServiceImpl.xmlSerializerService = service;
-        }
-    }
-
-    protected void unbindIXMLSerializerService(final IXMLSerializerService service) {
-        this.LOG.debug("Unbind of the IXMLSerializerService.");
-        OpenToscaControlServiceImpl.xmlSerializerService = null;
-    }
-
     protected void bindEndpointService(final ICoreEndpointService service) {
         if (service == null) {
             this.LOG.error("Service ICoreEndpointService is null.");
@@ -508,19 +447,5 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
     protected void unbindPlanInvocationEngine(final IPlanInvocationEngine service) {
         this.LOG.debug("Unbind of the planInvocationEngine.");
         OpenToscaControlServiceImpl.planInvocationEngine = null;
-    }
-
-    protected void bindICSARInstanceManagementService(final ICSARInstanceManagementService service) {
-        if (service == null) {
-            this.LOG.error("Service ICSARInstanceManagementService is null.");
-        } else {
-            this.LOG.debug("Bind of the ICSARInstanceManagementService.");
-            OpenToscaControlServiceImpl.instanceManagement = service;
-        }
-    }
-
-    protected void unbindICSARInstanceManagementService(final ICSARInstanceManagementService service) {
-        this.LOG.debug("Unbind of the ICSARInstanceManagementService.");
-        OpenToscaControlServiceImpl.instanceManagement = null;
     }
 }

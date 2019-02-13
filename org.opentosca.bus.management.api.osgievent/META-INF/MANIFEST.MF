@@ -20,3 +20,4 @@ Bundle-Activator: org.opentosca.bus.management.api.osgievent.Activator
 Require-Bundle: org.opentosca.container.core;bundle-version="1.0.0",
  org.opentosca.bus.management;bundle-version="1.0.0"
 Bundle-ActivationPolicy: lazy
+Export-Package: org.opentosca.bus.management.api.osgievent

@@ -2,7 +2,6 @@ package org.opentosca.bus.management.api.resthttp.route;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Predicate;
-import org.apache.camel.builder.PredicateBuilder;
 import org.apache.camel.builder.RouteBuilder;
 import org.opentosca.bus.management.api.resthttp.Activator;
 import org.opentosca.bus.management.api.resthttp.model.QueueMap;
@@ -52,8 +51,7 @@ public class InvocationRoute extends RouteBuilder {
     public void configure() throws Exception {
 
         // Checks if invoking a IA
-        final Predicate INVOKE_IA = PredicateBuilder.or(header(MBHeader.NODETEMPLATEID_STRING.toString()).isNotNull(),
-                                                        header(MBHeader.PLANID_QNAME.toString()).isNotNull());
+        final Predicate INVOKE_IA = header(MBHeader.NODETEMPLATEID_STRING.toString()).isNotNull();
         // Checks if invoking a Plan
         final Predicate INVOKE_PLAN = header(MBHeader.PLANID_QNAME.toString()).isNotNull();
 
