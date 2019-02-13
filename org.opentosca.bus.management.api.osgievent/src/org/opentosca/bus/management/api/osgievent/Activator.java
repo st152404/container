@@ -4,7 +4,6 @@ import org.apache.camel.ProducerTemplate;
 import org.apache.camel.core.osgi.OsgiDefaultCamelContext;
 import org.apache.camel.core.osgi.OsgiServiceRegistry;
 import org.apache.camel.impl.DefaultCamelContext;
-import org.opentosca.bus.management.api.osgievent.route.Route;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
@@ -20,9 +19,7 @@ import org.slf4j.LoggerFactory;
  * The activator is needed to add and start the camel routes.
  *
  *
- *
  * @author Michael Zimmermann - zimmerml@studi.informatik.uni-stuttgart.de
- *
  */
 public class Activator implements BundleActivator {
 
@@ -40,7 +37,7 @@ public class Activator implements BundleActivator {
 
         final OsgiServiceRegistry reg = new OsgiServiceRegistry(bundleContext);
         camelContext = new OsgiDefaultCamelContext(bundleContext, reg);
-        camelContext.addRoutes(new Route());
+        camelContext.addRoutes(new OsgiEventRoute());
         camelContext.start();
         LOG.info("Management Bus-OSGI-Event API started!");
 

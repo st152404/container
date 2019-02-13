@@ -57,7 +57,7 @@ public class OsgiEventHandler implements EventHandler {
                 headers.put(MBHeader.CSARID.toString(), csarID);
                 headers.put(MBHeader.OPERATIONNAME_STRING.toString(), operationName);
                 headers.put(MBHeader.PLANCORRELATIONID_STRING.toString(), messageID);
-                headers.put("OPERATION", OsgiEventOperations.INVOKE_PLAN.getHeaderValue());
+                headers.put(OsgiEventRoute.OPERATION_HEADER, OsgiEventOperations.INVOKE_PLAN.getHeaderValue());
 
                 LOG.debug("Correlation id: {}", messageID);
                 LOG.debug("Sending following message to the Management Bus: {}", message);

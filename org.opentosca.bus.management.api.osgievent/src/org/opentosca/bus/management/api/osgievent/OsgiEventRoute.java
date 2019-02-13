@@ -1,8 +1,6 @@
-package org.opentosca.bus.management.api.osgievent.route;
+package org.opentosca.bus.management.api.osgievent;
 
 import org.apache.camel.builder.RouteBuilder;
-import org.opentosca.bus.management.api.osgievent.Activator;
-import org.opentosca.bus.management.api.osgievent.OsgiEventOperations;
 import org.opentosca.bus.management.header.MBHeader;
 
 /**
@@ -16,11 +14,11 @@ import org.opentosca.bus.management.header.MBHeader;
  * further processing. The response message is given back to the EventHandler.
  *
  *
- *
  * @author Michael Zimmermann - zimmerml@studi.informatik.uni-stuttgart.de
- *
  */
-public class Route extends RouteBuilder {
+public class OsgiEventRoute extends RouteBuilder {
+
+    protected static final String OPERATION_HEADER = "OPERATION";
 
     @Override
     public void configure() throws Exception {
@@ -44,8 +42,10 @@ public class Route extends RouteBuilder {
                 exchange.getIn().setHeader(MBHeader.SYNCINVOCATION_BOOLEAN.toString(), true);
             }
 
-        }).to("stream:out").choice().when(header("OPERATION").isEqualTo(OsgiEventOperations.INVOKE_IA.getHeaderValue()))
-            .to("direct:invokeIA").when(header("OPERATION").isEqualTo(OsgiEventOperations.INVOKE_PLAN.getHeaderValue()))
+        }).to("stream:out").choice()
+            .when(header(OPERATION_HEADER).isEqualTo(OsgiEventOperations.INVOKE_IA.getHeaderValue()))
+            .to("direct:invokeIA")
+            .when(header(OPERATION_HEADER).isEqualTo(OsgiEventOperations.INVOKE_PLAN.getHeaderValue()))
             .to("direct:invokePlan").end();
 
         this.from("direct:invokeIA").to("stream:out").wireTap(MANAGEMENT_BUS_IA);
@@ -54,5 +54,4 @@ public class Route extends RouteBuilder {
         this.from("direct-vm:" + Activator.apiID).recipientList(this.simple("direct:response${id}")).end();
 
     }
-
 }
