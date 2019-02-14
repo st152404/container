@@ -98,8 +98,8 @@ public class ModelUtils {
     }
 
     /**
-     * Returns true if the given QName type denotes to a RelationshipType in the type hierarchy of the
-     * given RelationshipTemplate
+     * Returns true if the given QName type denotes to a RelationshipType in the type hierarchy of
+     * the given RelationshipTemplate
      *
      * @param relationshipTemplate an AbstractRelationshipTemplate
      * @param type the Type as a QName to check against
@@ -225,8 +225,8 @@ public class ModelUtils {
      * Adds the InfrastructureEdges of the given NodeTemplate to the given List
      *
      * @param nodeTemplate an AbstractNodeTemplate
-     * @param infrastructureEdges a List of AbstractRelationshipTemplate to add the InfrastructureEdges
-     *        to
+     * @param infrastructureEdges a List of AbstractRelationshipTemplate to add the
+     *        InfrastructureEdges to
      */
     public static void getInfrastructureEdges(final AbstractNodeTemplate nodeTemplate,
                                               final List<AbstractRelationshipTemplate> infrastructureEdges) {
@@ -281,9 +281,10 @@ public class ModelUtils {
      * Calculates all Infrastructure Nodes of all Infrastructure Paths originating from the given
      * NodeTemplate
      *
-     * @param nodeTemplate AbstractNodeTemplate from where the search for Infrstructure Nodes begin
-     * @param infrastructureNodes a List of AbstractNodeTemplates which represent Infrastructure Nodes
-     *        of the given NodeTemplate (including itself when applicable as an infrastructure node)
+     * @param nodeTemplate AbstractNodeTemplate from where the search for Infrastructure Nodes begin
+     * @param infrastructureNodes a List of AbstractNodeTemplates which represent Infrastructure
+     *        Nodes of the given NodeTemplate (including itself when applicable as an infrastructure
+     *        node)
      * @Info the infrastructureNodes List must be empty
      */
     public static void getInfrastructureNodes(final AbstractNodeTemplate nodeTemplate,
@@ -317,8 +318,8 @@ public class ModelUtils {
      * Adds InfrastructureNodes of the given RelaitonshipTemplate to the given List of NodeTemplates
      *
      * @param relationshipTemplate an AbstractRelationshipTemplate to search its InfrastructureNodes
-     * @param infrastructureNodes a List of AbstractNodeTemplate where the InfrastructureNodes will be
-     *        added
+     * @param infrastructureNodes a List of AbstractNodeTemplate where the InfrastructureNodes will
+     *        be added
      * @param forSource whether to search for InfrastructureNodes along the SourceInterface or
      *        TargetInterface
      */
@@ -377,8 +378,8 @@ public class ModelUtils {
     }
 
     /**
-     * Returns all NodeTemplates from the given NodeTemplate going along the path of relation following
-     * the target interfaces
+     * Returns all NodeTemplates from the given NodeTemplate going along the path of relation
+     * following the target interfaces
      *
      * @param nodeTemplate an AbstractNodeTemplate
      * @param nodes a List of AbstractNodeTemplate to add the result to
@@ -389,8 +390,7 @@ public class ModelUtils {
         for (final AbstractRelationshipTemplate outgoingTemplate : nodeTemplate.getOutgoingRelations()) {
             if (outgoingTemplate.getType().equals(ModelUtils.TOSCABASETYPE_CONNECTSTO)) {
                 // we skip connectTo relations, as they are connecting stacks
-                // and
-                // make the result even more ambigious
+                // and make the result even more ambigious
                 continue;
             }
             ModelUtils.getNodesFromRelationToSink(outgoingTemplate, nodes);
@@ -405,8 +405,7 @@ public class ModelUtils {
             if (ModelUtils.getRelationshipTypeHierarchy(outgoingTemplate.getRelationshipType())
                           .contains(relationshipType)) {
                 // we skip connectTo relations, as they are connecting stacks
-                // and
-                // make the result even more ambigious
+                // and make the result even more ambigious
                 ModelUtils.getNodesFromRelationToSink(outgoingTemplate, nodes);
             }
         }
@@ -419,8 +418,7 @@ public class ModelUtils {
         for (final AbstractRelationshipTemplate ingoingTemplate : nodeTemplate.getIngoingRelations()) {
             if (ingoingTemplate.getType().equals(ModelUtils.TOSCABASETYPE_CONNECTSTO)) {
                 // we skip connectTo relations, as they are connecting stacks
-                // and
-                // make the result even more ambigious
+                // and make the result even more ambigious
                 continue;
             }
             ModelUtils.getNodesFromRelationToSources(ingoingTemplate, nodes);
@@ -442,8 +440,7 @@ public class ModelUtils {
         for (final AbstractRelationshipTemplate outgoingTemplate : nodeTemplate.getOutgoingRelations()) {
             if (isCommunicationRelationshipType(outgoingTemplate.getType())) {
                 // we skip connectTo relations, as they are connecting stacks
-                // and
-                // make the result even more ambigious
+                // and make the result even more ambigious
                 continue;
             }
             ModelUtils.getNodesFromRelationToSink(outgoingTemplate, nodes);
@@ -482,14 +479,14 @@ public class ModelUtils {
     }
 
     /**
-     * Returns a ordered list of QNames. The order represents the inheritance of NodeTypes defining the
-     * given NodeType. E.g. NodeType "someNodeType" inherits properties from "someOtherNodeType". The
-     * returns list would have {someNs}someNodeType,{someNs}someOtherNodeType inside, in the exact same
-     * order.
+     * Returns a ordered list of QNames. The order represents the inheritance of NodeTypes defining
+     * the given NodeType. E.g. NodeType "someNodeType" inherits properties from
+     * "someOtherNodeType". The returns list would have
+     * {someNs}someNodeType,{someNs}someOtherNodeType inside, in the exact same order.
      *
      * @param nodeType the nodeType to get the hierarchy for
-     * @return a List containing an order of inheritance of NodeTypes for this NodeType with itself at
-     *         the first spot in the list.
+     * @return a List containing an order of inheritance of NodeTypes for this NodeType with itself
+     *         at the first spot in the list.
      */
     public static List<QName> getNodeTypeHierarchy(final AbstractNodeType nodeType) {
         ModelUtils.LOG.debug("Beginning calculating NodeType Hierarchy for: " + nodeType.getId().toString());
@@ -497,8 +494,7 @@ public class ModelUtils {
         typeHierarchy.add(nodeType.getId());
 
         boolean wasNotNull = true;
-        // changed from search with qname to search with abstract classes and
-        // typeref
+        // changed from search with qname to search with abstract classes and typeref
         AbstractNodeType lastFoundNodeType = nodeType;
         while (wasNotNull) {
 

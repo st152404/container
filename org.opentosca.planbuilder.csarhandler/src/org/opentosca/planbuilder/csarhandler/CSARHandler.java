@@ -1,8 +1,5 @@
 package org.opentosca.planbuilder.csarhandler;
 
-import java.io.File;
-
-import org.opentosca.container.core.common.SystemException;
 import org.opentosca.container.core.common.UserException;
 import org.opentosca.container.core.model.csar.CSARContent;
 import org.opentosca.container.core.model.csar.id.CSARID;
@@ -27,44 +24,6 @@ public class CSARHandler {
 
     final private static Logger LOG = LoggerFactory.getLogger(CSARHandler.class);
 
-
-    /**
-     * Stores a CSAR given as file object
-     *
-     * @param file File referencing a CSAR
-     * @return an Object representing an ID of the stored CSAR, if something went wrong null is returned
-     *         instead
-     * @throws SystemException
-     * @throws UserException
-     */
-    public Object storeCSAR(final File file) throws UserException, SystemException {
-        CSARHandler.LOG.debug("Trying to store csar");
-        final ICoreFileService fileService = this.fetchCoreFileService();
-
-        final CSARID csarId = fileService.storeCSAR(file.toPath());
-        if (csarId == null) {
-            CSARHandler.LOG.warn("Storing CSAR file failed");
-            return null;
-        }
-        CSARHandler.LOG.info("Storing CSAR file was successful");
-        return csarId;
-    }
-
-    /**
-     * Deletes all CSARs in the OpenTOSCA Core
-     */
-    public void deleteAllCsars() {
-        CSARHandler.LOG.info("Deleting all CSAR files");
-        final ICoreFileService fileService = this.fetchCoreFileService();
-
-        try {
-            fileService.deleteCSARs();
-        }
-        catch (final SystemException e) {
-
-        }
-    }
-
     /**
      * Returns a CSARContent Object for the given CSARID
      *
@@ -74,7 +33,7 @@ public class CSARHandler {
      */
     public CSARContent getCSARContentForID(final CSARID id) throws UserException {
         LOG.debug("Fetching CSARContent for given ID");
-        return this.fetchCoreFileService().getCSAR(id);
+        return fetchCoreFileService().getCSAR(id);
     }
 
     private ICoreFileService fetchCoreFileService() {
@@ -98,5 +57,4 @@ public class CSARHandler {
             return ServiceRegistry.getCoreFileService();
         }
     }
-
 }

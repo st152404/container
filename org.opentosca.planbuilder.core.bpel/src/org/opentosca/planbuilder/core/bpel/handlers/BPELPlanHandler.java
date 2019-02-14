@@ -61,8 +61,6 @@ public class BPELPlanHandler {
     private final DocumentBuilderFactory documentBuilderFactory;
     private final DocumentBuilder documentBuilder;
 
-    private final NodeRelationInstanceVariablesHandler instanceInit;
-
     private final ObjectFactory ddFactory;
 
     private final BPELScopeHandler bpelScopeHandler;
@@ -79,24 +77,7 @@ public class BPELPlanHandler {
         this.documentBuilder = this.documentBuilderFactory.newDocumentBuilder();
         this.bpelScopeHandler = new BPELScopeHandler();
         this.ddFactory = new ObjectFactory();
-        this.instanceInit = new NodeRelationInstanceVariablesHandler(this);
-    }
-
-    /**
-     * Returns a prefix for the given namespace if it is declared in the buildPlan
-     *
-     * @param namespace the namespace to get the prefix for
-     * @return a String containing the prefix, else null
-     */
-    public String getPrefixForNamespace(final String namespace, final BPELPlan plan) {
-        if (plan.namespaceMap.containsValue(namespace)) {
-            for (final String key : plan.namespaceMap.keySet()) {
-                if (plan.namespaceMap.get(key).equals(namespace)) {
-                    return key;
-                }
-            }
-        }
-        return null;
+        new NodeRelationInstanceVariablesHandler(this);
     }
 
     public Node importNode(final BPELPlan plan, final Node node) {
@@ -815,22 +796,20 @@ public class BPELPlanHandler {
      * @return a List of Strings containing all Links of the given BuildPlan
      */
     public List<String> getAllLinks(final BPELPlan buildPlan) {
-        final Element flowLinks = buildPlan.getBpelMainFlowLinksElement();
         final List<String> linkNames = new ArrayList<>();
-        final NodeList children = flowLinks.getChildNodes();
+        final NodeList children = buildPlan.getBpelMainFlowLinksElement().getChildNodes();
+
         for (int i = 0; i < children.getLength(); i++) {
-            if (children.item(i).getNodeName().equals("link")) {
-                linkNames.add(children.item(i).getAttributes().getNamedItem("name").getNodeValue());
-            }
-            if (children.item(i).getLocalName().equals("link")) {
-                linkNames.add(children.item(i).getAttributes().getNamedItem("name").getNodeValue());
+            final Node child = children.item(i);
+            if (child.getNodeName().equals("link") || child.getLocalName().equals("link")) {
+                linkNames.add(child.getAttributes().getNamedItem("name").getNodeValue());
             }
         }
         return linkNames;
     }
 
     /**
-     * Returns a List of Names of variables defined in the globla scope of the given plan
+     * Returns a List of Names of variables defined in the global scope of the given plan
      *
      * @param plan a BPEL plan
      * @return a List of Strings containing the names of the variables defined inside the given plan
@@ -846,22 +825,6 @@ public class BPELPlanHandler {
             }
         }
         return names;
-    }
-
-    /**
-     * Returns all TemplateBuildPlans of the given BuildPlan which handle RelationshipTemplates
-     *
-     * @param buildPlan the BuildPlan to get the TemplateBuildPlans from
-     * @return a List of TemplateBuildPlans which handle RelationshipTemplates
-     */
-    public List<BPELScopeActivity> getRelationshipTemplatePlans(final BPELPlan buildPlan) {
-        final List<BPELScopeActivity> relationshipPlans = new ArrayList<>();
-        for (final BPELScopeActivity template : buildPlan.getTemplateBuildPlans()) {
-            if (this.bpelScopeHandler.isRelationshipTemplatePlan(template)) {
-                relationshipPlans.add(template);
-            }
-        }
-        return relationshipPlans;
     }
 
     /**
@@ -1139,32 +1102,6 @@ public class BPELPlanHandler {
     }
 
     /**
-     * Checks whether the variable given by name is initialized at the beginning of the plan
-     *
-     * @param variableName the name of the variable to check for
-     * @param buildPlan the BuildPlan to check in
-     * @return true if there is a copy element inside the main assign element of the given BuildPlan
-     */
-    public boolean isVariableInitialized(final String variableName, final BPELPlan buildPlan) {
-        final Element propertyAssignElement = buildPlan.getBpelMainSequencePropertyAssignElement();
-        // get all copy elements
-        for (int i = 0; i < propertyAssignElement.getChildNodes().getLength(); i++) {
-            if (propertyAssignElement.getChildNodes().item(i).getLocalName().equals("copy")) {
-                final Node copyElement = propertyAssignElement.getChildNodes().item(i);
-                for (int j = 0; j < copyElement.getChildNodes().getLength(); j++) {
-                    if (copyElement.getChildNodes().item(j).getLocalName().equals("to")) {
-                        final Node toElement = copyElement.getChildNodes().item(j);
-                        if (toElement.getAttributes().getNamedItem("variable").getNodeValue().equals(variableName)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
      * Registers an extension in the given BuildPlan
      *
      * @param namespace the namespace of the extension
@@ -1184,20 +1121,14 @@ public class BPELPlanHandler {
      */
     public void removeLink(final String link, final BPELPlan buildPlan) {
         final NodeList children = buildPlan.getBpelMainFlowLinksElement().getChildNodes();
-        Node toRemove = null;
         for (int i = 0; i < children.getLength(); i++) {
-            if (children.item(i).getAttributes().getNamedItem("name").getNodeValue().equals(link)) {
-                toRemove = children.item(i);
+            final Node child = children.item(i);
+            if (child.getAttributes().getNamedItem("name").getNodeValue().equals(link)
+                || child.getAttributes().getNamedItem("name").getTextContent().equals(link)) {
+                buildPlan.getBpelMainFlowLinksElement().removeChild(child);
+                return;
             }
-            if (children.item(i).getAttributes().getNamedItem("name").getTextContent().equals(link)) {
-                toRemove = children.item(i);
-            }
-
         }
-        if (toRemove != null) {
-            buildPlan.getBpelMainFlowLinksElement().removeChild(toRemove);
-        }
-
     }
 
     /**
@@ -1303,5 +1234,4 @@ public class BPELPlanHandler {
         }
         return new QName(namespace, qname.getLocalPart(), prefix);
     }
-
 }

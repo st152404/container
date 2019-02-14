@@ -196,7 +196,7 @@ public class BPELScopeHandler {
             case TYPE:
                 variableElement.setAttribute("type", declarationId.getPrefix() + ":" + declarationId.getLocalPart());
                 break;
-            default:;
+            default:
                 break;
         }
 
@@ -332,27 +332,6 @@ public class BPELScopeHandler {
     }
 
     /**
-     * Returns the predecessors of the given TemplateBuildPlan
-     *
-     * @param templatePlan the TemplateBuildPlan to get predecessors from
-     * @return a List of TemplateBuildPlans that are predecessors of the given TemplateBuildPlan
-     */
-    public List<BPELScopeActivity> getPredecessors(final BPELScopeActivity templatePlan) {
-        final List<BPELScopeActivity> preds = new ArrayList<>();
-        final List<String> linkNamesInTargets = getLinksInTarget(templatePlan);
-
-        for (final String linkAsTarget : linkNamesInTargets) {
-            for (final BPELScopeActivity template : templatePlan.getBuildPlan().getTemplateBuildPlans()) {
-                final List<String> linkNamesInSources = getLinksInSources(template);
-                if (linkNamesInSources.contains(linkAsTarget)) {
-                    preds.add(template);
-                }
-            }
-        }
-        return preds;
-    }
-
-    /**
      * Returns all Successors of the given TemplateBuildPlan
      *
      * @param templatePlan the TemplateBuildPlan whose Successors should be returned
@@ -373,29 +352,6 @@ public class BPELScopeHandler {
         }
 
         return successors;
-    }
-
-    /**
-     * Returns a List of Names of the variables defined inside the given templatePlan
-     *
-     * @param templatePlan a templatePlan
-     * @return a List of Strings with the names of the variables defined inside the given
-     *         templatePlan
-     */
-    public List<String> getVariableNames(final BPELScopeActivity templatePlan) {
-        final List<String> varNames = new ArrayList<>();
-        final NodeList variableNodesList = templatePlan.getBpelVariablesElement().getChildNodes();
-
-        for (int index = 0; index < variableNodesList.getLength(); index++) {
-            if (variableNodesList.item(index).getNodeType() == Node.ELEMENT_NODE) {
-                final String varName = ((Element) variableNodesList.item(index)).getAttribute("name");
-                if (varName != null) {
-                    varNames.add(varName);
-                }
-            }
-        }
-
-        return varNames;
     }
 
     /**
@@ -463,7 +419,7 @@ public class BPELScopeHandler {
      * @param buildPlan the BuildPlan to connect to TemplateBuildPlan to
      */
     public void initializeXMLElements(final BPELScopeActivity newTemplateBuildPlan, final BPELPlan buildPlan) {
-        // set the build plan of the new template buildplan
+        // set the build plan of the new template build plan
         newTemplateBuildPlan.setBuildPlan(buildPlan);
 
         newTemplateBuildPlan.getBuildPlan();
@@ -536,44 +492,12 @@ public class BPELScopeHandler {
     }
 
     /**
-     * Checks whether the given TemplateBuildPlan is for a NodeTemplate
-     *
-     * @param template the TemplateBuildPlan to check
-     * @return true if the given TemplateBuildPlan is for a NodeTemplate
-     */
-    public boolean isNodeTemplatePlan(final BPELScopeActivity template) {
-        return template.getNodeTemplate() != null;
-    }
-
-    /**
-     * Checks whether the given TemplateBuildPlan is for a RelationshipTemplate
-     *
-     * @param template the TemplateBuildPlan to check
-     * @return true if the given TemplateBuildPlan is for a RelationshipTemplate
-     */
-    public boolean isRelationshipTemplatePlan(final BPELScopeActivity template) {
-        return template.getRelationshipTemplate() != null;
-    }
-
-    /**
-     * Removes all connections the given TemplateBuildPlan contains. All source/target relations are
-     * removed from the given TemplateBuildPlan
-     *
-     * @param template the TemplateBuildPlan to remove its relations
-     */
-    public void removeAllConnetions(final BPELScopeActivity template) {
-        removeSources(template);
-        removeTargets(template);
-    }
-
-    /**
      * Removes all links which use the given TemplateBuildPlan as source
      *
      * @param template the TemplateBuildPlan for that all source relations have to be removed
      */
     public void removeSources(final BPELScopeActivity template) {
         final Element sources = template.getBpelSourcesElement();
-
         if (sources != null) {
             BPELScopeHandler.removeAllChildNodes(sources);
         }

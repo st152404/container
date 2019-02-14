@@ -20,7 +20,6 @@ import org.opentosca.planbuilder.core.bpel.context.BPELPlanContext;
 import org.opentosca.planbuilder.core.bpel.handlers.BPELPlanHandler;
 import org.opentosca.planbuilder.core.bpel.helpers.BPELFinalizer;
 import org.opentosca.planbuilder.core.bpel.helpers.EmptyPropertyToInputInitializer;
-import org.opentosca.planbuilder.core.bpel.helpers.NodeRelationInstanceVariablesHandler;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyMappingsToOutputInitializer;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer.PropertyMap;
@@ -62,23 +61,22 @@ public class PolicyAwareBPELBuildProcessBuilder extends AbstractBuildPlanBuilder
 
     // class for initializing properties inside the plan
     private final PropertyVariableInitializer propertyInitializer;
-    // class for initializing output with boundarydefinitions of a
-    // serviceTemplate
-    private final PropertyMappingsToOutputInitializer propertyOutputInitializer;
-    // adds serviceInstance Variable and instanceDataAPIUrl to buildPlans
 
+    // class for initializing output with boundary definitions of a serviceTemplate
+    private final PropertyMappingsToOutputInitializer propertyOutputInitializer =
+        new PropertyMappingsToOutputInitializer();
+
+    // adds serviceInstance Variable and instanceDataAPIUrl to buildPlans
     private ServiceInstanceVariablesHandler serviceInstanceInitializer;
+
     // class for finalizing build plans (e.g when some template didn't receive
     // some provisioning logic and they must be filled with empty elements)
-    private final BPELFinalizer finalizer;
+    private final BPELFinalizer finalizer = new BPELFinalizer();
+
     // accepted operations for provisioning
     private final List<String> opNames = new ArrayList<>();
 
     private BPELPlanHandler planHandler;
-
-    private NodeRelationInstanceVariablesHandler instanceInit;
-
-
 
     private final EmptyPropertyToInputInitializer emptyPropInit = new EmptyPropertyToInputInitializer();
 
@@ -91,7 +89,6 @@ public class PolicyAwareBPELBuildProcessBuilder extends AbstractBuildPlanBuilder
         try {
             this.planHandler = new BPELPlanHandler();
             this.serviceInstanceInitializer = new ServiceInstanceVariablesHandler();
-            this.instanceInit = new NodeRelationInstanceVariablesHandler(this.planHandler);
 
         }
         catch (final ParserConfigurationException e) {
@@ -99,24 +96,11 @@ public class PolicyAwareBPELBuildProcessBuilder extends AbstractBuildPlanBuilder
         }
         // TODO seems ugly
         this.propertyInitializer = new PropertyVariableInitializer(this.planHandler);
-        this.propertyOutputInitializer = new PropertyMappingsToOutputInitializer();
-        this.finalizer = new BPELFinalizer();
         this.opNames.add("install");
         this.opNames.add("configure");
         this.opNames.add("start");
         // this.opNames.add("connectTo");
         // this.opNames.add("hostOn");
-    }
-
-    /**
-     * Returns the number of the plugins registered with this planbuilder
-     *
-     * @return integer denoting the count of plugins
-     */
-    public int registeredPlugins() {
-        return this.pluginRegistry.getGenericPlugins().size() + this.pluginRegistry.getDaPlugins().size()
-            + this.pluginRegistry.getIaPlugins().size() + this.pluginRegistry.getPostPlugins().size()
-            + this.pluginRegistry.getProvPlugins().size();
     }
 
     /*
@@ -144,7 +128,7 @@ public class PolicyAwareBPELBuildProcessBuilder extends AbstractBuildPlanBuilder
                 final String processNamespace = serviceTemplate.getTargetNamespace() + "_buildPlan";
 
                 final AbstractPlan buildPlan =
-                    this.generatePOG(new QName(processNamespace, processName).toString(), definitions, serviceTemplate);
+                    generatePOG(new QName(processNamespace, processName).toString(), definitions, serviceTemplate);
 
                 LOG.debug("Generated the following abstract prov plan: ");
                 LOG.debug(buildPlan.toString());
@@ -258,12 +242,13 @@ public class PolicyAwareBPELBuildProcessBuilder extends AbstractBuildPlanBuilder
     /**
      * <p>
      * This method assigns plugins to the already initialized BuildPlan and its TemplateBuildPlans.
-     * First there will be checked if any generic plugin can handle a template of the TopologyTemplate
+     * First there will be checked if any generic plugin can handle a template of the
+     * TopologyTemplate
      * </p>
      *
      * @param buildPlan a BuildPlan which is alread initialized
-     * @param map a PropertyMap which contains mappings from Template to Property and to variable name
-     *        of inside the BuidlPlan
+     * @param map a PropertyMap which contains mappings from Template to Property and to variable
+     *        name of inside the BuidlPlan
      */
     private boolean runPlugins(final BPELPlan buildPlan, final PropertyMap map) {
         for (final BPELScopeActivity templatePlan : buildPlan.getTemplateBuildPlans()) {
@@ -441,8 +426,8 @@ public class PolicyAwareBPELBuildProcessBuilder extends AbstractBuildPlanBuilder
      * </p>
      *
      * @param relationshipTemplate an AbstractRelationshipTemplate denoting a RelationshipTemplate
-     * @return true if there is any generic plugin which can handle the given RelationshipTemplate, else
-     *         false
+     * @return true if there is any generic plugin which can handle the given RelationshipTemplate,
+     *         else false
      */
     private boolean canGenericPluginHandle(final AbstractRelationshipTemplate relationshipTemplate) {
         for (final IPlanBuilderTypePlugin plugin : this.pluginRegistry.getGenericPlugins()) {
@@ -486,5 +471,4 @@ public class PolicyAwareBPELBuildProcessBuilder extends AbstractBuildPlanBuilder
             return null;
         }
     }
-
 }

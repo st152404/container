@@ -21,7 +21,6 @@ public class Activator implements BundleActivator {
         if (Activator.bundleContext == null) {
             Activator.bundleContext = arg0;
         }
-
     }
 
     /*
@@ -35,5 +34,4 @@ public class Activator implements BundleActivator {
             Activator.bundleContext = null;
         }
     }
-
 }

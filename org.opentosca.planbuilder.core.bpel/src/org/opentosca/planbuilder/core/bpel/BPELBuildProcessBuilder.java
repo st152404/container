@@ -86,7 +86,7 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
             this.sitRegistrationPlugin = new SituationTriggerRegistration();
         }
         catch (final ParserConfigurationException e) {
-            BPELBuildProcessBuilder.LOG.error("Error while initializing BuildPlanHandler", e);
+            LOG.error("Error while initializing BuildPlanHandler", e);
         }
 
         // TODO seems ugly
@@ -117,8 +117,8 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
                        .filter(template -> serviceTemplateId.getLocalPart().equals(template.getId())).findFirst();
 
         if (!optional.isPresent()) {
-            BPELBuildProcessBuilder.LOG.warn("Couldn't create BuildPlan for ServiceTemplate {} in Definitions {} of CSAR {}",
-                                             serviceTemplateId.toString(), definitions.getId(), csarName);
+            LOG.warn("Couldn't create BuildPlan for ServiceTemplate {} in Definitions {} of CSAR {}",
+                     serviceTemplateId.toString(), definitions.getId(), csarName);
             return null;
         }
 
@@ -127,6 +127,8 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
         final String processName = ModelUtils.makeValidNCName(serviceTemplate.getId() + "_buildPlan");
         final String processNamespace = serviceTemplate.getTargetNamespace() + "_buildPlan";
 
+        // TODO: generate multiple POGs containing only parts of the overall topology to split up
+        // the build plan
         final AbstractPlan buildPlan =
             generatePOG(new QName(processNamespace, processName).toString(), definitions, serviceTemplate);
 
@@ -169,8 +171,8 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
         this.sitRegistrationPlugin.handle(serviceTemplate, bpelPlan);
 
         this.finalizer.finalize(bpelPlan);
-        BPELBuildProcessBuilder.LOG.debug("Created BuildPlan:");
-        BPELBuildProcessBuilder.LOG.debug(ModelUtils.getStringFromDoc(bpelPlan.getBpelDocument()));
+        LOG.debug("Created BuildPlan:");
+        LOG.debug(ModelUtils.getStringFromDoc(bpelPlan.getBpelDocument()));
         return bpelPlan;
     }
 
@@ -193,18 +195,15 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
             }
 
             if (!serviceTemplate.hasBuildPlan()) {
-                BPELBuildProcessBuilder.LOG.debug("ServiceTemplate {} has no BuildPlan, generating BuildPlan",
-                                                  serviceTemplateId.toString());
+                LOG.debug("ServiceTemplate {} has no BuildPlan, generating BuildPlan", serviceTemplateId.toString());
                 final BPELPlan bpelPlan = buildPlan(csarName, definitions, serviceTemplateId);
 
                 if (bpelPlan != null) {
-                    BPELBuildProcessBuilder.LOG.debug("Created BuildPlan "
-                        + bpelPlan.getBpelProcessElement().getAttribute("name"));
+                    LOG.debug("Created BuildPlan " + bpelPlan.getBpelProcessElement().getAttribute("name"));
                     plans.add(bpelPlan);
                 }
             } else {
-                BPELBuildProcessBuilder.LOG.debug("ServiceTemplate {} has BuildPlan, no generation needed",
-                                                  serviceTemplateId.toString());
+                LOG.debug("ServiceTemplate {} has BuildPlan, no generation needed", serviceTemplateId.toString());
             }
         }
         return plans;
@@ -219,15 +218,14 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
      * @param map a PropertyMap which contains mappings from Template to Property and to variable
      *        name of inside the BuidlPlan
      */
-    @SuppressWarnings("unchecked")
     private void runPlugins(final BPELPlan buildPlan, final PropertyMap map) {
 
         for (final BPELScopeActivity templatePlan : buildPlan.getTemplateBuildPlans()) {
             final BPELPlanContext context = new BPELPlanContext(templatePlan, map, buildPlan.getServiceTemplate());
             if (templatePlan.getNodeTemplate() != null) {
                 if (isRunning(context, templatePlan.getNodeTemplate())) {
-                    BPELBuildProcessBuilder.LOG.debug("Skipping the provisioning of NodeTemplate "
-                        + templatePlan.getNodeTemplate().getId() + "  beacuse state=running is set.");
+                    LOG.debug("Skipping the provisioning of NodeTemplate " + templatePlan.getNodeTemplate().getId()
+                        + "  beacuse state=running is set.");
                     for (final IPlanBuilderPostPhasePlugin postPhasePlugin : this.pluginRegistry.getPostPlugins()) {
                         if (postPhasePlugin.canHandle(templatePlan.getNodeTemplate())) {
                             postPhasePlugin.handle(context, templatePlan.getNodeTemplate());
@@ -237,28 +235,24 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
                 }
                 // handling nodetemplate
                 final AbstractNodeTemplate nodeTemplate = templatePlan.getNodeTemplate();
-                BPELBuildProcessBuilder.LOG.debug("Trying to handle NodeTemplate " + nodeTemplate.getId());
+                LOG.debug("Trying to handle NodeTemplate " + nodeTemplate.getId());
                 // check if we have a generic plugin to handle the template
                 // Note: if a generic plugin fails during execution the
                 // TemplateBuildPlan is broken!
                 final IPlanBuilderTypePlugin plugin = this.findTypePlugin(nodeTemplate);
                 if (plugin == null) {
-                    BPELBuildProcessBuilder.LOG.debug("Handling NodeTemplate {} with ProvisioningChain",
-                                                      nodeTemplate.getId());
+                    LOG.debug("Handling NodeTemplate {} with ProvisioningChain", nodeTemplate.getId());
                     final OperationChain chain = BPELScopeBuilder.createOperationChain(nodeTemplate, this.opNames);
                     if (chain == null) {
-                        BPELBuildProcessBuilder.LOG.warn("Couldn't create ProvisioningChain for NodeTemplate {}",
-                                                         nodeTemplate.getId());
+                        LOG.warn("Couldn't create ProvisioningChain for NodeTemplate {}", nodeTemplate.getId());
                     } else {
-                        BPELBuildProcessBuilder.LOG.debug("Created ProvisioningChain for NodeTemplate {}",
-                                                          nodeTemplate.getId());
+                        LOG.debug("Created ProvisioningChain for NodeTemplate {}", nodeTemplate.getId());
                         chain.executeIAProvisioning(context);
                         chain.executeDAProvisioning(context);
                         chain.executeOperationProvisioning(context, this.opNames);
                     }
                 } else {
-                    BPELBuildProcessBuilder.LOG.info("Handling NodeTemplate {} with generic plugin",
-                                                     nodeTemplate.getId());
+                    LOG.info("Handling NodeTemplate {} with generic plugin", nodeTemplate.getId());
                     plugin.handle(context);
                 }
                 for (final IPlanBuilderPostPhasePlugin postPhasePlugin : this.pluginRegistry.getPostPlugins()) {
@@ -275,8 +269,7 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
                 // TemplateBuildPlan is broken here!
                 // TODO implement fallback
                 if (!canGenericPluginHandle(relationshipTemplate)) {
-                    BPELBuildProcessBuilder.LOG.debug("Handling RelationshipTemplate {} with ProvisioningChains",
-                                                      relationshipTemplate.getId());
+                    LOG.debug("Handling RelationshipTemplate {} with ProvisioningChains", relationshipTemplate.getId());
                     final OperationChain sourceChain =
                         BPELScopeBuilder.createOperationChain(relationshipTemplate, true);
                     final OperationChain targetChain =
@@ -284,33 +277,22 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
 
                     // first execute provisioning on target, then on source
                     if (targetChain != null) {
-                        BPELBuildProcessBuilder.LOG.warn("Couldn't create ProvisioningChain for TargetInterface of RelationshipTemplate {}",
-                                                         relationshipTemplate.getId());
+                        LOG.warn("Couldn't create ProvisioningChain for TargetInterface of RelationshipTemplate {}",
+                                 relationshipTemplate.getId());
                         targetChain.executeIAProvisioning(context);
                         targetChain.executeOperationProvisioning(context, this.opNames);
                     }
 
                     if (sourceChain != null) {
-                        BPELBuildProcessBuilder.LOG.warn("Couldn't create ProvisioningChain for SourceInterface of RelationshipTemplate {}",
-                                                         relationshipTemplate.getId());
+                        LOG.warn("Couldn't create ProvisioningChain for SourceInterface of RelationshipTemplate {}",
+                                 relationshipTemplate.getId());
                         sourceChain.executeIAProvisioning(context);
                         sourceChain.executeOperationProvisioning(context, this.opNames);
                     }
                 } else {
-                    BPELBuildProcessBuilder.LOG.info("Handling RelationshipTemplate {} with generic plugin",
-                                                     relationshipTemplate.getId());
+                    LOG.info("Handling RelationshipTemplate {} with generic plugin", relationshipTemplate.getId());
                     handleWithTypePlugin(context, relationshipTemplate);
                 }
-
-                // this.pluginRegistry.getPostPlugins().stream()
-                // .filter(plugin -> plugin instanceof IPlanBuilderPostPhasePlugin<BPELPlanContext>)
-                // .filter(plugin -> ((ParameterizedType)
-                // getClass().getGenericSuperclass()).getActualTypeArguments()[0].equals(BPELPlanContext.class))
-                // .map(plugin -> (IPlanBuilderPostPhasePlugin<BPELPlanContext>) plugin);
-                // .filter(plugin -> plugin.canHandle(templatePlan.getRelationshipTemplate()))
-                // .forEach(plugin -> plugin.handle(context,
-                // templatePlan.getRelationshipTemplate()));
-                // TODO
 
                 for (final IPlanBuilderPostPhasePlugin postPhasePlugin : this.pluginRegistry.getPostPlugins()) {
                     if (postPhasePlugin.canHandle(templatePlan.getRelationshipTemplate())) {
