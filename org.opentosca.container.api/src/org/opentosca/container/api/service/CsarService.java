@@ -42,7 +42,6 @@ public class CsarService {
 
     private IFileAccessService fileAccessService;
 
-
     /**
      * Loads all available CSARs as {@link CSARContent}
      *
@@ -129,7 +128,7 @@ public class CsarService {
      * @return true or false
      */
     public boolean hasServiceTemplate(final CSARID id, final String name) {
-        return this.getServiceTemplates(id).contains(name);
+        return getServiceTemplates(id).contains(name);
     }
 
     public File storeTemporaryFile(final String filename, final InputStream is) {

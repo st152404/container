@@ -89,21 +89,16 @@ public abstract class AbstractDefinitions {
     public abstract File getAbsolutePathOfArtifactReference(AbstractArtifactReference ref);
 
     /**
-     * Returns a RelationshipType for the given QName. This method looks trough the whole Definitions
-     * space, which means the search looks trough the imported Definitions of this Definitions.
+     * Returns a RelationshipType for the given QName. This method looks trough the whole
+     * Definitions space, which means the search looks trough the imported Definitions of this
+     * Definitions.
      *
      * @param relationshipTypeId a QName
      * @return an AbstractRelationshipType, if nothing was found null
      */
     public AbstractRelationshipType getRelationshipType(final QName relationshipTypeId) {
-        for (final AbstractRelationshipType relationshipType : getRelationshipTypes()) {
-            // info: at this moment i have no idea why it doesn't work using the
-            // QName.equals() method..
-            if (relationshipType.getId().equals(relationshipTypeId)) {
-                return relationshipType;
-            }
-        }
-        return null;
+        return getRelationshipTypes().stream().filter(relation -> relation.getId().equals(relationshipTypeId))
+                                     .findFirst().orElse(null);
     }
 
     /**
@@ -114,17 +109,13 @@ public abstract class AbstractDefinitions {
      * @return an AbstractNodeType, if nothing was found null
      */
     public AbstractNodeType getNodeType(final QName nodeTypeId) {
-        for (final AbstractNodeType nodeType : getNodeTypes()) {
-            if (nodeType.getId().equals(nodeTypeId)) {
-                return nodeType;
-            }
-        }
-        return null;
+        return getNodeTypes().stream().filter(node -> node.getId().equals(nodeTypeId)).findFirst().orElse(null);
     }
 
     /**
-     * Returns a ArtifactTemplate for the given QName, This method looks trough the whole Definitions
-     * space, which means the search looks trough the imported Definitions of this Definitions
+     * Returns a ArtifactTemplate for the given QName, This method looks trough the whole
+     * Definitions space, which means the search looks trough the imported Definitions of this
+     * Definitions
      *
      * @param qname a QName
      * @return an AbstractArtifactTemplate, if nothing was found null
@@ -165,7 +156,8 @@ public abstract class AbstractDefinitions {
     public abstract List<AbstractPolicyType> getPolicyTypes();
 
     /**
-     * Returns all {@link AbstractPolicyTemplate} objects of this {@link AbstractDefinitions} object.
+     * Returns all {@link AbstractPolicyTemplate} objects of this {@link AbstractDefinitions}
+     * object.
      *
      * @return a {@link List} of {@link AbstractPolicyTemplate}
      */

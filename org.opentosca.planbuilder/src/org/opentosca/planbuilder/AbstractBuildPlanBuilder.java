@@ -97,8 +97,6 @@ public abstract class AbstractBuildPlanBuilder extends AbstractPlanBuilder {
                 links.add(new Link(nodeActivityMapping.get(relationshipTemplate.getTarget()), activity));
                 links.add(new Link(activity, nodeActivityMapping.get(relationshipTemplate.getSource())));
             }
-
         }
     }
-
 }

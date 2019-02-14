@@ -11,6 +11,7 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.opentosca.container.core.next.model.PlanLanguage;
 import org.opentosca.planbuilder.core.bpel.handlers.BPELPlanHandler;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer.PropertyMap;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
@@ -185,11 +186,11 @@ public class PropertyMappingsToOutputInitializer {
      * BoundaryDefinitions inside the given Definitions document
      * </p>
      *
-     * @param definitions the Definitions document to look for BoundaryDefinitions for and contains the
-     *        ServiceTemplate the BuildPlan belongs to
+     * @param definitions the Definitions document to look for BoundaryDefinitions for and contains
+     *        the ServiceTemplate the BuildPlan belongs to
      * @param buildPlan a initialized BuildPlan
-     * @param propMap a PropMap which contains the names of the different template property variables
-     *        inside the plan
+     * @param propMap a PropMap which contains the names of the different template property
+     *        variables inside the plan
      */
     public void initializeBuildPlanOutput(final AbstractDefinitions definitions, final BPELPlan buildPlan,
                                           final PropertyMap propMap) {
@@ -222,9 +223,9 @@ public class PropertyMappingsToOutputInitializer {
     }
 
     /**
-     * Generates a copy with a literal value to the outputmessage of the given BuildPlan. The literal
-     * consists of the mappings given, where the propertyMap is used identify the propertyVariables
-     * inside the buildPlan
+     * Generates a copy with a literal value to the outputmessage of the given BuildPlan. The
+     * literal consists of the mappings given, where the propertyMap is used identify the
+     * propertyVariables inside the buildPlan
      *
      * @param buildPlan the BuildPlan to add the copy to
      * @param propMap a PropertyMap containing the variable names of the properties
@@ -287,15 +288,15 @@ public class PropertyMappingsToOutputInitializer {
     }
 
     /**
-     * Generates a copy element with from and to elements as String. The given mapping controls what the
-     * from will assign to the outputmessage
+     * Generates a copy element with from and to elements as String. The given mapping controls what
+     * the from will assign to the outputmessage
      *
      * @param mapping the ServiceTemplate Property to Template Property mappings
      * @param buildPlan the BuildPlan to generate the copy for
      * @return a String containing a valid BPEL Copy Element
      */
     private String generateCopyFromQueryToOutputAsString(final String fromQuery, final String toQuery) {
-        String copyString = "<bpel:copy xmlns:bpel=\"" + BPELPlan.bpelNamespace
+        String copyString = "<bpel:copy xmlns:bpel=\"" + PlanLanguage.BPEL.toString()
             + "\"><bpel:from expressionLanguage=\"urn:oasis:names:tc:wsbpel:2.0:sublang:xpath1.0\"><![CDATA[";
         copyString += fromQuery + "]]></bpel:from>";
         copyString +=

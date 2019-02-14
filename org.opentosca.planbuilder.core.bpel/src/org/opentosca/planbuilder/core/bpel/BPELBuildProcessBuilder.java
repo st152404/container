@@ -2,6 +2,8 @@ package org.opentosca.planbuilder.core.bpel;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
@@ -32,13 +34,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>
  * This Class represents the high-level algorithm of the concept in <a href=
  * "http://www2.informatik.uni-stuttgart.de/cgi-bin/NCSTRL/NCSTRL_view.pl?id=BCLR-0043&mod=0&engl=1&inst=FAK"
  * >Konzept und Implementierung eine Java-Komponente zur Generierung von WS-BPEL 2.0 BuildPlans fuer
  * OpenTOSCA</a>. It is responsible for generating the Build Plan Skeleton and assign plugins to
  * handle the different templates inside a TopologyTemplate.
- * </p>
  *
  * Copyright 2013 IAAS University of Stuttgart <br>
  * <br>
@@ -52,18 +52,20 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
 
     // class for initializing properties inside the plan
     private final PropertyVariableInitializer propertyInitializer;
-    // class for initializing output with boundarydefinitions of a
-    // serviceTemplate
-    private final PropertyMappingsToOutputInitializer propertyOutputInitializer;
-    // adds serviceInstance Variable and instanceDataAPIUrl to buildPlans
 
+    // class for initializing output with boundarydefinitions of a serviceTemplate
+    private final PropertyMappingsToOutputInitializer propertyOutputInitializer =
+        new PropertyMappingsToOutputInitializer();;
+
+    // adds serviceInstance Variable and instanceDataAPIUrl to buildPlans
     private ServiceInstanceVariablesHandler serviceInstanceInitializer;
 
     private SituationTriggerRegistration sitRegistrationPlugin;
 
     // class for finalizing build plans (e.g when some template didn't receive
     // some provisioning logic and they must be filled with empty elements)
-    private final BPELFinalizer finalizer;
+    private final BPELFinalizer finalizer = new BPELFinalizer();;
+
     // accepted operations for provisioning
     private final List<String> opNames = new ArrayList<>();
 
@@ -71,13 +73,10 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
 
     private NodeRelationInstanceVariablesHandler instanceInit;
 
-
     private final EmptyPropertyToInputInitializer emptyPropInit = new EmptyPropertyToInputInitializer();
 
     /**
-     * <p>
      * Default Constructor
-     * </p>
      */
     public BPELBuildProcessBuilder() {
         try {
@@ -89,26 +88,14 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
         catch (final ParserConfigurationException e) {
             BPELBuildProcessBuilder.LOG.error("Error while initializing BuildPlanHandler", e);
         }
+
         // TODO seems ugly
         this.propertyInitializer = new PropertyVariableInitializer(this.planHandler);
-        this.propertyOutputInitializer = new PropertyMappingsToOutputInitializer();
-        this.finalizer = new BPELFinalizer();
         this.opNames.add("install");
         this.opNames.add("configure");
         this.opNames.add("start");
         // this.opNames.add("connectTo");
         // this.opNames.add("hostOn");
-    }
-
-    /**
-     * Returns the number of the plugins registered with this planbuilder
-     *
-     * @return integer denoting the count of plugins
-     */
-    public int registeredPlugins() {
-        return this.pluginRegistry.getGenericPlugins().size() + this.pluginRegistry.getDaPlugins().size()
-            + this.pluginRegistry.getIaPlugins().size() + this.pluginRegistry.getPostPlugins().size()
-            + this.pluginRegistry.getProvPlugins().size();
     }
 
     /*
@@ -120,79 +107,71 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
     @Override
     public BPELPlan buildPlan(final String csarName, final AbstractDefinitions definitions,
                               final QName serviceTemplateId) {
-        // create empty plan from servicetemplate and add definitions
 
-        for (final AbstractServiceTemplate serviceTemplate : definitions.getServiceTemplates()) {
-            String namespace;
-            if (serviceTemplate.getTargetNamespace() != null) {
-                namespace = serviceTemplate.getTargetNamespace();
-            } else {
-                namespace = definitions.getTargetNamespace();
-            }
+        // find service template for the plan generation
+        final Optional<AbstractServiceTemplate> optional =
+            definitions.getServiceTemplates().stream()
+                       .filter(template -> Objects.isNull(template.getTargetNamespace())
+                           && serviceTemplateId.getNamespaceURI().equals(definitions.getTargetNamespace())
+                           || serviceTemplateId.getNamespaceURI().equals(template.getTargetNamespace()))
+                       .filter(template -> serviceTemplateId.getLocalPart().equals(template.getId())).findFirst();
 
-            if (namespace.equals(serviceTemplateId.getNamespaceURI())
-                && serviceTemplate.getId().equals(serviceTemplateId.getLocalPart())) {
-
-                final String processName = ModelUtils.makeValidNCName(serviceTemplate.getId() + "_buildPlan");
-                final String processNamespace = serviceTemplate.getTargetNamespace() + "_buildPlan";
-
-                final AbstractPlan buildPlan =
-                    this.generatePOG(new QName(processNamespace, processName).toString(), definitions, serviceTemplate);
-
-                LOG.debug("Generated the following abstract prov plan: ");
-                LOG.debug(buildPlan.toString());
-
-                final BPELPlan newBuildPlan =
-                    this.planHandler.createEmptyBPELPlan(processNamespace, processName, buildPlan, "initiate");
-
-                newBuildPlan.setTOSCAInterfaceName("OpenTOSCA-Lifecycle-Interface");
-                newBuildPlan.setTOSCAOperationname("initiate");
-
-                this.planHandler.initializeBPELSkeleton(newBuildPlan, csarName);
-
-                this.instanceInit.addInstanceURLVarToTemplatePlans(newBuildPlan);
-                this.instanceInit.addInstanceIDVarToTemplatePlans(newBuildPlan);
-
-                // newBuildPlan.setCsarName(csarName);
-
-
-                this.planHandler.registerExtension("http://www.apache.org/ode/bpel/extensions/bpel4restlight", true,
-                                                   newBuildPlan);
-
-                final PropertyMap propMap = this.propertyInitializer.initializePropertiesAsVariables(newBuildPlan);
-                // init output
-                this.propertyOutputInitializer.initializeBuildPlanOutput(definitions, newBuildPlan, propMap);
-
-                // instanceDataAPI handling is done solely trough this extension
-
-                // initialize instanceData handling
-                this.serviceInstanceInitializer.initializeInstanceDataFromInput(newBuildPlan);
-
-                this.emptyPropInit.initializeEmptyPropertiesAsInputParam(newBuildPlan, propMap);
-
-                runPlugins(newBuildPlan, propMap);
-
-                this.serviceInstanceInitializer.addCorrellationID(newBuildPlan);
-
-                this.serviceInstanceInitializer.appendSetServiceInstanceState(newBuildPlan,
-                                                                              newBuildPlan.getBpelMainFlowElement(),
-                                                                              "CREATING");
-                this.serviceInstanceInitializer.appendSetServiceInstanceState(newBuildPlan,
-                                                                              newBuildPlan.getBpelMainSequenceOutputAssignElement(),
-                                                                              "CREATED");
-
-                this.sitRegistrationPlugin.handle(serviceTemplate, newBuildPlan);
-
-
-                this.finalizer.finalize(newBuildPlan);
-                BPELBuildProcessBuilder.LOG.debug("Created BuildPlan:");
-                BPELBuildProcessBuilder.LOG.debug(ModelUtils.getStringFromDoc(newBuildPlan.getBpelDocument()));
-                return newBuildPlan;
-            }
+        if (!optional.isPresent()) {
+            BPELBuildProcessBuilder.LOG.warn("Couldn't create BuildPlan for ServiceTemplate {} in Definitions {} of CSAR {}",
+                                             serviceTemplateId.toString(), definitions.getId(), csarName);
+            return null;
         }
-        BPELBuildProcessBuilder.LOG.warn("Couldn't create BuildPlan for ServiceTemplate {} in Definitions {} of CSAR {}",
-                                         serviceTemplateId.toString(), definitions.getId(), csarName);
-        return null;
+
+        final AbstractServiceTemplate serviceTemplate = optional.get();
+
+        final String processName = ModelUtils.makeValidNCName(serviceTemplate.getId() + "_buildPlan");
+        final String processNamespace = serviceTemplate.getTargetNamespace() + "_buildPlan";
+
+        final AbstractPlan buildPlan =
+            generatePOG(new QName(processNamespace, processName).toString(), definitions, serviceTemplate);
+
+        LOG.debug("Generated the following abstract prov plan: ");
+        LOG.debug(buildPlan.toString());
+
+        final BPELPlan bpelPlan =
+            this.planHandler.createEmptyBPELPlan(processNamespace, processName, buildPlan, "initiate");
+
+        bpelPlan.setTOSCAInterfaceName("OpenTOSCA-Lifecycle-Interface");
+        bpelPlan.setTOSCAOperationname("initiate");
+
+        this.planHandler.initializeBPELSkeleton(bpelPlan, csarName);
+
+        this.instanceInit.addInstanceURLVarToTemplatePlans(bpelPlan);
+        this.instanceInit.addInstanceIDVarToTemplatePlans(bpelPlan);
+
+        this.planHandler.registerExtension("http://www.apache.org/ode/bpel/extensions/bpel4restlight", true, bpelPlan);
+
+        final PropertyMap propMap = this.propertyInitializer.initializePropertiesAsVariables(bpelPlan);
+        this.propertyOutputInitializer.initializeBuildPlanOutput(definitions, bpelPlan, propMap);
+
+        // instanceDataAPI handling is done solely trough this extension
+
+        // initialize instanceData handling
+        this.serviceInstanceInitializer.initializeInstanceDataFromInput(bpelPlan);
+
+        this.emptyPropInit.initializeEmptyPropertiesAsInputParam(bpelPlan, propMap);
+
+        runPlugins(bpelPlan, propMap);
+
+        this.serviceInstanceInitializer.addCorrellationID(bpelPlan);
+
+        this.serviceInstanceInitializer.appendSetServiceInstanceState(bpelPlan, bpelPlan.getBpelMainFlowElement(),
+                                                                      "CREATING");
+        this.serviceInstanceInitializer.appendSetServiceInstanceState(bpelPlan,
+                                                                      bpelPlan.getBpelMainSequenceOutputAssignElement(),
+                                                                      "CREATED");
+
+        this.sitRegistrationPlugin.handle(serviceTemplate, bpelPlan);
+
+        this.finalizer.finalize(bpelPlan);
+        BPELBuildProcessBuilder.LOG.debug("Created BuildPlan:");
+        BPELBuildProcessBuilder.LOG.debug(ModelUtils.getStringFromDoc(bpelPlan.getBpelDocument()));
+        return bpelPlan;
     }
 
     /*
@@ -216,12 +195,12 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
             if (!serviceTemplate.hasBuildPlan()) {
                 BPELBuildProcessBuilder.LOG.debug("ServiceTemplate {} has no BuildPlan, generating BuildPlan",
                                                   serviceTemplateId.toString());
-                final BPELPlan newBuildPlan = buildPlan(csarName, definitions, serviceTemplateId);
+                final BPELPlan bpelPlan = buildPlan(csarName, definitions, serviceTemplateId);
 
-                if (newBuildPlan != null) {
+                if (bpelPlan != null) {
                     BPELBuildProcessBuilder.LOG.debug("Created BuildPlan "
-                        + newBuildPlan.getBpelProcessElement().getAttribute("name"));
-                    plans.add(newBuildPlan);
+                        + bpelPlan.getBpelProcessElement().getAttribute("name"));
+                    plans.add(bpelPlan);
                 }
             } else {
                 BPELBuildProcessBuilder.LOG.debug("ServiceTemplate {} has BuildPlan, no generation needed",
@@ -231,26 +210,16 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
         return plans;
     }
 
-    private boolean isRunning(final BPELPlanContext context, final AbstractNodeTemplate nodeTemplate) {
-        final Variable state = context.getPropertyVariable(nodeTemplate, "State");
-        if (state != null) {
-            if (BPELPlanContext.getVariableContent(state, context).equals("Running")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**
-     * <p>
      * This method assigns plugins to the already initialized BuildPlan and its TemplateBuildPlans.
-     * First there will be checked if any generic plugin can handle a template of the TopologyTemplate
-     * </p>
+     * First there will be checked if any generic plugin can handle a template of the
+     * TopologyTemplate
      *
-     * @param buildPlan a BuildPlan which is alread initialized
-     * @param map a PropertyMap which contains mappings from Template to Property and to variable name
-     *        of inside the BuidlPlan
+     * @param buildPlan a BuildPlan which is already initialized
+     * @param map a PropertyMap which contains mappings from Template to Property and to variable
+     *        name of inside the BuidlPlan
      */
+    @SuppressWarnings("unchecked")
     private void runPlugins(final BPELPlan buildPlan, final PropertyMap map) {
 
         for (final BPELScopeActivity templatePlan : buildPlan.getTemplateBuildPlans()) {
@@ -333,36 +302,39 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
                     handleWithTypePlugin(context, relationshipTemplate);
                 }
 
+                // this.pluginRegistry.getPostPlugins().stream()
+                // .filter(plugin -> plugin instanceof IPlanBuilderPostPhasePlugin<BPELPlanContext>)
+                // .filter(plugin -> ((ParameterizedType)
+                // getClass().getGenericSuperclass()).getActualTypeArguments()[0].equals(BPELPlanContext.class))
+                // .map(plugin -> (IPlanBuilderPostPhasePlugin<BPELPlanContext>) plugin);
+                // .filter(plugin -> plugin.canHandle(templatePlan.getRelationshipTemplate()))
+                // .forEach(plugin -> plugin.handle(context,
+                // templatePlan.getRelationshipTemplate()));
+                // TODO
+
                 for (final IPlanBuilderPostPhasePlugin postPhasePlugin : this.pluginRegistry.getPostPlugins()) {
                     if (postPhasePlugin.canHandle(templatePlan.getRelationshipTemplate())) {
                         postPhasePlugin.handle(context, templatePlan.getRelationshipTemplate());
                     }
                 }
             }
-
-
-
         }
     }
 
     /**
-     * <p>
      * Checks whether there is any generic plugin, that can handle the given RelationshipTemplate
-     * </p>
      *
      * @param relationshipTemplate an AbstractRelationshipTemplate denoting a RelationshipTemplate
-     * @return true if there is any generic plugin which can handle the given RelationshipTemplate, else
-     *         false
+     * @return true if there is any generic plugin which can handle the given RelationshipTemplate,
+     *         else false
      */
     private boolean canGenericPluginHandle(final AbstractRelationshipTemplate relationshipTemplate) {
-        for (final IPlanBuilderTypePlugin plugin : this.pluginRegistry.getGenericPlugins()) {
-            if (plugin.canHandle(relationshipTemplate)) {
-                BPELBuildProcessBuilder.LOG.info("Found GenericPlugin {} thath can handle RelationshipTemplate {}",
-                                                 plugin.getID(), relationshipTemplate.getId());
-                return true;
-            }
-        }
-        return false;
+        return this.pluginRegistry.getGenericPlugins().stream().filter(plugin -> plugin.canHandle(relationshipTemplate))
+                                  .findFirst().isPresent();
     }
 
+    private boolean isRunning(final BPELPlanContext context, final AbstractNodeTemplate nodeTemplate) {
+        final Variable state = context.getPropertyVariable(nodeTemplate, "State");
+        return state != null && BPELPlanContext.getVariableContent(state, context).equals("Running");
+    }
 }

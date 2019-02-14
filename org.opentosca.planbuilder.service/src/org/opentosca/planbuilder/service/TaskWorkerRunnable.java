@@ -30,6 +30,7 @@ import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.message.BasicHeader;
 import org.json.simple.JSONObject;
 import org.opentosca.container.core.model.csar.id.CSARID;
+import org.opentosca.container.core.next.model.PlanLanguage;
 import org.opentosca.container.core.service.IHTTPService;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
@@ -205,7 +206,7 @@ public class TaskWorkerRunnable implements Runnable {
 
             obj.put("name", QName.valueOf(buildPlan.getId()).getLocalPart());
             obj.put("planType", buildPlan.getType().getString());
-            obj.put("planLanguage", BPELPlan.bpelNamespace);
+            obj.put("planLanguage", PlanLanguage.BPEL.toString());
 
             final HashMap<String, List<ParameterTupel>> inputParams = new HashMap<>();
             inputParams.put("inputParameter", createParameters(inputParameters));

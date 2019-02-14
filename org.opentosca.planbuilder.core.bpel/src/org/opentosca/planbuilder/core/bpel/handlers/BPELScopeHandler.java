@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.xml.namespace.QName;
 
+import org.opentosca.container.core.next.model.PlanLanguage;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELScopeActivity;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
@@ -58,13 +59,13 @@ public class BPELScopeHandler {
         BPELScopeHandler.LOG.debug("Trying to add correlationSet {} with property {} to templateBuildPlan {}",
                                    correlationSetName, propertyName,
                                    templateBuildPlan.getBpelScopeElement().getAttribute("name"));
-        if (this.hasCorrelationSet(correlationSetName, templateBuildPlan)) {
+        if (hasCorrelationSet(correlationSetName, templateBuildPlan)) {
             BPELScopeHandler.LOG.warn("Failed adding correlationSet");
             return false;
         }
         final Element correlationSetsElement = templateBuildPlan.getBpelCorrelationSets();
         final Element correlationSetElement =
-            templateBuildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "correlationSet");
+            templateBuildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "correlationSet");
         correlationSetElement.setAttribute("name", correlationSetName);
         correlationSetElement.setAttribute("properties", "tns:" + propertyName);
         correlationSetsElement.appendChild(correlationSetElement);
@@ -91,13 +92,13 @@ public class BPELScopeHandler {
                                    partnerLinkName, partnerLinkType.toString(), myRole, partnerRole,
                                    String.valueOf(initializePartnerRole),
                                    templateBuildPlan.getBpelScopeElement().getAttribute("name"));
-        if (this.hasPartnerlink(partnerLinkName, templateBuildPlan)) {
+        if (hasPartnerlink(partnerLinkName, templateBuildPlan)) {
             BPELScopeHandler.LOG.warn("Failed to add partnerLink");
             return false;
         }
         final Element partnerLinksElement = templateBuildPlan.getBpelPartnerLinksElement();
         final Element partnerLinkElement =
-            templateBuildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "partnerLink");
+            templateBuildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "partnerLink");
 
         partnerLinkElement.setAttribute("name", partnerLinkName);
         partnerLinkElement.setAttribute("partnerLinkType",
@@ -126,13 +127,13 @@ public class BPELScopeHandler {
     public boolean addSource(final String linkName, final BPELScopeActivity templateBuildPlan) {
         BPELScopeHandler.LOG.debug("Trying to add link {} as source to TemplateBuildPlan {}", linkName,
                                    templateBuildPlan.getBpelScopeElement().getAttribute("name"));
-        if (this.hasSource(linkName, templateBuildPlan)) {
+        if (hasSource(linkName, templateBuildPlan)) {
             BPELScopeHandler.LOG.warn("Failed to add link as source");
             return false;
         }
         final Element sourcesElement = templateBuildPlan.getBpelSourcesElement();
         final Element sourceElement =
-            templateBuildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "source");
+            templateBuildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "source");
         sourceElement.setAttribute("linkName", linkName);
         sourcesElement.appendChild(sourceElement);
         BPELScopeHandler.LOG.debug("Adding link as source was successful");
@@ -149,13 +150,13 @@ public class BPELScopeHandler {
     public boolean addTarget(final String linkName, final BPELScopeActivity templateBuildPlan) {
         BPELScopeHandler.LOG.debug("Trying to add link {} as target to TemplateBuildPlan {}", linkName,
                                    templateBuildPlan.getBpelScopeElement().getAttribute("name"));
-        if (this.hasTarget(linkName, templateBuildPlan)) {
+        if (hasTarget(linkName, templateBuildPlan)) {
             BPELScopeHandler.LOG.warn("Failed adding link as target");
             return false;
         }
         final Element targetsElement = templateBuildPlan.getBpelTargetsElement();
         final Element targetElement =
-            templateBuildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "target");
+            templateBuildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "target");
         targetElement.setAttribute("linkName", linkName);
         targetsElement.appendChild(targetElement);
         BPELScopeHandler.LOG.debug("Adding link as target was successful");
@@ -176,7 +177,7 @@ public class BPELScopeHandler {
         BPELScopeHandler.LOG.debug("Trying to add variable {} with of type {} and XML Schematype {} to TemplateBuildPlan {}",
                                    name, variableType, declarationId.toString(),
                                    templateBuildPlan.getBpelScopeElement().getAttribute("name"));
-        if (this.hasVariable(name, templateBuildPlan)) {
+        if (hasVariable(name, templateBuildPlan)) {
             BPELScopeHandler.LOG.warn("Failed adding variable");
             return false;
         }
@@ -184,7 +185,7 @@ public class BPELScopeHandler {
         // fetch variables element and create variable element
         final Element variablesElement = templateBuildPlan.getBpelVariablesElement();
         final Element variableElement =
-            templateBuildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "variable");
+            templateBuildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "variable");
 
         // set the type and declaration id
         switch (variableType) {
@@ -222,8 +223,8 @@ public class BPELScopeHandler {
                                    target.getBpelScopeElement().getAttribute("name"));
         boolean check = true;
         // if everything was successfully added return true
-        check &= this.addSource(linkName, source);
-        check &= this.addTarget(linkName, target);
+        check &= addSource(linkName, source);
+        check &= addTarget(linkName, target);
         return check;
     }
 
@@ -237,7 +238,7 @@ public class BPELScopeHandler {
     public BPELScopeActivity createTemplateBuildPlan(final AbstractNodeTemplate nodeTemplate,
                                                      final BPELPlan buildPlan) {
         final BPELScopeActivity templatePlan = this.createTemplateBuildPlan(buildPlan);
-        this.setName(this.getNCNameFromString(nodeTemplate.getId()), templatePlan);
+        setName(getNCNameFromString(nodeTemplate.getId()), templatePlan);
         templatePlan.setNodeTemplate(nodeTemplate);
         return templatePlan;
     }
@@ -245,14 +246,15 @@ public class BPELScopeHandler {
     /**
      * Creates a new TemplateBuildPlan for the given RelationshipTemplate and BuildPlan
      *
-     * @param relationshipTemplate the RelationshipTemplate the new TemplateBuildPlan should belong to
+     * @param relationshipTemplate the RelationshipTemplate the new TemplateBuildPlan should belong
+     *        to
      * @param buildPlan the BuildPlan the new TemplateBuildPlan should belong to
      * @return a new TemplateBuildPlan skeleton
      */
     public BPELScopeActivity createTemplateBuildPlan(final AbstractRelationshipTemplate relationshipTemplate,
                                                      final BPELPlan buildPlan) {
         final BPELScopeActivity templatePlan = this.createTemplateBuildPlan(buildPlan);
-        this.setName(relationshipTemplate.getId(), templatePlan);
+        setName(relationshipTemplate.getId(), templatePlan);
         templatePlan.setRelationshipTemplate(relationshipTemplate);
         return templatePlan;
     }
@@ -265,7 +267,7 @@ public class BPELScopeHandler {
      */
     public BPELScopeActivity createTemplateBuildPlan(final BPELPlan buildPlan) {
         final BPELScopeActivity newTemplateBuildPlan = new BPELScopeActivity();
-        this.initializeXMLElements(newTemplateBuildPlan, buildPlan);
+        initializeXMLElements(newTemplateBuildPlan, buildPlan);
         return newTemplateBuildPlan;
     }
 
@@ -337,11 +339,11 @@ public class BPELScopeHandler {
      */
     public List<BPELScopeActivity> getPredecessors(final BPELScopeActivity templatePlan) {
         final List<BPELScopeActivity> preds = new ArrayList<>();
-        final List<String> linkNamesInTargets = this.getLinksInTarget(templatePlan);
+        final List<String> linkNamesInTargets = getLinksInTarget(templatePlan);
 
         for (final String linkAsTarget : linkNamesInTargets) {
             for (final BPELScopeActivity template : templatePlan.getBuildPlan().getTemplateBuildPlans()) {
-                final List<String> linkNamesInSources = this.getLinksInSources(template);
+                final List<String> linkNamesInSources = getLinksInSources(template);
                 if (linkNamesInSources.contains(linkAsTarget)) {
                     preds.add(template);
                 }
@@ -359,11 +361,11 @@ public class BPELScopeHandler {
     public List<BPELScopeActivity> getSuccessors(final BPELScopeActivity templatePlan) {
         final List<BPELScopeActivity> successors = new ArrayList<>();
 
-        final List<String> linkNamesInSources = this.getLinksInSources(templatePlan);
+        final List<String> linkNamesInSources = getLinksInSources(templatePlan);
 
         for (final String linkAsSource : linkNamesInSources) {
             for (final BPELScopeActivity template : templatePlan.getBuildPlan().getTemplateBuildPlans()) {
-                final List<String> linkNamesInTargets = this.getLinksInTarget(template);
+                final List<String> linkNamesInTargets = getLinksInTarget(template);
                 if (linkNamesInTargets.contains(linkAsSource)) {
                     successors.add(template);
                 }
@@ -377,7 +379,8 @@ public class BPELScopeHandler {
      * Returns a List of Names of the variables defined inside the given templatePlan
      *
      * @param templatePlan a templatePlan
-     * @return a List of Strings with the names of the variables defined inside the given templatePlan
+     * @return a List of Strings with the names of the variables defined inside the given
+     *         templatePlan
      */
     public List<String> getVariableNames(final BPELScopeActivity templatePlan) {
         final List<String> varNames = new ArrayList<>();
@@ -412,8 +415,8 @@ public class BPELScopeHandler {
      *
      * @param name the name of the partnerLink to check with
      * @param templateBuildPlan the TemplateBuildPlan to check on
-     * @return true if the given TemplateBuildPlan already has a partnerLink with the given name, else
-     *         false
+     * @return true if the given TemplateBuildPlan already has a partnerLink with the given name,
+     *         else false
      */
     private boolean hasPartnerlink(final String name, final BPELScopeActivity templateBuildPlan) {
         return ModelUtils.hasChildElementWithAttribute(templateBuildPlan.getBpelPartnerLinksElement(), "name", name);
@@ -453,7 +456,8 @@ public class BPELScopeHandler {
     }
 
     /**
-     * Initializes XML Elements of the given TemplateBuildPlan and connects it to the given BuildPlan
+     * Initializes XML Elements of the given TemplateBuildPlan and connects it to the given
+     * BuildPlan
      *
      * @param newTemplateBuildPlan the TemplateBuildPlan to initialize
      * @param buildPlan the BuildPlan to connect to TemplateBuildPlan to
@@ -464,51 +468,52 @@ public class BPELScopeHandler {
 
         newTemplateBuildPlan.getBuildPlan();
         // initialize bpelScopeElement and append to flow
-        newTemplateBuildPlan.setBpelScopeElement(newTemplateBuildPlan.getBpelDocument()
-                                                                     .createElementNS(BPELPlan.bpelNamespace, "scope"));
+        newTemplateBuildPlan.setBpelScopeElement(newTemplateBuildPlan.getBpelDocument().createElementNS(
+                                                                                                        PlanLanguage.BPEL.toString(),
+                                                                                                        "scope"));
         // info: append to flow element of the buildplan
         newTemplateBuildPlan.getBuildPlan().getBpelMainFlowElement()
                             .appendChild(newTemplateBuildPlan.getBpelScopeElement());
 
         // initialize bpelTargetsElement and append to scope
-        newTemplateBuildPlan.setBpelTargetsElement(newTemplateBuildPlan.getBpelDocument()
-                                                                       .createElementNS(BPELPlan.bpelNamespace,
-                                                                                        "targets"));
+        newTemplateBuildPlan.setBpelTargetsElement(newTemplateBuildPlan.getBpelDocument().createElementNS(
+                                                                                                          PlanLanguage.BPEL.toString(),
+                                                                                                          "targets"));
         newTemplateBuildPlan.getBpelScopeElement().appendChild(newTemplateBuildPlan.getBpelTargetsElement());
 
         // initialize bpelSourcesElement and append to scope
-        newTemplateBuildPlan.setBpelSourcesElement(newTemplateBuildPlan.getBpelDocument()
-                                                                       .createElementNS(BPELPlan.bpelNamespace,
-                                                                                        "sources"));
+        newTemplateBuildPlan.setBpelSourcesElement(newTemplateBuildPlan.getBpelDocument().createElementNS(
+                                                                                                          PlanLanguage.BPEL.toString(),
+                                                                                                          "sources"));
         newTemplateBuildPlan.getBpelScopeElement().appendChild(newTemplateBuildPlan.getBpelSourcesElement());
 
         // init bpelPartnerLinksElement append to scope
         newTemplateBuildPlan.setBpelPartnerLinks(newTemplateBuildPlan.getBpelDocument()
-                                                                     .createElementNS(BPELPlan.bpelNamespace,
+                                                                     .createElementNS(PlanLanguage.BPEL.toString(),
                                                                                       "partnerLinks"));
         newTemplateBuildPlan.getBpelScopeElement().appendChild(newTemplateBuildPlan.getBpelPartnerLinksElement());
 
         // init bpelVariablesElement and append to scope
         newTemplateBuildPlan.setBpelVariablesElement(newTemplateBuildPlan.getBpelDocument()
-                                                                         .createElementNS(BPELPlan.bpelNamespace,
+                                                                         .createElementNS(PlanLanguage.BPEL.toString(),
                                                                                           "variables"));
         newTemplateBuildPlan.getBpelScopeElement().appendChild(newTemplateBuildPlan.getBpelVariablesElement());
 
         // init bpelCorrelationSetsElement and append to scope
         newTemplateBuildPlan.setBpelCorrelationSets(newTemplateBuildPlan.getBpelDocument()
-                                                                        .createElementNS(BPELPlan.bpelNamespace,
+                                                                        .createElementNS(PlanLanguage.BPEL.toString(),
                                                                                          "correlationSets"));
         newTemplateBuildPlan.getBpelScopeElement().appendChild(newTemplateBuildPlan.getBpelCorrelationSets());
 
         // initialize bpelMainSequenceElement and append to scope
         newTemplateBuildPlan.setBpelMainSequenceElement(newTemplateBuildPlan.getBpelDocument()
-                                                                            .createElementNS(BPELPlan.bpelNamespace,
+                                                                            .createElementNS(PlanLanguage.BPEL.toString(),
                                                                                              "sequence"));
         newTemplateBuildPlan.getBpelScopeElement().appendChild(newTemplateBuildPlan.getBpelMainSequenceElement());
 
         // initialize bpelSequencePrePhaseElement and append to mainsequence
         newTemplateBuildPlan.setBpelSequencePrePhaseElement(newTemplateBuildPlan.getBpelDocument()
-                                                                                .createElementNS(BPELPlan.bpelNamespace,
+                                                                                .createElementNS(PlanLanguage.BPEL.toString(),
                                                                                                  "sequence"));
         newTemplateBuildPlan.getBpelMainSequenceElement()
                             .appendChild(newTemplateBuildPlan.getBpelSequencePrePhaseElement());
@@ -516,14 +521,14 @@ public class BPELScopeHandler {
         // initialize bpelSequenceProvisioningPhaseElement and append to
         // mainsequence
         newTemplateBuildPlan.setBpelSequenceProvisioningPhaseElement(newTemplateBuildPlan.getBpelDocument()
-                                                                                         .createElementNS(BPELPlan.bpelNamespace,
+                                                                                         .createElementNS(PlanLanguage.BPEL.toString(),
                                                                                                           "sequence"));
         newTemplateBuildPlan.getBpelMainSequenceElement()
                             .appendChild(newTemplateBuildPlan.getBpelSequenceProvisioningPhaseElement());
 
         // initialize bpelSequencePostPhaseElement and append to scope
         newTemplateBuildPlan.setBpelSequencePostPhaseElement(newTemplateBuildPlan.getBpelDocument()
-                                                                                 .createElementNS(BPELPlan.bpelNamespace,
+                                                                                 .createElementNS(PlanLanguage.BPEL.toString(),
                                                                                                   "sequence"));
         newTemplateBuildPlan.getBpelMainSequenceElement()
                             .appendChild(newTemplateBuildPlan.getBpelSequencePostPhaseElement());
@@ -557,8 +562,8 @@ public class BPELScopeHandler {
      * @param template the TemplateBuildPlan to remove its relations
      */
     public void removeAllConnetions(final BPELScopeActivity template) {
-        this.removeSources(template);
-        this.removeTargets(template);
+        removeSources(template);
+        removeTargets(template);
     }
 
     /**

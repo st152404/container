@@ -13,6 +13,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.opentosca.container.core.next.model.PlanLanguage;
 import org.opentosca.planbuilder.core.bpel.handlers.BPELPlanHandler;
 import org.opentosca.planbuilder.core.bpel.handlers.BPELScopeHandler;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
@@ -80,8 +81,8 @@ public class BPELFinalizer {
     }
 
     /**
-     * Finalizes the given BuildPlan. Finalizing here means, that possible invalid parts of the plan are
-     * made vaid against the specification
+     * Finalizes the given BuildPlan. Finalizing here means, that possible invalid parts of the plan
+     * are made vaid against the specification
      *
      * @param buildPlan the BuildPlan to finalize
      */
@@ -156,21 +157,21 @@ public class BPELFinalizer {
             final Element prePhaseElement = templateBuildPlan.getBpelSequencePrePhaseElement();
             if (prePhaseElement.getChildNodes().getLength() == 0) {
                 final Element emptyElement =
-                    buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "empty");
+                    buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "empty");
                 prePhaseElement.appendChild(emptyElement);
             }
 
             final Element provPhaseElement = templateBuildPlan.getBpelSequenceProvisioningPhaseElement();
             if (provPhaseElement.getChildNodes().getLength() == 0) {
                 final Element emptyElement =
-                    buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "empty");
+                    buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "empty");
                 provPhaseElement.appendChild(emptyElement);
             }
 
             final Element postPhaseElement = templateBuildPlan.getBpelSequencePostPhaseElement();
             if (postPhaseElement.getChildNodes().getLength() == 0) {
                 final Element emptyElement =
-                    buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "empty");
+                    buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "empty");
                 postPhaseElement.appendChild(emptyElement);
             }
 
@@ -201,10 +202,9 @@ public class BPELFinalizer {
                         condition += " and $" + targetLinkNames.get(index);
                     }
                 }
-                final Element joinCondition =
-                    buildPlan.getBpelDocument()
-                             .createElementNS("http://docs.oasis-open.org/wsbpel/2.0/process/executable",
-                                              "joinCondition");
+                final Element joinCondition = buildPlan.getBpelDocument().createElementNS(
+                                                                                          "http://docs.oasis-open.org/wsbpel/2.0/process/executable",
+                                                                                          "joinCondition");
                 joinCondition.setTextContent(condition);
                 targets.insertBefore(joinCondition, targets.getFirstChild());
             }
@@ -240,8 +240,8 @@ public class BPELFinalizer {
     }
 
     /**
-     * Generates a BPEL copy element for the output message of a BuildPlan, which sets the callback with
-     * WS-Addressing Headers
+     * Generates a BPEL copy element for the output message of a BuildPlan, which sets the callback
+     * with WS-Addressing Headers
      *
      * @return a DOM Node containing a complete BPEL Copy Element
      * @throws SAXException if parsing the internal String fails
@@ -251,8 +251,8 @@ public class BPELFinalizer {
         final String copyString =
             "<bpel:copy xmlns:bpel=\"http://docs.oasis-open.org/wsbpel/2.0/process/executable\"><bpel:from variable=\"input\" header=\"ReplyTo\"><bpel:query queryLanguage=\"urn:oasis:names:tc:wsbpel:2.0:sublang:xpath1.0\"><![CDATA[string(/*[local-name()='Address'])]]></bpel:query></bpel:from><bpel:to partnerLink=\"client\" endpointReference=\"partnerRole\"/></bpel:copy>";
         /*
-         * <from variable="BPELVariableName" header="NCName"?> <query queryLanguage="anyURI"?>? queryContent
-         * </query> </from>
+         * <from variable="BPELVariableName" header="NCName"?> <query queryLanguage="anyURI"?>?
+         * queryContent </query> </from>
          */
         /*
          * <to partnerLink="mainPartnerLink" endpointReference="partnerRole"/>
@@ -283,8 +283,8 @@ public class BPELFinalizer {
 
     /**
      * Transforms the Scopes inside the Flow Element of the given buildPlan, so that the overall
-     * provisioning is executed sequentially <b>Info:</b> This method assumes that the given BuildPlan
-     * contains a single sink inside the flow
+     * provisioning is executed sequentially <b>Info:</b> This method assumes that the given
+     * BuildPlan contains a single sink inside the flow
      *
      * @param buildPlan the BuildPlan to transform to sequential provisioning
      */

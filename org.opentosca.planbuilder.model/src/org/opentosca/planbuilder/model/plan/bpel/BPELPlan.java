@@ -124,8 +124,6 @@ public class BPELPlan extends AbstractPlan {
 
     private Map<AbstractActivity, BPELScopeActivity> abstract2bpelMap;
 
-    public static final String bpelNamespace = "http://docs.oasis-open.org/wsbpel/2.0/process/executable";
-
     public static final String xpath2Namespace = "urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0";
 
     private String toscaInterfaceName = null;

@@ -8,6 +8,7 @@ import java.util.Map;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.opentosca.container.core.next.model.PlanLanguage;
 import org.opentosca.planbuilder.core.bpel.context.BPELPlanContext;
 import org.opentosca.planbuilder.core.bpel.fragments.BPELProcessFragments;
 import org.opentosca.planbuilder.core.bpel.handlers.BPELPlanHandler;
@@ -87,11 +88,12 @@ public class NodeRelationInstanceVariablesHandler {
     }
 
     /**
-     * Fetches the correct nodeInstanceID link for the given TemplatePlan and sets the value inside a
-     * NodeInstanceID bpel variable
+     * Fetches the correct nodeInstanceID link for the given TemplatePlan and sets the value inside
+     * a NodeInstanceID bpel variable
      *
      * @param templatePlan a templatePlan with set variable with name NodeInstanceID
-     * @param serviceTemplateUrlVarName the name of the variable holding the url to the serviceTemplate
+     * @param serviceTemplateUrlVarName the name of the variable holding the url to the
+     *        serviceTemplate
      * @param instanceDataUrlVarName the name of the variable holding the url to the instanceDataAPI
      * @return
      */
@@ -107,12 +109,12 @@ public class NodeRelationInstanceVariablesHandler {
                                                   new QName(xsdNamespace, "anyType", xsdPrefix), templatePlan);
         // find nodeInstance with query at instanceDataAPI
         try {
-            Node nodeInstanceGETNode =
-                this.bpelFragments.createRESTExtensionGETForNodeInstanceDataAsNode(serviceTemplateUrlVarName,
-                                                                                   instanceDataAPIResponseVarName,
-                                                                                   templatePlan.getNodeTemplate()
-                                                                                               .getId(),
-                                                                                   query);
+            Node nodeInstanceGETNode = this.bpelFragments.createRESTExtensionGETForNodeInstanceDataAsNode(
+                                                                                                          serviceTemplateUrlVarName,
+                                                                                                          instanceDataAPIResponseVarName,
+                                                                                                          templatePlan.getNodeTemplate()
+                                                                                                                      .getId(),
+                                                                                                          query);
             nodeInstanceGETNode = templatePlan.getBpelDocument().importNode(nodeInstanceGETNode, true);
             templatePlan.getBpelSequencePrePhaseElement().appendChild(nodeInstanceGETNode);
         }
@@ -241,8 +243,8 @@ public class NodeRelationInstanceVariablesHandler {
     }
 
     /**
-     * Adds logic to fetch property data from the instanceDataAPI with the nodeInstanceID variable. The
-     * property data is then assigned to appropriate BPEL variables of the given plan.
+     * Adds logic to fetch property data from the instanceDataAPI with the nodeInstanceID variable.
+     * The property data is then assigned to appropriate BPEL variables of the given plan.
      *
      * @param plan a plan containing templatePlans with set nodeInstanceID variables
      * @param propMap a Mapping from NodeTemplate Properties to BPEL Variables
@@ -260,8 +262,8 @@ public class NodeRelationInstanceVariablesHandler {
     }
 
     /**
-     * Adds logic to fetch property data from the instanceDataAPI with the nodeInstanceID variable. The
-     * property data is then assigned to appropriate BPEL Variables of the given templatePlan.
+     * Adds logic to fetch property data from the instanceDataAPI with the nodeInstanceID variable.
+     * The property data is then assigned to appropriate BPEL Variables of the given templatePlan.
      *
      * @param templatePlan a TemplatePlan of a NodeTemplate that has properties
      * @param propMap a Mapping from NodeTemplate Properties to BPEL Variables
@@ -443,8 +445,8 @@ public class NodeRelationInstanceVariablesHandler {
 
             Node assignCounter =
                 this.bpelFragments.createAssignVarToVarWithXpathQueryAsNode("assignInstanceCount_"
-                    + nodeTemplate.getId() + "_" + context.getIdForNames(), responseVarName, counterVariable.getName(),
-                                                                            "count(//*[local-name()='NodeTemplateInstance'])");
+                    + nodeTemplate.getId() + "_"
+                    + context.getIdForNames(), responseVarName, counterVariable.getName(), "count(//*[local-name()='NodeTemplateInstance'])");
             assignCounter = context.importNode(assignCounter);
             templateMainSequeceNode.appendChild(assignCounter);
         }
@@ -473,7 +475,7 @@ public class NodeRelationInstanceVariablesHandler {
             templateMainScopeNode.removeChild(correlationSets);
 
         }
-        final Element sequenceElement = context.createElement(BPELPlan.bpelNamespace, "sequence");
+        final Element sequenceElement = context.createElement(PlanLanguage.BPEL.toString(), "sequence");
 
         sequenceElement.appendChild(context.importNode(context.getPrePhaseElement().cloneNode(true)));
         sequenceElement.appendChild(context.importNode(context.getProvisioningPhaseElement().cloneNode(true)));
@@ -505,27 +507,30 @@ public class NodeRelationInstanceVariablesHandler {
     }
 
     public Element createForEachActivity(final BPELPlanContext context, final String instanceCountVariableName) {
-        final Element forEachElement = context.createElement(BPELPlan.bpelNamespace, "forEach");
+        final Element forEachElement = context.createElement(PlanLanguage.BPEL.toString(), "forEach");
 
         // tz
         forEachElement.setAttribute("counterName", "selectInstanceCounter" + System.currentTimeMillis());
         forEachElement.setAttribute("parallel", "no");
 
         /*
-         * <startCounterValue expressionLanguage="anyURI"?> unsigned-integer-expression </startCounterValue>
-         * <finalCounterValue expressionLanguage="anyURI"?> unsigned-integer-expression </finalCounterValue>
-         * <completionCondition>? <branches expressionLanguage="anyURI"? successfulBranchesOnly="yes|no"?>?
+         * <startCounterValue expressionLanguage="anyURI"?> unsigned-integer-expression
+         * </startCounterValue> <finalCounterValue expressionLanguage="anyURI"?>
+         * unsigned-integer-expression </finalCounterValue> <completionCondition>? <branches
+         * expressionLanguage="anyURI"? successfulBranchesOnly="yes|no"?>?
          * unsigned-integer-expression </branches> </completionCondition> <scope ...>...</scope>
          */
 
-        final Element startCounterValueElement = context.createElement(BPELPlan.bpelNamespace, "startCounterValue");
+        final Element startCounterValueElement =
+            context.createElement(PlanLanguage.BPEL.toString(), "startCounterValue");
 
         startCounterValueElement.setAttribute("expressionLanguage", BPELPlan.xpath2Namespace);
 
         final Text textSectionStartValue = startCounterValueElement.getOwnerDocument().createTextNode("\"1\"");
         startCounterValueElement.appendChild(textSectionStartValue);
 
-        final Element finalCounterValueElement = context.createElement(BPELPlan.bpelNamespace, "finalCounterValue");
+        final Element finalCounterValueElement =
+            context.createElement(PlanLanguage.BPEL.toString(), "finalCounterValue");
 
         finalCounterValueElement.setAttribute("expressionLanguage", BPELPlan.xpath2Namespace);
 
@@ -533,7 +538,7 @@ public class NodeRelationInstanceVariablesHandler {
             startCounterValueElement.getOwnerDocument().createTextNode("$" + instanceCountVariableName);
         finalCounterValueElement.appendChild(textSectionFinalValue);
 
-        final Element scopeElement = context.createElement(BPELPlan.bpelNamespace, "scope");
+        final Element scopeElement = context.createElement(PlanLanguage.BPEL.toString(), "scope");
 
         forEachElement.appendChild(startCounterValueElement);
         forEachElement.appendChild(finalCounterValueElement);

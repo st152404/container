@@ -6,6 +6,7 @@ import java.util.List;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.opentosca.container.core.next.model.PlanLanguage;
 import org.opentosca.planbuilder.core.bpel.context.BPELPlanContext;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer.PropertyMap;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
@@ -88,7 +89,7 @@ public class EmptyPropertyToInputInitializer {
      * @return a String containing a bpel copy
      */
     private String generateCopyFromInputToVariableAsString(final String inputQuery, final String variableQuery) {
-        String copyString = "<bpel:assign xmlns:bpel=\"" + BPELPlan.bpelNamespace + "\"><bpel:copy>";
+        String copyString = "<bpel:assign xmlns:bpel=\"" + PlanLanguage.BPEL.toString() + "\"><bpel:copy>";
 
         copyString +=
             "<bpel:from variable=\"input\" part=\"payload\"><bpel:query queryLanguage=\"urn:oasis:names:tc:wsbpel:2.0:sublang:xpath1.0\"><![CDATA["

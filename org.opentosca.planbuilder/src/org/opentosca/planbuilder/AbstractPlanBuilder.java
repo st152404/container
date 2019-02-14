@@ -35,19 +35,21 @@ public abstract class AbstractPlanBuilder {
      * @param csarName the file name of the CSAR as String
      * @param definitions the Definitions document as AbstractDefinitions Object
      * @param serviceTemplateId a QName denoting a ServiceTemplate inside the Definitions document
-     * @return a complete BuildPlan for the given ServiceTemplate, if the ServiceTemplate denoted by the
-     *         given QName isn't found inside the Definitions document null is returned instead
+     * @return a complete BuildPlan for the given ServiceTemplate, if the ServiceTemplate denoted by
+     *         the given QName isn't found inside the Definitions document null is returned instead
      */
     abstract public AbstractPlan buildPlan(String csarName, AbstractDefinitions definitions, QName serviceTemplateId);
 
     /**
      * <p>
-     * Returns a List of BuildPlans for the ServiceTemplates contained in the given Definitions document
+     * Returns a List of BuildPlans for the ServiceTemplates contained in the given Definitions
+     * document
      * </p>
      *
      * @param csarName the file name of CSAR
      * @param definitions a AbstractDefinitions Object denoting the Definitions document
-     * @return a List of Build Plans for each ServiceTemplate contained inside the Definitions document
+     * @return a List of Build Plans for each ServiceTemplate contained inside the Definitions
+     *         document
      */
     abstract public List<AbstractPlan> buildPlans(String csarName, AbstractDefinitions definitions);
 
@@ -57,7 +59,8 @@ public abstract class AbstractPlanBuilder {
      * </p>
      *
      * @param nodeTemplate an AbstractNodeTemplate denoting a NodeTemplate
-     * @return true if there is any generic plugin which can handle the given NodeTemplate, else false
+     * @return true if there is any generic plugin which can handle the given NodeTemplate, else
+     *         false
      */
     public IPlanBuilderTypePlugin findTypePlugin(final AbstractNodeTemplate nodeTemplate) {
         for (final IPlanBuilderTypePlugin plugin : this.pluginRegistry.getGenericPlugins()) {
@@ -78,7 +81,8 @@ public abstract class AbstractPlanBuilder {
      * </p>
      *
      * @param nodeTemplate an AbstractNodeTemplate denoting a NodeTemplate
-     * @return true if there is any generic plugin which can handle the given NodeTemplate, else false
+     * @return true if there is any generic plugin which can handle the given NodeTemplate, else
+     *         false
      */
     public IPlanBuilderPolicyAwareTypePlugin findPolicyAwareTypePlugin(final AbstractNodeTemplate nodeTemplate) {
         for (final IPlanBuilderPolicyAwareTypePlugin plugin : this.pluginRegistry.getPolicyAwareTypePlugins()) {
@@ -99,7 +103,8 @@ public abstract class AbstractPlanBuilder {
      * </p>
      *
      * @param nodeTemplate an AbstractNodeTemplate denoting a NodeTemplate
-     * @return true if there is any generic plugin which can handle the given NodeTemplate, else false
+     * @return true if there is any generic plugin which can handle the given NodeTemplate, else
+     *         false
      */
     public IPlanBuilderTypePlugin findTypePlugin(final AbstractRelationshipTemplate relationshipTemplate) {
         for (final IPlanBuilderTypePlugin plugin : this.pluginRegistry.getGenericPlugins()) {
@@ -148,16 +153,10 @@ public abstract class AbstractPlanBuilder {
     protected AbstractActivity findRelationshipTemplateActivity(final List<AbstractActivity> activities,
                                                                 final AbstractRelationshipTemplate relationshipTemplate,
                                                                 final ActivityType type) {
-        for (final AbstractActivity activity : activities) {
-            if (activity.getType().equals(type)) {
-                if (activity instanceof ARelationshipTemplateActivity) {
-                    if (((ARelationshipTemplateActivity) activity).getRelationshipTemplate()
-                                                                  .equals(relationshipTemplate)) {
-                        return activity;
-                    }
-                }
-            }
-        }
-        return null;
+        return activities.stream().filter(activity -> activity.getType().equals(type))
+                         .filter(activity -> activity instanceof ARelationshipTemplateActivity)
+                         .filter(activity -> ((ARelationshipTemplateActivity) activity).getRelationshipTemplate()
+                                                                                       .equals(relationshipTemplate))
+                         .findFirst().orElse(null);
     }
 }

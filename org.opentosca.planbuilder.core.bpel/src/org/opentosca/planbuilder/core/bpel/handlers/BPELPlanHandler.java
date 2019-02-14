@@ -20,6 +20,7 @@ import org.apache.ode.schemas.dd._2007._03.TInvoke;
 import org.apache.ode.schemas.dd._2007._03.TProcessEvents;
 import org.apache.ode.schemas.dd._2007._03.TProvide;
 import org.apache.ode.schemas.dd._2007._03.TService;
+import org.opentosca.container.core.next.model.PlanLanguage;
 import org.opentosca.planbuilder.core.bpel.helpers.NodeRelationInstanceVariablesHandler;
 import org.opentosca.planbuilder.model.plan.ANodeTemplateActivity;
 import org.opentosca.planbuilder.model.plan.ARelationshipTemplateActivity;
@@ -171,7 +172,7 @@ public class BPELPlanHandler {
             return false;
         } else {
             final Element extensionElement =
-                buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "extension");
+                buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "extension");
             extensionElement.setAttribute("namespace", namespace);
             extensionElement.setAttribute("mustUnderstand", mustUnderstand ? "yes" : "no");
             buildPlan.getBpelExtensionsElement().appendChild(extensionElement);
@@ -212,7 +213,8 @@ public class BPELPlanHandler {
         }
 
         // create new import element
-        final Element importElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "import");
+        final Element importElement =
+            buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "import");
         importElement.setAttribute("namespace", namespace);
         importElement.setAttribute("location", location);
 
@@ -323,7 +325,7 @@ public class BPELPlanHandler {
         }
 
         final Element linksElement = buildPlan.getBpelMainFlowLinksElement();
-        final Element linkElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "link");
+        final Element linkElement = buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "link");
 
         linkElement.setAttribute("name", linkName);
         linksElement.appendChild(linkElement);
@@ -371,7 +373,7 @@ public class BPELPlanHandler {
         } else {
             final Element partnerLinksElement = buildPlan.getBpelPartnerLinksElement();
             final Element partnerLinkElement =
-                buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "partnerLink");
+                buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "partnerLink");
             partnerLinkElement.setAttribute("name", partnerLinkName);
             partnerLinkElement.setAttribute("partnerLinkType",
                                             partnerLinkType.getPrefix() + ":" + partnerLinkType.getLocalPart());
@@ -521,7 +523,8 @@ public class BPELPlanHandler {
 
         // fetch variables element and create variable element
         final Element variablesElement = buildPlan.getBpelProcessVariablesElement();
-        final Element variableElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "variable");
+        final Element variableElement =
+            buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "variable");
 
         // set the type and declaration id
         switch (variableType) {
@@ -564,10 +567,10 @@ public class BPELPlanHandler {
                                   buildPlan.getBpelProcessElement().getAttribute("name"));
         final Element outputAssignElement = buildPlan.getBpelMainSequenceOutputAssignElement();
         // create copy elements
-        final Element copyElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "copy");
-        final Element fromElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "from");
-        final Element toElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "to");
-        final Element queryElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "query");
+        final Element copyElement = buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "copy");
+        final Element fromElement = buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "from");
+        final Element toElement = buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "to");
+        final Element queryElement = buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "query");
         final CDATASection cdataSection = buildPlan.getBpelDocument().createCDATASection("tns:" + outputElementName);
 
         // set attributes
@@ -605,12 +608,13 @@ public class BPELPlanHandler {
                                   variableValue, buildPlan.getBpelProcessElement().getAttribute("name"));
         final Element propertyAssignElement = buildPlan.getBpelMainSequencePropertyAssignElement();
         // create copy element
-        final Element copyElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "copy");
-        final Element fromElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "from");
-        final Element literalElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "literal");
+        final Element copyElement = buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "copy");
+        final Element fromElement = buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "from");
+        final Element literalElement =
+            buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "literal");
         literalElement.setTextContent(variableValue);
         fromElement.appendChild(literalElement);
-        final Element toElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "to");
+        final Element toElement = buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "to");
         toElement.setAttribute("variable", variableName);
         copyElement.appendChild(fromElement);
         copyElement.appendChild(toElement);
@@ -623,13 +627,13 @@ public class BPELPlanHandler {
 
     /**
      * <p>
-     * Assigns a value of a variable from the given input request element inside the main entry assign
-     * of the given buildPlan.
+     * Assigns a value of a variable from the given input request element inside the main entry
+     * assign of the given buildPlan.
      * </p>
      *
      * @param variableName the name of the variable the value should be assigned
-     * @param inputVariableLocalName the localName of the element inside the input message of the given
-     *        buildPlan
+     * @param inputVariableLocalName the localName of the element inside the input message of the
+     *        given buildPlan
      * @param buildPlan the buildPlan to work with
      * @return true iff adding the assign was successful
      */
@@ -637,13 +641,13 @@ public class BPELPlanHandler {
                                                 final BPELPlan buildPlan) {
         final Element propertyAssignElement = buildPlan.getBpelMainSequencePropertyAssignElement();
         // create copy element
-        final Element copyElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "copy");
-        final Element fromElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "from");
+        final Element copyElement = buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "copy");
+        final Element fromElement = buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "from");
 
         fromElement.setAttribute("part", "payload");
         fromElement.setAttribute("variable", "input");
 
-        final Element queryElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "query");
+        final Element queryElement = buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "query");
         queryElement.setAttribute("queryLanguage", "urn:oasis:names:tc:wsbpel:2.0:sublang:xpath1.0");
 
         queryElement.appendChild(buildPlan.getBpelDocument().createCDATASection("//*[local-name()='"
@@ -656,7 +660,7 @@ public class BPELPlanHandler {
          */
 
         fromElement.appendChild(queryElement);
-        final Element toElement = buildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace, "to");
+        final Element toElement = buildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(), "to");
         toElement.setAttribute("variable", variableName);
         copyElement.appendChild(fromElement);
         copyElement.appendChild(toElement);
@@ -1052,7 +1056,7 @@ public class BPELPlanHandler {
         newBuildPlan.setBpelDocument(this.documentBuilder.newDocument());
 
         // initialize processElement and append to document
-        newBuildPlan.setBpelProcessElement(newBuildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace,
+        newBuildPlan.setBpelProcessElement(newBuildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(),
                                                                                           "process"));
         newBuildPlan.getBpelDocument().appendChild(newBuildPlan.getBpelProcessElement());
 
@@ -1064,8 +1068,8 @@ public class BPELPlanHandler {
         newBuildPlan.setImportedFiles(new HashSet<File>());
 
         // initialize and append extensions element to process
-        newBuildPlan.setBpelExtensionsElement(newBuildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace,
-                                                                                             "extensions"));
+        newBuildPlan.setBpelExtensionsElement(newBuildPlan.getBpelDocument()
+                                                          .createElementNS(PlanLanguage.BPEL.toString(), "extensions"));
         newBuildPlan.getBpelProcessElement().appendChild(newBuildPlan.getBpelExtensionsElement());
 
         // init and append imports element
@@ -1080,54 +1084,57 @@ public class BPELPlanHandler {
         // this.bpelProcessElement.appendChild(bpelImportsElement);
 
         // init and append partnerlink element
-        newBuildPlan.setBpelPartnerLinksElement(newBuildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace,
+        newBuildPlan.setBpelPartnerLinksElement(newBuildPlan.getBpelDocument().createElementNS(
+                                                                                               PlanLanguage.BPEL.toString(),
                                                                                                "partnerLinks"));
         newBuildPlan.getBpelProcessElement().appendChild(newBuildPlan.getBpelPartnerLinksElement());
 
         // initialize and append variables element
-        newBuildPlan.setBpelProcessVariablesElement(newBuildPlan.getBpelDocument()
-                                                                .createElementNS(BPELPlan.bpelNamespace, "variables"));
+        newBuildPlan.setBpelProcessVariablesElement(newBuildPlan.getBpelDocument().createElementNS(
+                                                                                                   PlanLanguage.BPEL.toString(),
+                                                                                                   "variables"));
         newBuildPlan.getBpelProcessElement().appendChild(newBuildPlan.getBpelProcessVariablesElement());
 
         // init and append main sequence to process element
-        newBuildPlan.setBpelMainSequenceElement(newBuildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace,
-                                                                                               "sequence"));
+        newBuildPlan.setBpelMainSequenceElement(newBuildPlan.getBpelDocument()
+                                                            .createElementNS(PlanLanguage.BPEL.toString(), "sequence"));
         newBuildPlan.getBpelProcessElement().appendChild(newBuildPlan.getBpelMainSequenceElement());
 
         // init and append main sequence receive element to main sequence
         // element
-        newBuildPlan.setBpelMainSequenceReceiveElement(newBuildPlan.getBpelDocument()
-                                                                   .createElementNS(BPELPlan.bpelNamespace, "receive"));
+        newBuildPlan.setBpelMainSequenceReceiveElement(newBuildPlan.getBpelDocument().createElementNS(
+                                                                                                      PlanLanguage.BPEL.toString(),
+                                                                                                      "receive"));
         newBuildPlan.getBpelMainSequenceElement().appendChild(newBuildPlan.getBpelMainSequenceReceiveElement());
 
         // init and append main sequence property assign element to main
         // sequence element
-        newBuildPlan.setBpelMainSequencePropertyAssignElement(newBuildPlan.getBpelDocument()
-                                                                          .createElementNS(BPELPlan.bpelNamespace,
-                                                                                           "assign"));
+        newBuildPlan.setBpelMainSequencePropertyAssignElement(newBuildPlan.getBpelDocument().createElementNS(
+                                                                                                             PlanLanguage.BPEL.toString(),
+                                                                                                             "assign"));
         newBuildPlan.getBpelMainSequenceElement().appendChild(newBuildPlan.getBpelMainSequencePropertyAssignElement());
 
         // init and append main sequence flow element to main sequence element
-        newBuildPlan.setBpelMainFlowElement(newBuildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace,
+        newBuildPlan.setBpelMainFlowElement(newBuildPlan.getBpelDocument().createElementNS(PlanLanguage.BPEL.toString(),
                                                                                            "flow"));
         newBuildPlan.getBpelMainSequenceElement().appendChild(newBuildPlan.getBpelMainFlowElement());
 
         // init and append flow links element
-        newBuildPlan.setBpelMainFlowLinksElement(newBuildPlan.getBpelDocument().createElementNS(BPELPlan.bpelNamespace,
-                                                                                                "links"));
+        newBuildPlan.setBpelMainFlowLinksElement(newBuildPlan.getBpelDocument()
+                                                             .createElementNS(PlanLanguage.BPEL.toString(), "links"));
         newBuildPlan.getBpelMainFlowElement().appendChild(newBuildPlan.getBpelMainFlowLinksElement());
 
         // init and append output assign element
-        newBuildPlan.setBpelMainSequenceOutputAssignElement(newBuildPlan.getBpelDocument()
-                                                                        .createElementNS(BPELPlan.bpelNamespace,
-                                                                                         "assign"));
+        newBuildPlan.setBpelMainSequenceOutputAssignElement(newBuildPlan.getBpelDocument().createElementNS(
+                                                                                                           PlanLanguage.BPEL.toString(),
+                                                                                                           "assign"));
         newBuildPlan.getBpelMainSequenceElement().appendChild(newBuildPlan.getBpelMainSequenceOutputAssignElement());
 
         // init and append main sequence callback invoke element to main
         // sequence element
-        newBuildPlan.setBpelMainSequenceCallbackInvokeElement(newBuildPlan.getBpelDocument()
-                                                                          .createElementNS(BPELPlan.bpelNamespace,
-                                                                                           "invoke"));
+        newBuildPlan.setBpelMainSequenceCallbackInvokeElement(newBuildPlan.getBpelDocument().createElementNS(
+                                                                                                             PlanLanguage.BPEL.toString(),
+                                                                                                             "invoke"));
         newBuildPlan.getBpelMainSequenceElement().appendChild(newBuildPlan.getBpelMainSequenceCallbackInvokeElement());
     }
 

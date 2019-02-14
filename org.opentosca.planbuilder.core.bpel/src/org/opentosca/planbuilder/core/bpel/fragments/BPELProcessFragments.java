@@ -13,6 +13,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.FileUtils;
 import org.eclipse.core.runtime.FileLocator;
+import org.opentosca.container.core.next.model.PlanLanguage;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
 import org.osgi.framework.FrameworkUtil;
 import org.slf4j.Logger;
@@ -72,7 +73,8 @@ public class BPELProcessFragments {
      *
      * @param assignName the name of the assign
      * @param stringVarName the name of the xsd:string variable to write the NodeInstanceId into
-     * @param nodeInstanceResponseVarName the instanceDataAPI response to fetch the NodeInstanceId from
+     * @param nodeInstanceResponseVarName the instanceDataAPI response to fetch the NodeInstanceId
+     *        from
      * @return a Node containing a BPEL assign activity
      * @throws IOException is thrown when reading internal files fails
      * @throws SAXException is thrown when parsing internal files fails
@@ -170,7 +172,8 @@ public class BPELProcessFragments {
      *
      * @param assignName the name of the assign
      * @param stringVarName the name of the xsd:string variable to write the NodeInstanceId into
-     * @param nodeInstanceResponseVarName the instanceDataAPI response to fetch the NodeInstanceId from
+     * @param nodeInstanceResponseVarName the instanceDataAPI response to fetch the NodeInstanceId
+     *        from
      * @return a String containing a BPEL assign activity
      * @throws IOException is thrown when reading internal files fails
      */
@@ -195,8 +198,8 @@ public class BPELProcessFragments {
      *
      * @param assignName the name of the assign activity
      * @param nodeInstancePropertyResponseVarName the name of the variable holding the property data
-     * @param propElement2BpelVarNameMap a Map from DOM Elements (representing Node Properties) to BPEL
-     *        variable names
+     * @param propElement2BpelVarNameMap a Map from DOM Elements (representing Node Properties) to
+     *        BPEL variable names
      * @return a Node containing a BPEL assign activity
      * @throws IOException is thrown when reading internal files fail
      * @throws SAXException is thrown when parsing internal files fail
@@ -220,8 +223,8 @@ public class BPELProcessFragments {
      *
      * @param assignName the name of the assign activity
      * @param nodeInstancePropertyResponseVarName the name of the variable holding the property data
-     * @param propElement2BpelVarNameMap a Map from DOM Elements (representing Node Properties) to BPEL
-     *        variable names
+     * @param propElement2BpelVarNameMap a Map from DOM Elements (representing Node Properties) to
+     *        BPEL variable names
      * @return a String containing a BPEL assign activity
      * @throws IOException is thrown when reading internal files fail
      */
@@ -234,7 +237,7 @@ public class BPELProcessFragments {
         final String template = FileUtils.readFileToString(bpelfragmentfile);
 
         String assignString =
-            "<bpel:assign name=\"" + assignName + "\" xmlns:bpel=\"" + BPELPlan.bpelNamespace + "\" >";
+            "<bpel:assign name=\"" + assignName + "\" xmlns:bpel=\"" + PlanLanguage.BPEL.toString() + "\" >";
 
         // <!-- $PropertyVarName, $NodeInstancePropertyRequestVarName,
         // $NodeInstancePropertyLocalName, $NodeInstancePropertyNamespace -->
@@ -284,9 +287,9 @@ public class BPELProcessFragments {
     public Node createIfTrueThrowsError(final String xpath, final QName faultName) {
         final Document doc = this.docBuilder.newDocument();
 
-        final Element ifElement = doc.createElementNS(BPELPlan.bpelNamespace, "if");
+        final Element ifElement = doc.createElementNS(PlanLanguage.BPEL.toString(), "if");
 
-        final Element conditionElement = doc.createElementNS(BPELPlan.bpelNamespace, "condition");
+        final Element conditionElement = doc.createElementNS(PlanLanguage.BPEL.toString(), "condition");
 
         conditionElement.setAttribute("expressionLanguage", BPELPlan.xpath2Namespace);
 
@@ -295,7 +298,7 @@ public class BPELProcessFragments {
 
         ifElement.appendChild(conditionElement);
 
-        final Element throwElement = doc.createElementNS(BPELPlan.bpelNamespace, "throw");
+        final Element throwElement = doc.createElementNS(PlanLanguage.BPEL.toString(), "throw");
 
         final String nsPrefix = "ns" + System.currentTimeMillis();
 
@@ -309,8 +312,8 @@ public class BPELProcessFragments {
     }
 
     /**
-     * Loads a BPEL Assign fragment which queries the csarEntrypath from the input message into String
-     * variable.
+     * Loads a BPEL Assign fragment which queries the csarEntrypath from the input message into
+     * String variable.
      *
      * @param assignName the name of the BPEL assign
      * @param xpath2Query the xPath query
@@ -331,8 +334,8 @@ public class BPELProcessFragments {
     }
 
     /**
-     * Loads a BPEL Assign fragment which queries the csarEntrypath from the input message into String
-     * variable.
+     * Loads a BPEL Assign fragment which queries the csarEntrypath from the input message into
+     * String variable.
      *
      * @param assignName the name of the BPEL assign
      * @param xpath2Query the csarEntryPoint XPath query
@@ -749,8 +752,8 @@ public class BPELProcessFragments {
     }
 
     /**
-     * Generates a BPEL POST at the given InstanceDataAPI with the given ServiceTemplate id to create a
-     * Service Instance
+     * Generates a BPEL POST at the given InstanceDataAPI with the given ServiceTemplate id to
+     * create a Service Instance
      *
      * @param instanceDataAPIUrlVariableName the name of the variable holding the address to the
      *        instanceDataAPI
@@ -801,8 +804,8 @@ public class BPELProcessFragments {
 
 
     /**
-     * Generates a BPEL POST at the given InstanceDataAPI with the given ServiceTemplate id to create a
-     * Service Instance
+     * Generates a BPEL POST at the given InstanceDataAPI with the given ServiceTemplate id to
+     * create a Service Instance
      *
      * @param instanceDataAPIUrlVariableName the name of the variable holding the address to the
      *        instanceDataAPI
@@ -830,8 +833,8 @@ public class BPELProcessFragments {
     }
 
     /**
-     * Generates a BPEL POST at the given InstanceDataAPI with the given ServiceTemplate id to create a
-     * Service Instance
+     * Generates a BPEL POST at the given InstanceDataAPI with the given ServiceTemplate id to
+     * create a Service Instance
      *
      * @param instanceDataAPIUrlVariableName the name of the variable holding the address to the
      *        instanceDataAPI
@@ -856,8 +859,8 @@ public class BPELProcessFragments {
     }
 
     /**
-     * Generates a BPEL POST at the given InstanceDataAPI with the given ServiceTemplate id to create a
-     * Service Instance
+     * Generates a BPEL POST at the given InstanceDataAPI with the given ServiceTemplate id to
+     * create a Service Instance
      *
      * @param instanceDataAPIUrlVariableName the name of the variable holding the address to the
      *        instanceDataAPI
@@ -883,8 +886,8 @@ public class BPELProcessFragments {
     }
 
     /**
-     * Generates a BPEL If activity that throws the given fault when the given expr evaluates to true at
-     * runtime
+     * Generates a BPEL If activity that throws the given fault when the given expr evaluates to
+     * true at runtime
      *
      * @param xpath1Expr a XPath 1.0 expression as String
      * @param faultQName a QName denoting the fault to be thrown when the if evaluates to true
@@ -902,8 +905,8 @@ public class BPELProcessFragments {
     }
 
     /**
-     * Generates a BPEL If activity that throws the given fault when the given expr evaluates to true at
-     * runtime
+     * Generates a BPEL If activity that throws the given fault when the given expr evaluates to
+     * true at runtime
      *
      * @param xpath1Expr a XPath 1.0 expression as String
      * @param faultQName a QName denoting the fault to be thrown when the if evaluates to true
@@ -926,8 +929,8 @@ public class BPELProcessFragments {
     }
 
     /**
-     * Generates an Assign Acitivity that writes the content of a Strig variable into the first element
-     * specified by prefix and localname
+     * Generates an Assign Acitivity that writes the content of a Strig variable into the first
+     * element specified by prefix and localname
      *
      * @param assignName the name of the assign
      * @param variableName the name of the string variable to take the value from
@@ -953,8 +956,8 @@ public class BPELProcessFragments {
     }
 
     /**
-     * Generates an Assign Activity that writes the content of a String variable into the first element
-     * specified by prefix and localname
+     * Generates an Assign Activity that writes the content of a String variable into the first
+     * element specified by prefix and localname
      *
      * @param assignName the name of the assign
      * @param variableName the name of the string variable to take the value from
@@ -983,15 +986,15 @@ public class BPELProcessFragments {
     }
 
     /**
-     * Generates a BPEL assign that sets serviceInstanceURL, ID and serviceTemplate URL from the given
-     * serviceTemplateInstance POST response message
+     * Generates a BPEL assign that sets serviceInstanceURL, ID and serviceTemplate URL from the
+     * given serviceTemplateInstance POST response message
      *
      * @param serviceInstanceResponseVarName the varariable name of the POST response message
      * @param serviceInstanceURLVarName the varariable name to save the serviceTemplateInstance URL
-     * @param serviceTemplateInstancesURLVar the variable name that holds the serviceTemplateInstances
-     *        URL
-     * @param serviceInstanceIDVarName the variable name to save the serviceTemplateInstance ID in (e.g.
-     *        ID=123)
+     * @param serviceTemplateInstancesURLVar the variable name that holds the
+     *        serviceTemplateInstances URL
+     * @param serviceInstanceIDVarName the variable name to save the serviceTemplateInstance ID in
+     *        (e.g. ID=123)
      * @param serviceTemplateURLVarName the variable name to save the serviceTemplate URL in
      * @return a DOM Node containing a BPEL assign activity
      * @throws IOException is thrown when reading internal files fail
