@@ -101,23 +101,6 @@ public class DeploymentDistributionDecisionMaker {
         LOG.debug("Looking for infrastructure NodeTemplateInstance that corresponds to this NodeTemplateInstance...");
         final NodeTemplateInstance infrastructureNodeTemplateInstance = searchInfrastructureNode(nodeTemplateInstance);
 
-        // check if "managingContainer" is already set for the infrastructure NodeTemplateInstance
-        if (Objects.nonNull(infrastructureNodeTemplateInstance.getManagingContainer())) {
-
-            // no instance data matching needed, as it was already performed for the
-            // infrastructure NodeTemplateInstance
-            final String managingContainer = infrastructureNodeTemplateInstance.getManagingContainer();
-
-            LOG.debug("Infrastructure NodeTemplateInstance has set managingContainer attribute.");
-            LOG.debug("Result of deployment distribution decision: {}", managingContainer);
-
-            // current NodeTemplateInstance is managed by the same Container as the
-            // infrastructure instance
-            nodeTemplateInstance.setManagingContainer(managingContainer);
-            nodeTemplateInstanceRepository.update(nodeTemplateInstance);
-            return managingContainer;
-        }
-
         // instance data matching has to be performed for the NodeTemplateInstance
         LOG.debug("Infrastructure NodeTemplateInstance has ID: {}", infrastructureNodeTemplateInstance.getId());
 
