@@ -245,18 +245,11 @@ public class DeploymentDistributionDecisionMaker {
                                                                       .equals(NodeTemplateInstanceState.STARTED))
                                           .filter(instance -> isBuildPlanFinished(instance))
                                           .filter(instance -> getEntrySetWithoutState(instance.getPropertiesAsMap()).equals(infrastructureEntrySet))
+                                          .filter(instance -> Objects.isNull(instance.getManagingContainer()))
                                           .findFirst().orElse(null);
 
         if (Objects.nonNull(matchingInstance)) {
-            // check whether the matching NodeTemplateInstance is managed by this Container
-            if (Objects.isNull(matchingInstance.getManagingContainer())) {
-                // If no Container is set and the build plan is finished, this means that there
-                // was no IA invocation in the build plan and therefore also no remote
-                // deployment which means it is managed locally.
-                return Settings.OPENTOSCA_CONTAINER_HOSTNAME;
-            } else {
-                return matchingInstance.getManagingContainer();
-            }
+            return Settings.OPENTOSCA_CONTAINER_HOSTNAME;
         }
 
         // no matching found
