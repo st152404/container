@@ -66,8 +66,7 @@ public class PropertyVariableInitializer {
                 // template has already properties set
                 final Map<String, String> propertyMappingMap = this.internalMap.get(templateId);
                 if (propertyMappingMap.containsKey(propertyName)) {
-                    // this is an error, because we don't map properties to two
-                    // variables
+                    // this is an error, because we don't map properties to two variables
                     return false;
                 } else {
                     // add property and propertyVariableName
@@ -90,8 +89,8 @@ public class PropertyVariableInitializer {
          * Returns all mappings from Property localName to variable name for a given TemplateId
          *
          * @param templateid the Id of a Template
-         * @return a Map from String to String representing Property localName as key and variable name as
-         *         value
+         * @return a Map from String to String representing Property localName as key and variable
+         *         name as value
          */
         public Map<String, String> getPropertyMappingMap(final String templateid) {
             return this.internalMap.get(templateid);
@@ -109,8 +108,8 @@ public class PropertyVariableInitializer {
     }
 
     /**
-     * Initializes the BuildPlan with variables for Template Properties and returns the Mappings for the
-     * Properties and variables
+     * Initializes the BuildPlan with variables for Template Properties and returns the Mappings for
+     * the Properties and variables
      *
      * @param buildPlan the BuildPlan to initialize
      * @return a PropertyMap which holds mappings from Template to Template Property and BuildPlan
@@ -132,7 +131,6 @@ public class PropertyVariableInitializer {
      */
     public void initializePropertiesAsVariables(final PropertyMap map, final BPELScopeActivity templatePlan) {
         if (templatePlan.getRelationshipTemplate() != null) {
-            // template corresponds to a relationshiptemplate
             initPropsAsVarsInRelationship(map, templatePlan);
         } else {
             initPropsAsVarsInNode(map, templatePlan);
@@ -230,5 +228,4 @@ public class PropertyVariableInitializer {
             }
         }
     }
-
 }

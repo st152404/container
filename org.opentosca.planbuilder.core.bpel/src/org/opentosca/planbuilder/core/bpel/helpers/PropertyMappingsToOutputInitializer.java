@@ -177,7 +177,6 @@ public class PropertyMappingsToOutputInitializer {
             }
             this.internalArray = newArray;
         }
-
     }
 
     /**
@@ -537,7 +536,6 @@ public class PropertyMappingsToOutputInitializer {
             } else {
                 PropertyMappingsToOutputInitializer.LOG.error("XPath expression {} on Element {} returned multiple Nodes",
                                                               xpathExpr, serviceTemplatePropElement);
-                return null;
             }
 
         }
@@ -557,30 +555,20 @@ public class PropertyMappingsToOutputInitializer {
      */
     private AbstractNodeTemplate getNodeTemplate(final AbstractServiceTemplate serviceTemplate,
                                                  final String templateId) {
-        for (final AbstractNodeTemplate nodeTemplate : serviceTemplate.getTopologyTemplate().getNodeTemplates()) {
-            if (nodeTemplate.getId().equals(templateId)) {
-                return nodeTemplate;
-            }
-        }
-        return null;
+        return serviceTemplate.getTopologyTemplate().getNodeTemplates().stream()
+                              .filter(node -> node.getId().equals(templateId)).findFirst().orElse(null);
     }
 
     /**
      * Returns an AbstractRelationshipTemplate of the given serviceTemplate and TemplateId
      *
      * @param serviceTemplate the ServiceTemplate to search in
-     * @param templateId the If of the template to search for
+     * @param templateId the Id of the template to search for
      * @return an AbstractRelationshipTemplate with the specified Id, else null
      */
     private AbstractRelationshipTemplate getRelationshipTemplate(final AbstractServiceTemplate serviceTemplate,
                                                                  final String templateId) {
-        for (final AbstractRelationshipTemplate relationshipTemplate : serviceTemplate.getTopologyTemplate()
-                                                                                      .getRelationshipTemplates()) {
-            if (relationshipTemplate.getId().equals(templateId)) {
-                return relationshipTemplate;
-            }
-        }
-        return null;
+        return serviceTemplate.getTopologyTemplate().getRelationshipTemplates().stream()
+                              .filter(rel -> rel.getId().equals(templateId)).findFirst().orElse(null);
     }
-
 }

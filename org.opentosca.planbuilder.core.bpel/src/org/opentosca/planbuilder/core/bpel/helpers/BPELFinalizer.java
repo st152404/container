@@ -123,7 +123,6 @@ public class BPELFinalizer {
                 childElement.setPrefix("tns");
                 literalElement.appendChild(childElement);
             }
-
         }
 
         buildPlan.getBpelMainSequencePropertyAssignElement().appendChild(copy);
@@ -184,8 +183,7 @@ public class BPELFinalizer {
                 templateBuildPlan.setBpelTargetsElement(null);
             } else {
                 // add join conditions, where all templates which are target of
-                // a
-                // edge should be used in a conjuction
+                // a edge should be used in a conjuction
                 final NodeList targetsChildren = targets.getChildNodes();
                 final List<String> targetLinkNames = new ArrayList<>();
                 for (int index = 0; index < targetsChildren.getLength(); index++) {
@@ -264,21 +262,14 @@ public class BPELFinalizer {
     }
 
     private BPELScopeActivity getUnmarkedNode(final Map<BPELScopeActivity, TopologicalSortMarking> markings) {
-        for (final BPELScopeActivity plan : markings.keySet()) {
-            if (markings.get(plan).permMark == false & markings.get(plan).tempMark == false) {
-                return plan;
-            }
-        }
-        return null;
+        return markings.keySet().stream()
+                       .filter(plan -> markings.get(plan).permMark == false & markings.get(plan).tempMark == false)
+                       .findFirst().orElse(null);
     }
 
     private boolean hasUnmarkedNode(final Map<BPELScopeActivity, TopologicalSortMarking> markings) {
-        for (final TopologicalSortMarking marking : markings.values()) {
-            if (marking.permMark == false & marking.tempMark == false) {
-                return true;
-            }
-        }
-        return false;
+        return markings.values().stream().filter(marking -> marking.permMark == false & marking.tempMark == false)
+                       .findFirst().isPresent();
     }
 
     /**

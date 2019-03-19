@@ -18,7 +18,6 @@ import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan.VariableType;
 import org.opentosca.planbuilder.model.plan.bpel.BPELScopeActivity;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
-import org.opentosca.planbuilder.model.tosca.AbstractRelationshipTemplate;
 import org.opentosca.planbuilder.model.utils.ModelUtils;
 import org.opentosca.planbuilder.plugins.context.Variable;
 import org.w3c.dom.Element;
@@ -47,44 +46,6 @@ public class NodeRelationInstanceVariablesHandler {
         this.bpelTemplateScopeHandler = new BPELScopeHandler();
         this.bpelFragments = new BPELProcessFragments();
         this.bpelProcessHandler = bpelProcessHandler;
-    }
-
-    public boolean addIfNullAbortCheck(final BPELPlan plan, final PropertyMap propMap) {
-        boolean check = true;
-        for (final BPELScopeActivity templatePlan : plan.getTemplateBuildPlans()) {
-            if (templatePlan.getNodeTemplate() != null && templatePlan.getNodeTemplate().getProperties() != null) {
-                check &= this.addIfNullAbortCheck(templatePlan, propMap);
-            }
-        }
-        return check;
-    }
-
-    public boolean addIfNullAbortCheck(final BPELScopeActivity templatePlan, final PropertyMap propMap) {
-
-        for (final String propLocalName : propMap.getPropertyMappingMap(templatePlan.getNodeTemplate().getId())
-                                                 .keySet()) {
-            final String bpelVarName =
-                propMap.getPropertyMappingMap(templatePlan.getNodeTemplate().getId()).get(propLocalName);
-            // as the variables are there and only possibly empty we just check
-            // the string inside
-            final String xpathQuery = "string-length(normalize-space($" + bpelVarName + ")) = 0";
-            final QName propertyEmptyFault = new QName("http://opentosca.org/plans/faults", "PropertyValueEmptyFault");
-            try {
-                Node bpelIf = this.bpelFragments.generateBPELIfTrueThrowFaultAsNode(xpathQuery, propertyEmptyFault);
-                bpelIf = templatePlan.getBpelDocument().importNode(bpelIf, true);
-                templatePlan.getBpelSequencePrePhaseElement().appendChild(bpelIf);
-            }
-            catch (final IOException e) {
-                e.printStackTrace();
-                return false;
-            }
-            catch (final SAXException e) {
-                e.printStackTrace();
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /**
@@ -209,7 +170,6 @@ public class NodeRelationInstanceVariablesHandler {
         return this.bpelProcessHandler.addVariable(instanceIdVarName, VariableType.TYPE,
                                                    new QName(xsdNamespace, "string", xsdPrefix),
                                                    templatePlan.getBuildPlan());
-
     }
 
     /**
@@ -272,11 +232,7 @@ public class NodeRelationInstanceVariablesHandler {
     public boolean addPropertyVariableUpdateBasedOnNodeInstanceID(final BPELScopeActivity templatePlan,
                                                                   final PropertyMap propMap) {
         // check if everything is available
-        if (templatePlan.getNodeTemplate() == null) {
-            return false;
-        }
-
-        if (templatePlan.getNodeTemplate().getProperties() == null) {
+        if (templatePlan.getNodeTemplate() == null || templatePlan.getNodeTemplate().getProperties() == null) {
             return false;
         }
 
@@ -412,8 +368,8 @@ public class NodeRelationInstanceVariablesHandler {
         return true;
     }
 
-    public String appendCountInstancesLogic(final BPELPlanContext context, final AbstractNodeTemplate nodeTemplate,
-                                            final String query) {
+    public void appendCountInstancesLogic(final BPELPlanContext context, final AbstractNodeTemplate nodeTemplate,
+                                          final String query) {
 
         final String xsdPrefix = "xsd" + System.currentTimeMillis();
         final String xsdNamespace = "http://www.w3.org/2001/XMLSchema";
@@ -451,11 +407,9 @@ public class NodeRelationInstanceVariablesHandler {
             templateMainSequeceNode.appendChild(assignCounter);
         }
         catch (final IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
         catch (final SAXException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
@@ -488,22 +442,6 @@ public class NodeRelationInstanceVariablesHandler {
         templateMainSequeceNode.removeChild(context.getProvisioningPhaseElement());
 
         templateMainSequeceNode.appendChild(forEachElement);
-
-        return null;
-    }
-
-    public String appendCountInstancesLogic(final BPELPlanContext context,
-                                            final AbstractRelationshipTemplate relationshipTemplate) {
-        // TODO
-        return null;
-    }
-
-    public String appendCountInstancesLogic(final BPELPlanContext context, final String query) {
-        if (context.getNodeTemplate() == null) {
-            return this.appendCountInstancesLogic(context, context.getRelationshipTemplate());
-        } else {
-            return this.appendCountInstancesLogic(context, context.getNodeTemplate(), query);
-        }
     }
 
     public Element createForEachActivity(final BPELPlanContext context, final String instanceCountVariableName) {
@@ -564,7 +502,6 @@ public class NodeRelationInstanceVariablesHandler {
         return this.findInstanceIdVarName(templatePlan.getBuildPlan(), templateId, isNode);
     }
 
-
     private String findInstanceIdVarName(final List<String> varNames, final String templateId, final boolean isNode) {
         final String instanceURLVarName = (isNode ? "node" : "relationship") + InstanceURLVarKeyword + "_"
             + ModelUtils.makeValidNCName(templateId) + "_";
@@ -575,6 +512,4 @@ public class NodeRelationInstanceVariablesHandler {
         }
         return null;
     }
-
-
 }

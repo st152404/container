@@ -186,21 +186,17 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
     public List<AbstractPlan> buildPlans(final String csarName, final AbstractDefinitions definitions) {
         final List<AbstractPlan> plans = new ArrayList<>();
         for (final AbstractServiceTemplate serviceTemplate : definitions.getServiceTemplates()) {
-            QName serviceTemplateId;
-            // targetNamespace attribute doesn't has to be set, so we check it
-            if (serviceTemplate.getTargetNamespace() != null) {
-                serviceTemplateId = new QName(serviceTemplate.getTargetNamespace(), serviceTemplate.getId());
-            } else {
-                serviceTemplateId = new QName(definitions.getTargetNamespace(), serviceTemplate.getId());
-            }
+            final QName serviceTemplateId = getServiceTemplateQName(definitions, serviceTemplate);
 
             if (!serviceTemplate.hasBuildPlan()) {
                 LOG.debug("ServiceTemplate {} has no BuildPlan, generating BuildPlan", serviceTemplateId.toString());
                 final BPELPlan bpelPlan = buildPlan(csarName, definitions, serviceTemplateId);
 
-                if (bpelPlan != null) {
+                if (Objects.nonNull(bpelPlan)) {
                     LOG.debug("Created BuildPlan " + bpelPlan.getBpelProcessElement().getAttribute("name"));
                     plans.add(bpelPlan);
+                } else {
+                    LOG.warn("BuildPlan generation returned null");
                 }
             } else {
                 LOG.debug("ServiceTemplate {} has BuildPlan, no generation needed", serviceTemplateId.toString());
@@ -277,15 +273,11 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
 
                     // first execute provisioning on target, then on source
                     if (targetChain != null) {
-                        LOG.warn("Couldn't create ProvisioningChain for TargetInterface of RelationshipTemplate {}",
-                                 relationshipTemplate.getId());
                         targetChain.executeIAProvisioning(context);
                         targetChain.executeOperationProvisioning(context, this.opNames);
                     }
 
                     if (sourceChain != null) {
-                        LOG.warn("Couldn't create ProvisioningChain for SourceInterface of RelationshipTemplate {}",
-                                 relationshipTemplate.getId());
                         sourceChain.executeIAProvisioning(context);
                         sourceChain.executeOperationProvisioning(context, this.opNames);
                     }
@@ -313,6 +305,24 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
     private boolean canGenericPluginHandle(final AbstractRelationshipTemplate relationshipTemplate) {
         return this.pluginRegistry.getGenericPlugins().stream().filter(plugin -> plugin.canHandle(relationshipTemplate))
                                   .findFirst().isPresent();
+    }
+
+    /**
+     * Generate the QName for the given ServiceTemplate. As namespace the namespace of the
+     * ServiceTemplate is used if set and the namespace of the Definitions document that contains
+     * the ServiceTemplate otherwise.
+     *
+     * @param definitions the Definitions document containing the ServiceTemplate
+     * @param serviceTemplate the ServiceTemplate
+     * @return the QName identifying the ServiceTemplate
+     */
+    private QName getServiceTemplateQName(final AbstractDefinitions definitions,
+                                          final AbstractServiceTemplate serviceTemplate) {
+        if (Objects.nonNull(serviceTemplate.getTargetNamespace())) {
+            return new QName(serviceTemplate.getTargetNamespace(), serviceTemplate.getId());
+        } else {
+            return new QName(definitions.getTargetNamespace(), serviceTemplate.getId());
+        }
     }
 
     private boolean isRunning(final BPELPlanContext context, final AbstractNodeTemplate nodeTemplate) {

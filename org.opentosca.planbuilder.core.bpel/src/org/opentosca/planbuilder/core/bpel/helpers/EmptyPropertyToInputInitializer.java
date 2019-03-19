@@ -1,8 +1,8 @@
 package org.opentosca.planbuilder.core.bpel.helpers;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -14,7 +14,6 @@ import org.opentosca.planbuilder.model.plan.bpel.BPELScopeActivity;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.utils.ModelUtils;
 import org.opentosca.planbuilder.plugins.context.Variable;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
@@ -28,7 +27,7 @@ import org.xml.sax.SAXException;
 public class EmptyPropertyToInputInitializer {
 
     /**
-     * Adds an element to the plan input with the given namen and assign at runtime the value to the
+     * Adds an element to the plan input with the given name and assign at runtime the value to the
      * given variable
      *
      * @param buildPlan the plan to add the logic to
@@ -41,8 +40,7 @@ public class EmptyPropertyToInputInitializer {
         // add to input
         context.addStringValueToPlanRequest(propLocalName);
 
-        // add copy from input local element to property
-        // variable
+        // add copy from input local element to property variable
         final String bpelCopy = generateCopyFromInputToVariableAsString(createLocalNameXpathQuery(propLocalName),
                                                                         createBPELVariableXpathQuery(var.getName()));
         try {
@@ -50,27 +48,21 @@ public class EmptyPropertyToInputInitializer {
             appendToInitSequence(bpelCopyNode, buildPlan);
         }
         catch (ParserConfigurationException | SAXException | IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
 
     /**
-     * Appends the given node the the main sequence of the buildPlan this context belongs to
+     * Appends the given node to the main sequence of the buildPlan this context belongs to
      *
-     * @param node a XML DOM Node
-     * @return true if adding the node to the main sequence was successfull
+     * @param node the XML DOM Node to append
      */
-    private boolean appendToInitSequence(final Node node, final BPELPlan buildPlan) {
+    private void appendToInitSequence(final Node node, final BPELPlan buildPlan) {
 
-        final Element flowElement = buildPlan.getBpelMainFlowElement();
-
-        final Node mainSequenceNode = flowElement.getParentNode();
+        final Node mainSequenceNode = buildPlan.getBpelMainFlowElement().getParentNode();
 
         final Node importedNode = mainSequenceNode.getOwnerDocument().importNode(node, true);
-        mainSequenceNode.insertBefore(importedNode, flowElement);
-
-        return true;
+        mainSequenceNode.insertBefore(importedNode, buildPlan.getBpelMainFlowElement());
     }
 
     private String createBPELVariableXpathQuery(final String variableName) {
@@ -103,6 +95,14 @@ public class EmptyPropertyToInputInitializer {
         return copyString;
     }
 
+    /**
+     * Initializes all properties of NodeTemplates which contain 'get_input:' as plan input
+     * parameters.
+     *
+     * @param buildPlan the buildPlan for which the properties have to be initialized
+     * @param propMap a Map containing all mappings from NodeTemplate properties to the representing
+     *        variable
+     */
     public void initializeEmptyPropertiesAsInputParam(final BPELPlan buildPlan, final PropertyMap propMap) {
         this.initializeEmptyPropertiesAsInputParam(buildPlan.getTemplateBuildPlans(), buildPlan, propMap);
     }
@@ -110,34 +110,28 @@ public class EmptyPropertyToInputInitializer {
     public void initializeEmptyPropertiesAsInputParam(final List<BPELScopeActivity> bpelActivities, final BPELPlan plan,
                                                       final PropertyMap propMap) {
         for (final BPELScopeActivity templatePlan : bpelActivities) {
-            if (templatePlan.getNodeTemplate() != null) {
+            if (Objects.nonNull(templatePlan.getNodeTemplate())) {
                 final AbstractNodeTemplate nodeTemplate = templatePlan.getNodeTemplate();
-                final List<AbstractNodeTemplate> hostingNodes = new ArrayList<>();
-                ModelUtils.getNodesFromNodeToSink(nodeTemplate, hostingNodes);
 
-                final BPELPlanContext context = new BPELPlanContext(templatePlan, propMap, plan.getServiceTemplate());
-
-                if (propMap.getPropertyMappingMap(nodeTemplate.getId()) == null) {
+                if (Objects.isNull(propMap.getPropertyMappingMap(nodeTemplate.getId()))) {
                     // nodeTemplate doesn't have props defined
                     continue;
                 }
+
+                final BPELPlanContext context = new BPELPlanContext(templatePlan, propMap, plan.getServiceTemplate());
 
                 for (final String propLocalName : propMap.getPropertyMappingMap(nodeTemplate.getId()).keySet()) {
                     final Variable var = context.getPropertyVariable(nodeTemplate, propLocalName);
 
                     if (!BPELPlanContext.isVariableValueEmpty(var, context)) {
                         String content = BPELPlanContext.getVariableContent(var, context);
-                        if (content.startsWith("get_input")) {
-                            if (content.contains("get_input:")) {
-                                content = content.replace("get_input:", "").trim();
-                                addToPlanInput(plan, content, var, context);
-                            }
+                        if (content.startsWith("get_input") && content.contains("get_input:")) {
+                            content = content.replace("get_input:", "").trim();
+                            addToPlanInput(plan, content, var, context);
                         }
                     }
                 }
             }
         }
-
     }
-
 }

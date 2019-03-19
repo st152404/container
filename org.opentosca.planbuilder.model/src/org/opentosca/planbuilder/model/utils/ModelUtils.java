@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
@@ -21,10 +19,8 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.opentosca.planbuilder.model.tosca.AbstractArtifactTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractArtifactType;
-import org.opentosca.planbuilder.model.tosca.AbstractDeploymentArtifact;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeType;
-import org.opentosca.planbuilder.model.tosca.AbstractNodeTypeImplementation;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipType;
 import org.slf4j.Logger;
@@ -65,15 +61,6 @@ public class ModelUtils {
     public static final QName TOSCABASETYPE_OS =
         new QName("http://docs.oasis-open.org/tosca/ns/2011/12/ToscaBaseTypes", "OperatingSystem");
 
-    // this is a BRUTAL hack for the new nodetypes
-    public final static QName ubuntu1404ServerVmNodeType =
-        new QName("http://opentosca.org/nodetypes", "Ubuntu-14.04-VM");
-    public final static QName raspbianJessieOSNodeType = new QName("http://opentosca.org/nodetypes", "RaspbianJessie");
-    public final static QName externalResourceNodeType =
-        new QName("http://opentosca.org/nodetypes", "ExternalResource");
-
-
-
     public static String makeValidNCName(final String string) {
         return string.replaceAll("\\.", "_").replaceAll(" ", "_");
     }
@@ -87,35 +74,8 @@ public class ModelUtils {
      * @return true iff the given NodeTemplate contains the given type in its type hierarchy
      */
     public static boolean checkForTypeInHierarchy(final AbstractNodeTemplate nodeTemplate, final QName type) {
-        final List<QName> typeHierarchy = ModelUtils.getNodeTypeHierarchy(nodeTemplate.getType());
-        // as somehow contains won't work here, we must cycle trough
-        for (final QName qname : typeHierarchy) {
-            if (qname.equals(type)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Returns true if the given QName type denotes to a RelationshipType in the type hierarchy of
-     * the given RelationshipTemplate
-     *
-     * @param relationshipTemplate an AbstractRelationshipTemplate
-     * @param type the Type as a QName to check against
-     * @return true iff the given RelationshipTemplate contains the given type in its type hierarchy
-     */
-    public static boolean checkForTypeInHierarchy(final AbstractRelationshipTemplate relationshipTemplate,
-                                                  final QName type) {
-        final List<QName> typeHierarchy =
-            ModelUtils.getRelationshipTypeHierarchy(relationshipTemplate.getRelationshipType());
-        // as somehow contains won't work here, we must cycle trough
-        for (final QName qname : typeHierarchy) {
-            if (qname.equals(type)) {
-                return true;
-            }
-        }
-        return false;
+        return ModelUtils.getNodeTypeHierarchy(nodeTemplate.getType()).stream().filter(qname -> qname.equals(type))
+                         .findFirst().isPresent();
     }
 
     /**
@@ -138,7 +98,6 @@ public class ModelUtils {
         }
         nodeTemplates.clear();
         nodeTemplates.addAll(list);
-
     }
 
     /**
@@ -193,19 +152,6 @@ public class ModelUtils {
         relationshipTemplates.addAll(list);
     }
 
-    public static Set<AbstractDeploymentArtifact> computeEffectiveDeploymentArtifacts(final AbstractNodeTemplate nodeTemplate,
-                                                                                      final AbstractNodeTypeImplementation nodeImpl) {
-        final Set<AbstractDeploymentArtifact> effectiveDAs = new HashSet<>();
-        effectiveDAs.addAll(nodeTemplate.getDeploymentArtifacts());
-        for (final AbstractDeploymentArtifact da : nodeImpl.getDeploymentArtifacts()) {
-            if (!effectiveDAs.contains(da)) {
-                effectiveDAs.add(da);
-            }
-        }
-
-        return effectiveDAs;
-    }
-
     public static List<QName> getArtifactTypeHierarchy(final AbstractArtifactTemplate artifactTemplate) {
         final List<QName> qnames = new ArrayList<>();
 
@@ -235,8 +181,7 @@ public class ModelUtils {
         final List<AbstractNodeTemplate> infraNodes = new ArrayList<>();
         ModelUtils.getInfrastructureNodes(nodeTemplate, infraNodes);
 
-        // check all outgoing edges on those nodes, if they are infrastructure
-        // edges
+        // check all outgoing edges on those nodes, if they are infrastructure edges
         for (final AbstractNodeTemplate infraNode : infraNodes) {
             for (final AbstractRelationshipTemplate outgoingEdge : infraNode.getOutgoingRelations()) {
 
@@ -248,13 +193,11 @@ public class ModelUtils {
         }
 
         // check outgoing edges of given node
-
         for (final AbstractRelationshipTemplate outgoingEdge : nodeTemplate.getOutgoingRelations()) {
             if (isInfrastructureRelationshipType(outgoingEdge.getType())) {
                 infrastructureEdges.add(outgoingEdge);
             }
         }
-
 
         ModelUtils.cleanDuplicates(infrastructureEdges);
     }
@@ -333,27 +276,6 @@ public class ModelUtils {
             ModelUtils.getInfrastructureNodes(relationshipTemplate.getTarget(), infrastructureNodes);
         }
 
-    }
-
-    public static List<AbstractRelationshipTemplate> getIngoingRelations(final AbstractNodeTemplate nodeTemplate,
-                                                                         final QName... relationshipTypes) {
-        final List<AbstractRelationshipTemplate> relations = new ArrayList<>();
-        for (final AbstractRelationshipTemplate relation : nodeTemplate.getIngoingRelations()) {
-            for (final QName relationshipTypeHierarchyMember : ModelUtils.getRelationshipTypeHierarchy(relation.getRelationshipType())) {
-                final boolean match = false;
-                for (final QName relationshipType : relationshipTypes) {
-                    if (relationshipTypeHierarchyMember.equals(relationshipType)) {
-                        relations.add(relation);
-                        break;
-                    }
-                }
-                if (match) {
-                    break;
-                }
-            }
-        }
-
-        return relations;
     }
 
     /**
@@ -460,7 +382,6 @@ public class ModelUtils {
 
                 ModelUtils.getNodesFromRelationToSink(outgoingTemplate, relationshipType, nodes);
             }
-
         }
         ModelUtils.cleanDuplciates(nodes);
     }
@@ -669,14 +590,5 @@ public class ModelUtils {
         is.setCharacterStream(new StringReader(xmlString));
         final Document doc = docBuilder.parse(is);
         return doc.getFirstChild();
-    }
-
-    public static Node string2domQuietly(final String xmlString) {
-        try {
-            return string2dom(xmlString);
-        }
-        catch (ParserConfigurationException | SAXException | IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
