@@ -5,7 +5,9 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -69,13 +71,13 @@ public class DefinitionsImpl extends AbstractDefinitions {
     private List<AbstractPolicyTemplate> policyTemlates = null;
 
     /**
-     * Constructor with a Definitions file as File Object and all referenced File Artifacts as a File
-     * List
+     * Constructor with a Definitions file as File Object and all referenced File Artifacts as a
+     * File List
      *
      * @param mainDefFile the File of the TOSCA Definitions to load as DefinitionsImpl
      * @param filesInCsar a list of Files referenced by the given Definitions
-     * @param isEntryDefinitions gives information whether the given definitions document is an entry
-     *        definition
+     * @param isEntryDefinitions gives information whether the given definitions document is an
+     *        entry definition
      */
     public DefinitionsImpl(final AbstractFile mainDefFile, final Set<AbstractFile> filesInCsar,
                            final boolean isEntryDefinitions) {
@@ -110,37 +112,38 @@ public class DefinitionsImpl extends AbstractDefinitions {
         if (isEntryDefinitions) {
             updateDefinitionsReferences(this.allFoundDefinitions);
         }
-
     }
 
     /**
-     * Resolves TOSCA Definitions imports for this DefinitionsImpl by initializing imported Definitions
-     * as another DefinitionsImpl each.
+     * Resolves TOSCA Definitions imports for this DefinitionsImpl by initializing imported
+     * Definitions as another DefinitionsImpl each.
      *
      * @return a List of Files of the resolved, referenced Definitions
      */
     private List<AbstractFile> resolveImportedDefinitions() {
+        if (Objects.isNull(this.definitions.getImport()) || this.definitions.getImport().isEmpty()) {
+            DefinitionsImpl.LOG.debug("No imports defined for this definitions document");
+            return new ArrayList<>();
+        }
+
         final List<AbstractFile> importedDefinitions = new ArrayList<>();
         DefinitionsImpl.LOG.debug("Checking import elements in JAXB Definitions object");
-        if (this.definitions.getImport() != null) {
-            for (final TImport imported : this.definitions.getImport()) {
-                DefinitionsImpl.LOG.debug("Check import element with namespace: {} location: {} importType: {}",
-                                          imported.getNamespace(), imported.getLocation(), imported.getImportType());
-                // check if importtype is tosca ns, the location is set (else
-                // there's nothing to parse) and just for looks the string
-                // shouldn't
-                // be empty
-                if (imported.getImportType().equals("http://docs.oasis-open.org/tosca/ns/2011/12")
-                    && imported.getLocation() != null && !imported.getLocation().equals("")) {
-                    // found definitions import
-                    // get it
-                    // parse it
-                    // add it
-                    DefinitionsImpl.LOG.debug("Trying to add Definitions import");
-                    importedDefinitions.add(getFileByLocation(imported.getLocation(), this.filesInCsar));
+        for (final TImport imported : this.definitions.getImport()) {
+            DefinitionsImpl.LOG.debug("Check import element with namespace: {} location: {} importType: {}",
+                                      imported.getNamespace(), imported.getLocation(), imported.getImportType());
 
+            // check if import type is tosca ns, the location is set (else there's nothing to
+            // parse) and just for looks the string shouldn't be empty
+            if (imported.getImportType().equals("http://docs.oasis-open.org/tosca/ns/2011/12")
+                && imported.getLocation() != null && !imported.getLocation().equals("")) {
+
+                final AbstractFile importedDef = getFileByLocation(imported.getLocation(), this.filesInCsar);
+                if (Objects.nonNull(importedDef)) {
+                    DefinitionsImpl.LOG.debug("Adding Definitions import");
+                    importedDefinitions.add(importedDef);
+                } else {
+                    DefinitionsImpl.LOG.warn("Unable to retrieve Definitions file");
                 }
-
             }
         }
         return importedDefinitions;
@@ -149,16 +152,15 @@ public class DefinitionsImpl extends AbstractDefinitions {
     /**
      * Searches through the given list of files, which contains the given location.
      *
-     *
      * @param location the location to look for as String
      * @param files a List of Files to look trough
      * @return if files.contains(file), where file.getPath().contains(location) is true, file is
      *         returned, else null
      */
     private AbstractFile getFileByLocation(final String location, final Set<AbstractFile> files) {
-        DefinitionsImpl.LOG.debug("Looking trough files to for given location: {}", location);
+        DefinitionsImpl.LOG.debug("Looking trough files for given location: {}", location);
         for (final AbstractFile file : files) {
-            DefinitionsImpl.LOG.debug("Check file with location: {}", location);
+
             // lazy check
             LOG.debug("File has location {}", file.getPath());
             if (file.getPath().contains(location)) {
@@ -214,8 +216,8 @@ public class DefinitionsImpl extends AbstractDefinitions {
     }
 
     /**
-     * Initializes the types and templates given by the internal JAXB model, into the higher level model
-     * of DefinitionsImpl
+     * Initializes the types and templates given by the internal JAXB model, into the higher level
+     * model of DefinitionsImpl
      */
     private void initTypesAndTemplates() {
         for (final TExtensibleElements element : this.definitions.getServiceTemplateOrNodeTypeOrNodeTypeImplementation()) {
@@ -256,7 +258,6 @@ public class DefinitionsImpl extends AbstractDefinitions {
                 }
             }
         }
-
     }
 
     /**
@@ -269,7 +270,7 @@ public class DefinitionsImpl extends AbstractDefinitions {
     }
 
     /**
-     * <<<<<<< HEAD ======= Adds an AbstractPolicyTemplate to this DefinitionsImpl
+     * Adds an AbstractPolicyTemplate to this DefinitionsImpl
      *
      * @param policyTemplate an AbstractPolicyTemplate to add to this DefinitionsImpl
      */
@@ -278,7 +279,7 @@ public class DefinitionsImpl extends AbstractDefinitions {
     }
 
     /**
-     * >>>>>>> master Adds an AbstractArtifactTemplate to this DefinitionsImpl
+     * Adds an AbstractArtifactTemplate to this DefinitionsImpl
      *
      * @param artifactTemplate an AbstractArtifactTemplate to add to this DefinitionsImpl
      */
@@ -298,7 +299,8 @@ public class DefinitionsImpl extends AbstractDefinitions {
     /**
      * Adds an NodeTypeImplementationImpl to this DefinitionsImpl
      *
-     * @param nodeTypeImplementationImpl an NodeTypeImplementationImpl to add to this DefinitionsImpl
+     * @param nodeTypeImplementationImpl an NodeTypeImplementationImpl to add to this
+     *        DefinitionsImpl
      */
     public void addNodeTypeImplementation(final NodeTypeImplementationImpl nodeTypeImplementationImpl) {
         this.nodeTypeImpls.add(nodeTypeImplementationImpl);
@@ -307,7 +309,8 @@ public class DefinitionsImpl extends AbstractDefinitions {
     /**
      * Adds an RelationshipTypeImplementationImpl to this DefinitionsImpl
      *
-     * @param relationshipTypeImpl an RelationshipTypeImplementationImpl to add to this DefinitionsImpl
+     * @param relationshipTypeImpl an RelationshipTypeImplementationImpl to add to this
+     *        DefinitionsImpl
      */
     public void addRelationshipTypeImplementation(final RelationshipTypeImplementationImpl relationshipTypeImpl) {
         this.relationshipTypeImpls.add(relationshipTypeImpl);
@@ -371,12 +374,9 @@ public class DefinitionsImpl extends AbstractDefinitions {
         }
         catch (final JAXBException e) {
             DefinitionsImpl.LOG.error("Error while parsing file, maybe file is not a TOSCA Defintions File", e);
-            return null;
         }
         catch (final SystemException e) {
-            // TODO Auto-generated catch block
             LOG.error("Exception within Core", e);
-            return null;
         }
         return def;
     }
@@ -475,15 +475,11 @@ public class DefinitionsImpl extends AbstractDefinitions {
     /**
      * Returns a List of all nodeTypes in the current csar context of this definitions document
      *
-     * @return a List of AbstractNodeType
+     * @return a List of AbstractNodeTypes
      */
     protected List<AbstractNodeType> getAllNodeTypes() {
-        final List<AbstractNodeType> nodeTypes = new ArrayList<>();
-
-        for (final DefinitionsImpl def : this.allFoundDefinitions) {
-            nodeTypes.addAll(def.getNodeTypes());
-        }
-        return nodeTypes;
+        return this.allFoundDefinitions.stream().flatMap(def -> def.getNodeTypes().stream())
+                                       .collect(Collectors.toList());
     }
 
     /**
@@ -492,52 +488,40 @@ public class DefinitionsImpl extends AbstractDefinitions {
      * @return a List of PolicyTypes
      */
     protected List<AbstractPolicyType> getAllPolicyTypes() {
-        final List<AbstractPolicyType> policyTypes = new ArrayList<>();
-
-        for (final DefinitionsImpl def : this.allFoundDefinitions) {
-            policyTypes.addAll(def.getPolicyTypes());
-        }
-        return policyTypes;
+        return this.allFoundDefinitions.stream().flatMap(def -> def.getPolicyTypes().stream())
+                                       .collect(Collectors.toList());
     }
 
     /**
-     * <<<<<<< HEAD ======= Returns a List of all policyTemplates in the current csar context of this
-     * definitions document
+     * Returns a List of all policyTemplates in the current csar context of this definitions
+     * document
      *
      * @return a List of PolicyTemplates
      */
     protected List<AbstractPolicyTemplate> getAllPolicyTemplates() {
-        final List<AbstractPolicyTemplate> policyTemplates = new ArrayList<>();
-        for (final DefinitionsImpl def : this.allFoundDefinitions) {
-            policyTemplates.addAll(def.getPolicyTemplates());
-        }
-        return policyTemplates;
+        return this.allFoundDefinitions.stream().flatMap(def -> def.getPolicyTemplates().stream())
+                                       .collect(Collectors.toList());
     }
 
     /**
-     * >>>>>>> master Returns a List of all nodeTypes in the current csar context of this definitions
+     * Returns a List of all relationshipTypes in the current csar context of this definitions
      * document
      *
-     * @return a List of AbstractNodeType
+     * @return a List of AbstractRelationshipTypes
      */
     protected List<AbstractRelationshipType> getAllRelationshipTypes() {
-        final List<AbstractRelationshipType> relationshipTypes = new ArrayList<>();
-
-        for (final DefinitionsImpl def : this.allFoundDefinitions) {
-            relationshipTypes.addAll(def.getRelationshipTypes());
-        }
-
-        return relationshipTypes;
+        return this.allFoundDefinitions.stream().flatMap(def -> def.getRelationshipTypes().stream())
+                                       .collect(Collectors.toList());
     }
 
+    /**
+     * Returns a List of all artifactTypes in the current csar context of this definitions document
+     *
+     * @return a List of AbstractArtifactTypes
+     */
     protected List<AbstractArtifactType> getAllArtifactTypes() {
-        final List<AbstractArtifactType> artifactTypes = new ArrayList<>();
-
-        for (final DefinitionsImpl def : this.allFoundDefinitions) {
-            artifactTypes.addAll(def.getArtifactTypes());
-        }
-
-        return artifactTypes;
+        return this.allFoundDefinitions.stream().flatMap(def -> def.getArtifactTypes().stream())
+                                       .collect(Collectors.toList());
     }
 
     @Override

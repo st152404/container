@@ -53,7 +53,7 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
     // class for initializing properties inside the plan
     private final PropertyVariableInitializer propertyInitializer;
 
-    // class for initializing output with boundarydefinitions of a serviceTemplate
+    // class for initializing output with boundary definitions of a serviceTemplate
     private final PropertyMappingsToOutputInitializer propertyOutputInitializer =
         new PropertyMappingsToOutputInitializer();;
 
