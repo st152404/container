@@ -665,7 +665,7 @@ public class BPELPlanHandler {
 
         final BPELPlan buildPlan =
             new BPELPlan(abstractPlan.getId(), abstractPlan.getType(), abstractPlan.getDefinitions(),
-                abstractPlan.getServiceTemplate(), abstractPlan.getActivites(), abstractPlan.getLinks());;
+                abstractPlan.getServiceTemplate(), abstractPlan.getActivites(), abstractPlan.getLinks());
 
         // init wsdl doc
         try {

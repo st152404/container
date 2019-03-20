@@ -19,7 +19,9 @@ import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer.PropertyMap;
 import org.opentosca.planbuilder.core.bpel.helpers.ServiceInstanceVariablesHandler;
 import org.opentosca.planbuilder.core.bpel.helpers.SituationTriggerRegistration;
+import org.opentosca.planbuilder.core.bpel.helpers.TopologySplitter;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
+import org.opentosca.planbuilder.model.plan.TopologyFragment;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELScopeActivity;
 import org.opentosca.planbuilder.model.tosca.AbstractDefinitions;
@@ -67,7 +69,7 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
     private final BPELFinalizer finalizer = new BPELFinalizer();;
 
     // accepted operations for provisioning
-    private final List<String> opNames = new ArrayList<>();
+    protected final List<String> opNames = new ArrayList<>();
 
     private BPELPlanHandler planHandler;
 
@@ -98,15 +100,9 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
         // this.opNames.add("hostOn");
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.opentosca.planbuilder.IPlanBuilder#buildPlan(java.lang.String,
-     * org.opentosca.planbuilder.model.tosca.AbstractDefinitions, javax.xml.namespace.QName)
-     */
     @Override
-    public BPELPlan buildPlan(final String csarName, final AbstractDefinitions definitions,
-                              final QName serviceTemplateId) {
+    public List<AbstractPlan> buildPlansForServiceTemplate(final String csarName, final AbstractDefinitions definitions,
+                                                           final QName serviceTemplateId) {
 
         // find service template for the plan generation
         final Optional<AbstractServiceTemplate> optional =
@@ -119,7 +115,7 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
         if (!optional.isPresent()) {
             LOG.warn("Couldn't create BuildPlan for ServiceTemplate {} in Definitions {} of CSAR {}",
                      serviceTemplateId.toString(), definitions.getId(), csarName);
-            return null;
+            return new ArrayList<>();
         }
 
         final AbstractServiceTemplate serviceTemplate = optional.get();
@@ -127,8 +123,24 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
         final String processName = ModelUtils.makeValidNCName(serviceTemplate.getId() + "_buildPlan");
         final String processNamespace = serviceTemplate.getTargetNamespace() + "_buildPlan";
 
-        // TODO: generate multiple POGs containing only parts of the overall topology to split up
-        // the build plan
+        // split the topology into different fragments which can be provisioned independently
+        final List<TopologyFragment> fragments =
+            TopologySplitter.splitTopologyHorizontally(definitions, serviceTemplate);
+
+        // TODO: further splitting
+
+        // generate a POG for each topology fragment
+        final List<AbstractPlan> buildPlanFragments =
+            generatePOGs(new QName(processNamespace, processName).toString(), definitions, serviceTemplate, fragments);
+
+        // transform generated POGs to BPEL plans
+        for (final AbstractPlan planFragment : buildPlanFragments) {
+            LOG.debug("Generated the following abstract prov plan fragment:");
+            LOG.debug(planFragment.toString());
+
+            // TODO: transform POGs to BPEL plans
+        }
+
         final AbstractPlan buildPlan =
             generatePOG(new QName(processNamespace, processName).toString(), definitions, serviceTemplate);
 
@@ -173,124 +185,146 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
         this.finalizer.finalize(bpelPlan);
         LOG.debug("Created BuildPlan:");
         LOG.debug(ModelUtils.getStringFromDoc(bpelPlan.getBpelDocument()));
-        return bpelPlan;
+
+        // TODO: return all generated plan fragments
+        final List<AbstractPlan> plans = new ArrayList<>();
+        plans.add(bpelPlan);
+        return plans;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.opentosca.planbuilder.IPlanBuilder#buildPlans(java.lang.String,
-     * org.opentosca.planbuilder.model.tosca.AbstractDefinitions)
-     */
     @Override
-    public List<AbstractPlan> buildPlans(final String csarName, final AbstractDefinitions definitions) {
+    public List<AbstractPlan> buildPlansForCSAR(final String csarName, final AbstractDefinitions definitions) {
         final List<AbstractPlan> plans = new ArrayList<>();
         for (final AbstractServiceTemplate serviceTemplate : definitions.getServiceTemplates()) {
-            final QName serviceTemplateId = getServiceTemplateQName(definitions, serviceTemplate);
+            final QName serviceTemplateId = ModelUtils.getServiceTemplateQName(definitions, serviceTemplate);
 
             if (!serviceTemplate.hasBuildPlan()) {
-                LOG.debug("ServiceTemplate {} has no BuildPlan, generating BuildPlan", serviceTemplateId.toString());
-                final BPELPlan bpelPlan = buildPlan(csarName, definitions, serviceTemplateId);
+                LOG.debug("ServiceTemplate {} has no Build Plan, generating Build Plans", serviceTemplateId.toString());
+                final List<AbstractPlan> serviceTemplatePlans =
+                    buildPlansForServiceTemplate(csarName, definitions, serviceTemplateId);
 
-                if (Objects.nonNull(bpelPlan)) {
-                    LOG.debug("Created BuildPlan " + bpelPlan.getBpelProcessElement().getAttribute("name"));
-                    plans.add(bpelPlan);
+                if (Objects.nonNull(serviceTemplatePlans) && !serviceTemplatePlans.isEmpty()) {
+                    LOG.debug("Created a List of Build Plans:");
+                    for (final AbstractPlan plan : serviceTemplatePlans) {
+                        LOG.debug("Created BuildPlan " + plan.getId());
+                    }
+                    plans.addAll(serviceTemplatePlans);
                 } else {
-                    LOG.warn("BuildPlan generation returned null");
+                    LOG.warn("Build Plan generation was not successful");
                 }
             } else {
-                LOG.debug("ServiceTemplate {} has BuildPlan, no generation needed", serviceTemplateId.toString());
+                LOG.debug("ServiceTemplate {} has Build Plan, no generation needed", serviceTemplateId.toString());
             }
         }
         return plans;
     }
 
     /**
-     * This method assigns plugins to the already initialized BuildPlan and its TemplateBuildPlans.
-     * First there will be checked if any generic plugin can handle a template of the
-     * TopologyTemplate
+     * This method assigns plug-ins to the already initialized Build Plan and its
+     * TemplateBuildPlans. First it will be checked if any generic plug-in can handle a template. If
+     * not the template is handled by the Provisioning Chain.
      *
      * @param buildPlan a BuildPlan which is already initialized
      * @param map a PropertyMap which contains mappings from Template to Property and to variable
      *        name of inside the BuidlPlan
      */
-    private void runPlugins(final BPELPlan buildPlan, final PropertyMap map) {
+    protected void runPlugins(final BPELPlan buildPlan, final PropertyMap map) {
 
         for (final BPELScopeActivity templatePlan : buildPlan.getTemplateBuildPlans()) {
             final BPELPlanContext context = new BPELPlanContext(templatePlan, map, buildPlan.getServiceTemplate());
-            if (templatePlan.getNodeTemplate() != null) {
-                if (isRunning(context, templatePlan.getNodeTemplate())) {
-                    LOG.debug("Skipping the provisioning of NodeTemplate " + templatePlan.getNodeTemplate().getId()
-                        + "  beacuse state=running is set.");
-                    for (final IPlanBuilderPostPhasePlugin postPhasePlugin : this.pluginRegistry.getPostPlugins()) {
-                        if (postPhasePlugin.canHandle(templatePlan.getNodeTemplate())) {
-                            postPhasePlugin.handle(context, templatePlan.getNodeTemplate());
-                        }
-                    }
-                    continue;
-                }
-                // handling nodetemplate
-                final AbstractNodeTemplate nodeTemplate = templatePlan.getNodeTemplate();
-                LOG.debug("Trying to handle NodeTemplate " + nodeTemplate.getId());
-                // check if we have a generic plugin to handle the template
-                // Note: if a generic plugin fails during execution the
-                // TemplateBuildPlan is broken!
-                final IPlanBuilderTypePlugin plugin = this.findTypePlugin(nodeTemplate);
-                if (plugin == null) {
-                    LOG.debug("Handling NodeTemplate {} with ProvisioningChain", nodeTemplate.getId());
-                    final OperationChain chain = BPELScopeBuilder.createOperationChain(nodeTemplate, this.opNames);
-                    if (chain == null) {
-                        LOG.warn("Couldn't create ProvisioningChain for NodeTemplate {}", nodeTemplate.getId());
-                    } else {
-                        LOG.debug("Created ProvisioningChain for NodeTemplate {}", nodeTemplate.getId());
-                        chain.executeIAProvisioning(context);
-                        chain.executeDAProvisioning(context);
-                        chain.executeOperationProvisioning(context, this.opNames);
-                    }
+
+            if (Objects.nonNull(templatePlan.getNodeTemplate())) {
+                runPluginsOnNodeTemplate(context, templatePlan);
+            } else if (Objects.nonNull(templatePlan.getRelationshipTemplate())) {
+                runPluginsOnRelationshipTemplate(context, templatePlan);
+            } else {
+                LOG.error("BPELScopeActivity has neither a NodeTemplate nor a RelationshipTemplate defined");
+            }
+        }
+    }
+
+    /**
+     * Handle the provisioning of a NodeTemplates by a generic plug-in if available and perform the
+     * provisioning by the Provisioning Chain otherwise.
+     *
+     * @param context the context of the BPEL plan
+     * @param templatePlan the template for which the provisioning shall be done
+     */
+    protected void runPluginsOnNodeTemplate(final BPELPlanContext context, final BPELScopeActivity templatePlan) {
+        final AbstractNodeTemplate nodeTemplate = templatePlan.getNodeTemplate();
+
+        if (!isRunning(context, nodeTemplate)) {
+            LOG.debug("Trying to handle NodeTemplate " + nodeTemplate.getId());
+
+            // check if we have a generic plugin to handle the template
+            // Note: if a generic plugin fails during execution the TemplateBuildPlan is broken!
+            final IPlanBuilderTypePlugin<BPELPlanContext> plugin = this.findTypePlugin(nodeTemplate);
+            if (Objects.isNull(plugin)) {
+
+                LOG.debug("Handling NodeTemplate {} with ProvisioningChain", nodeTemplate.getId());
+                final OperationChain chain = BPELScopeBuilder.createOperationChain(nodeTemplate, this.opNames);
+                if (Objects.isNull(chain)) {
+                    LOG.warn("Couldn't create ProvisioningChain for NodeTemplate {}", nodeTemplate.getId());
                 } else {
-                    LOG.info("Handling NodeTemplate {} with generic plugin", nodeTemplate.getId());
-                    plugin.handle(context);
+                    LOG.debug("Created ProvisioningChain for NodeTemplate {}", nodeTemplate.getId());
+                    chain.executeIAProvisioning(context);
+                    chain.executeDAProvisioning(context);
+                    chain.executeOperationProvisioning(context, this.opNames);
                 }
-                for (final IPlanBuilderPostPhasePlugin postPhasePlugin : this.pluginRegistry.getPostPlugins()) {
-                    if (postPhasePlugin.canHandle(templatePlan.getNodeTemplate())) {
-                        postPhasePlugin.handle(context, templatePlan.getNodeTemplate());
-                    }
-                }
-            } else if (templatePlan.getRelationshipTemplate() != null) {
-                // handling relationshiptemplate
-                final AbstractRelationshipTemplate relationshipTemplate = templatePlan.getRelationshipTemplate();
+            } else {
+                LOG.info("Handling NodeTemplate {} with generic plugin", nodeTemplate.getId());
+                plugin.handle(context);
+            }
+        } else {
+            LOG.debug("Skipping the provisioning of NodeTemplate " + templatePlan.getNodeTemplate().getId()
+                + "  beacuse state=running is set.");
+        }
 
-                // check if we have a generic plugin to handle the template
-                // Note: if a generic plugin fails during execution the
-                // TemplateBuildPlan is broken here!
-                // TODO implement fallback
-                if (!canGenericPluginHandle(relationshipTemplate)) {
-                    LOG.debug("Handling RelationshipTemplate {} with ProvisioningChains", relationshipTemplate.getId());
-                    final OperationChain sourceChain =
-                        BPELScopeBuilder.createOperationChain(relationshipTemplate, true);
-                    final OperationChain targetChain =
-                        BPELScopeBuilder.createOperationChain(relationshipTemplate, false);
+        // run post phase plug-ins
+        for (final IPlanBuilderPostPhasePlugin postPhasePlugin : this.pluginRegistry.getPostPlugins()) {
+            if (postPhasePlugin.canHandle(templatePlan.getNodeTemplate())) {
+                postPhasePlugin.handle(context, templatePlan.getNodeTemplate());
+            }
+        }
+    }
 
-                    // first execute provisioning on target, then on source
-                    if (targetChain != null) {
-                        targetChain.executeIAProvisioning(context);
-                        targetChain.executeOperationProvisioning(context, this.opNames);
-                    }
+    /**
+     * Handle the provisioning of a RelationshipTemplates by a generic plug-in if available and
+     * perform the provisioning by the Provisioning Chain otherwise.
+     *
+     * @param context the context of the BPEL plan
+     * @param templatePlan the template for which the provisioning shall be done
+     */
+    protected void runPluginsOnRelationshipTemplate(final BPELPlanContext context,
+                                                    final BPELScopeActivity templatePlan) {
+        final AbstractRelationshipTemplate relationshipTemplate = templatePlan.getRelationshipTemplate();
 
-                    if (sourceChain != null) {
-                        sourceChain.executeIAProvisioning(context);
-                        sourceChain.executeOperationProvisioning(context, this.opNames);
-                    }
-                } else {
-                    LOG.info("Handling RelationshipTemplate {} with generic plugin", relationshipTemplate.getId());
-                    handleWithTypePlugin(context, relationshipTemplate);
-                }
+        // check if we have a generic plugin to handle the template
+        // Note: if a generic plugin fails during execution the TemplateBuildPlan is broken here!
+        // TODO implement fallback
+        if (canGenericPluginHandle(relationshipTemplate)) {
+            LOG.info("Handling RelationshipTemplate {} with generic plugin", relationshipTemplate.getId());
+            handleWithTypePlugin(context, relationshipTemplate);
+        } else {
+            LOG.debug("Handling RelationshipTemplate {} with ProvisioningChains", relationshipTemplate.getId());
+            final OperationChain sourceChain = BPELScopeBuilder.createOperationChain(relationshipTemplate, true);
+            final OperationChain targetChain = BPELScopeBuilder.createOperationChain(relationshipTemplate, false);
 
-                for (final IPlanBuilderPostPhasePlugin postPhasePlugin : this.pluginRegistry.getPostPlugins()) {
-                    if (postPhasePlugin.canHandle(templatePlan.getRelationshipTemplate())) {
-                        postPhasePlugin.handle(context, templatePlan.getRelationshipTemplate());
-                    }
-                }
+            // first execute provisioning on target, then on source
+            if (Objects.nonNull(targetChain)) {
+                targetChain.executeIAProvisioning(context);
+                targetChain.executeOperationProvisioning(context, this.opNames);
+            }
+
+            if (Objects.nonNull(sourceChain)) {
+                sourceChain.executeIAProvisioning(context);
+                sourceChain.executeOperationProvisioning(context, this.opNames);
+            }
+        }
+
+        for (final IPlanBuilderPostPhasePlugin postPhasePlugin : this.pluginRegistry.getPostPlugins()) {
+            if (postPhasePlugin.canHandle(templatePlan.getRelationshipTemplate())) {
+                postPhasePlugin.handle(context, templatePlan.getRelationshipTemplate());
             }
         }
     }
@@ -302,27 +336,9 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
      * @return true if there is any generic plugin which can handle the given RelationshipTemplate,
      *         else false
      */
-    private boolean canGenericPluginHandle(final AbstractRelationshipTemplate relationshipTemplate) {
+    protected boolean canGenericPluginHandle(final AbstractRelationshipTemplate relationshipTemplate) {
         return this.pluginRegistry.getGenericPlugins().stream().filter(plugin -> plugin.canHandle(relationshipTemplate))
                                   .findFirst().isPresent();
-    }
-
-    /**
-     * Generate the QName for the given ServiceTemplate. As namespace the namespace of the
-     * ServiceTemplate is used if set and the namespace of the Definitions document that contains
-     * the ServiceTemplate otherwise.
-     *
-     * @param definitions the Definitions document containing the ServiceTemplate
-     * @param serviceTemplate the ServiceTemplate
-     * @return the QName identifying the ServiceTemplate
-     */
-    private QName getServiceTemplateQName(final AbstractDefinitions definitions,
-                                          final AbstractServiceTemplate serviceTemplate) {
-        if (Objects.nonNull(serviceTemplate.getTargetNamespace())) {
-            return new QName(serviceTemplate.getTargetNamespace(), serviceTemplate.getId());
-        } else {
-            return new QName(definitions.getTargetNamespace(), serviceTemplate.getId());
-        }
     }
 
     private boolean isRunning(final BPELPlanContext context, final AbstractNodeTemplate nodeTemplate) {

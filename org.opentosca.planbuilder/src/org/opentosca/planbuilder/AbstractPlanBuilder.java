@@ -26,32 +26,32 @@ public abstract class AbstractPlanBuilder {
 
     /**
      * <p>
-     * Creates a BuildPlan in WS-BPEL 2.0 for the specified values csarName, definitions and
-     * serviceTemplateId. Where csarName denotes the fileName of the CSAR, definitions denotes the
-     * Definitions document and serviceTemplateId a QName denoting the ServiceTemplate inside the
-     * Definitions document
+     * Creates a List of plans for the specified values csarName, definitions and serviceTemplateId.
+     * Where csarName denotes the fileName of the CSAR, definitions denotes the Definitions document
+     * and serviceTemplateId a QName denoting the ServiceTemplate inside the Definitions document.
      * </p>
      *
      * @param csarName the file name of the CSAR as String
      * @param definitions the Definitions document as AbstractDefinitions Object
      * @param serviceTemplateId a QName denoting a ServiceTemplate inside the Definitions document
-     * @return a complete BuildPlan for the given ServiceTemplate, if the ServiceTemplate denoted by
-     *         the given QName isn't found inside the Definitions document null is returned instead
+     * @return a List of plans for the given ServiceTemplate, if the ServiceTemplate denoted by the
+     *         given QName isn't found inside the Definitions document an empty List is returned
+     *         instead
      */
-    abstract public AbstractPlan buildPlan(String csarName, AbstractDefinitions definitions, QName serviceTemplateId);
+    abstract public List<AbstractPlan> buildPlansForServiceTemplate(String csarName, AbstractDefinitions definitions,
+                                                                    QName serviceTemplateId);
 
     /**
      * <p>
-     * Returns a List of BuildPlans for the ServiceTemplates contained in the given Definitions
-     * document
+     * Returns a List of plans (Build/Termination/Management) for the ServiceTemplates contained in
+     * the given Definitions document of the given CSAR.
      * </p>
      *
      * @param csarName the file name of CSAR
      * @param definitions a AbstractDefinitions Object denoting the Definitions document
-     * @return a List of Build Plans for each ServiceTemplate contained inside the Definitions
-     *         document
+     * @return a List of plans for each ServiceTemplate contained inside the Definitions document
      */
-    abstract public List<AbstractPlan> buildPlans(String csarName, AbstractDefinitions definitions);
+    abstract public List<AbstractPlan> buildPlansForCSAR(String csarName, AbstractDefinitions definitions);
 
     /**
      * <p>
@@ -60,7 +60,7 @@ public abstract class AbstractPlanBuilder {
      *
      * @param nodeTemplate an AbstractNodeTemplate denoting a NodeTemplate
      * @return true if there is any generic plugin which can handle the given NodeTemplate, else
-     *         false
+     *         null
      */
     public IPlanBuilderTypePlugin findTypePlugin(final AbstractNodeTemplate nodeTemplate) {
         for (final IPlanBuilderTypePlugin plugin : this.pluginRegistry.getGenericPlugins()) {

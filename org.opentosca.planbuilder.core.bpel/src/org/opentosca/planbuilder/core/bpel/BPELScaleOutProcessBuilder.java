@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
@@ -57,7 +58,6 @@ public class BPELScaleOutProcessBuilder extends AbstractScaleOutPlanBuilder {
     private final PropertyVariableInitializer propertyInitializer;
 
     // adds serviceInstance Variable and instanceDataAPIUrl to Plans
-
     private ServiceInstanceVariablesHandler serviceInstanceInitializer;
 
     private NodeRelationInstanceVariablesHandler instanceInitializer;
@@ -161,9 +161,8 @@ public class BPELScaleOutProcessBuilder extends AbstractScaleOutPlanBuilder {
             e1.printStackTrace();
         }
 
-        // query its source node, which will be nodeInstance for this
-        // NodeTemplate
-        // set nodeInstance variable
+        // query its source node, which will be nodeInstance for this NodeTemplate set nodeInstance
+        // variable
 
         final String xpathQuery =
             "//*[local-name()='NodeTemplateInstanceResources']/*[local-name()='NodeTemplateInstances']/*[local-name()='NodeTemplateInstance']/*[1]/*[local-name()='Links']/*[local-name()='Link']/@*[local-name()='href']/string()";
@@ -264,25 +263,9 @@ public class BPELScaleOutProcessBuilder extends AbstractScaleOutPlanBuilder {
     }
 
     @Override
-    public BPELPlan buildPlan(final String csarName, final AbstractDefinitions definitions,
-                              final QName serviceTemplateId) {
-        throw new RuntimeException("A service Template can have multiple scaling plans, this method is not supported");
-    }
-
-    @Override
-    public List<AbstractPlan> buildPlans(final String csarName, final AbstractDefinitions definitions) {
-        final List<AbstractPlan> plans = new ArrayList<>();
-
-        for (final AbstractServiceTemplate serviceTemplate : definitions.getServiceTemplates()) {
-            plans.addAll(buildScalingPlans(csarName, definitions, serviceTemplate.getQName()));
-        }
-
-        return plans;
-    }
-
-    public List<BPELPlan> buildScalingPlans(final String csarName, final AbstractDefinitions definitions,
-                                            final QName serviceTemplateId) {
-        final List<BPELPlan> scalingPlans = new ArrayList<>();
+    public List<AbstractPlan> buildPlansForServiceTemplate(final String csarName, final AbstractDefinitions definitions,
+                                                           final QName serviceTemplateId) {
+        final List<AbstractPlan> scalingPlans = new ArrayList<>();
 
         final AbstractServiceTemplate serviceTemplate = getServiceTemplate(definitions, serviceTemplateId);
 
@@ -290,11 +273,8 @@ public class BPELScaleOutProcessBuilder extends AbstractScaleOutPlanBuilder {
             return scalingPlans;
         }
 
-        // check if the given serviceTemplate has the scaling plans defined as
-        // tags
-
+        // check if the given serviceTemplate has the scaling plans defined as tags
         final Map<String, String> tags = serviceTemplate.getTags();
-
         if (!tags.containsKey("scalingplans")) {
             return scalingPlans;
         }
@@ -328,7 +308,6 @@ public class BPELScaleOutProcessBuilder extends AbstractScaleOutPlanBuilder {
                                                bpelScaleOutProcess);
 
             this.serviceInstanceInitializer.addManagementPlanServiceInstanceVarHandlingFromInput(bpelScaleOutProcess);
-
 
 
             this.instanceInitializer.addInstanceURLVarToTemplatePlans(bpelScaleOutProcess);
@@ -388,6 +367,15 @@ public class BPELScaleOutProcessBuilder extends AbstractScaleOutPlanBuilder {
         }
 
         return scalingPlans;
+    }
+
+    @Override
+    public List<AbstractPlan> buildPlansForCSAR(final String csarName, final AbstractDefinitions definitions) {
+        // build scaling plans for each contained ServiceTemplate
+        return definitions.getServiceTemplates().stream()
+                          .flatMap(serviceTemplate -> buildPlansForServiceTemplate(csarName, definitions,
+                                                                                   serviceTemplate.getQName()).stream())
+                          .collect(Collectors.toList());
     }
 
     private String cleanCSVString(String commaSeperatedList) {
@@ -732,5 +720,4 @@ public class BPELScaleOutProcessBuilder extends AbstractScaleOutPlanBuilder {
         }
         return selectionStrategyBorderNodesMap;
     }
-
 }

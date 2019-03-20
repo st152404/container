@@ -50,9 +50,9 @@ public abstract class AbstractImporter {
         final AbstractPlanBuilder terminationPlanBuilder = new BPELTerminationProcessBuilder();
         final AbstractPlanBuilder scalingPlanBuilder = new BPELScaleOutProcessBuilder();
 
-        plans.addAll(scalingPlanBuilder.buildPlans(csarName, defs));
-        plans.addAll(buildPlanBuilder.buildPlans(csarName, defs));
-        plans.addAll(terminationPlanBuilder.buildPlans(csarName, defs));
+        plans.addAll(scalingPlanBuilder.buildPlansForCSAR(csarName, defs));
+        plans.addAll(buildPlanBuilder.buildPlansForCSAR(csarName, defs));
+        plans.addAll(terminationPlanBuilder.buildPlansForCSAR(csarName, defs));
         return plans;
     }
 

@@ -121,7 +121,7 @@ public class BPELScopeBuilder {
     }
 
     /**
-     * TODO: We assume that IAs are already provisinoned on IA engine
+     * TODO: We assume that IAs are already provisioned on IA engine
      *
      * @param relationshipTemplate
      * @param interfaceName

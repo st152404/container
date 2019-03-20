@@ -5,6 +5,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
@@ -19,10 +20,12 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.opentosca.planbuilder.model.tosca.AbstractArtifactTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractArtifactType;
+import org.opentosca.planbuilder.model.tosca.AbstractDefinitions;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeType;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipType;
+import org.opentosca.planbuilder.model.tosca.AbstractServiceTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -590,5 +593,23 @@ public class ModelUtils {
         is.setCharacterStream(new StringReader(xmlString));
         final Document doc = docBuilder.parse(is);
         return doc.getFirstChild();
+    }
+
+    /**
+     * Generate the QName for the given ServiceTemplate. As namespace the namespace of the
+     * ServiceTemplate is used if set and the namespace of the Definitions document that contains
+     * the ServiceTemplate otherwise.
+     *
+     * @param definitions the Definitions document containing the ServiceTemplate
+     * @param serviceTemplate the ServiceTemplate
+     * @return the QName identifying the ServiceTemplate
+     */
+    public static QName getServiceTemplateQName(final AbstractDefinitions definitions,
+                                                final AbstractServiceTemplate serviceTemplate) {
+        if (Objects.nonNull(serviceTemplate.getTargetNamespace())) {
+            return new QName(serviceTemplate.getTargetNamespace(), serviceTemplate.getId());
+        } else {
+            return new QName(definitions.getTargetNamespace(), serviceTemplate.getId());
+        }
     }
 }

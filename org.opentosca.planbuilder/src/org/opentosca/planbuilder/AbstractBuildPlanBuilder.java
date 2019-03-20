@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -15,6 +16,7 @@ import org.opentosca.planbuilder.model.plan.AbstractActivity;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.plan.AbstractPlan.Link;
 import org.opentosca.planbuilder.model.plan.ActivityType;
+import org.opentosca.planbuilder.model.plan.TopologyFragment;
 import org.opentosca.planbuilder.model.tosca.AbstractDefinitions;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractRelationshipTemplate;
@@ -68,6 +70,58 @@ public abstract class AbstractBuildPlanBuilder extends AbstractPlanBuilder {
 
             };
         return plan;
+    }
+
+    /**
+     * Generates a list of provisioning order graphs (POGs) for the given ServiceTemplate which is
+     * defined in the given definitions element. For each given TopologyFragment one POG is
+     * generated. Each POG contains the provisioning activities for a fragment of the
+     * ServiceTemplate and the order in which they need to be executed. Additionally, the POGs
+     * contain the order in which they have to be executed by an orchestrator build plan to
+     * provision the complete application defined by the ServiceTemplate.
+     *
+     * @param id the ID of the orchestrator build plan
+     * @param definitions the definitions element that contains the ServiceTemplate
+     * @param serviceTemplate the ServiceTemplate for which the POGs shall be generated
+     * @param fragments a list of TopologyFragment which need a dedicated build plan
+     * @return a list of generated plans
+     */
+    public static List<AbstractPlan> generatePOGs(final String id, final AbstractDefinitions definitions,
+                                                  final AbstractServiceTemplate serviceTemplate,
+                                                  final List<TopologyFragment> fragments) {
+
+        final List<AbstractPlan> pogs = new ArrayList<>();
+        final Map<TopologyFragment, AbstractPlan> fragmentPlanMapping = new HashMap<>();
+
+        // generate one POG per topology fragment
+        for (final TopologyFragment fragment : fragments) {
+
+            final String fragmentID = id + "_fragment_" + fragment.getID();
+
+            final Collection<AbstractActivity> activities = new ArrayList<>();
+            final Set<Link> links = new HashSet<>();
+
+            // TODO: generate activities and links
+
+            final AbstractPlan plan = new AbstractPlan(fragmentID, AbstractPlan.PlanType.BUILD, definitions,
+                serviceTemplate, activities, links) {};
+
+            pogs.add(plan);
+            fragmentPlanMapping.put(fragment, plan);
+        }
+
+        // create order between plan fragments for the use in an orchestrator plan
+        for (final TopologyFragment fragment : fragments) {
+            final AbstractPlan plan = fragmentPlanMapping.get(fragment);
+
+            for (final TopologyFragment precedingFragment : fragment.getPrecedingFragments()) {
+                final AbstractPlan precedingPlan = fragmentPlanMapping.get(precedingFragment);
+
+                // TODO: add link between different plans
+            }
+        }
+
+        return pogs;
     }
 
     /**
