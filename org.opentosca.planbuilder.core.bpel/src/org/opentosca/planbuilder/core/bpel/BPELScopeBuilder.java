@@ -5,7 +5,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.opentosca.planbuilder.core.bpel.helpers.TOSCAManagementInfrastructureNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractDeploymentArtifact;
@@ -473,38 +475,57 @@ public class BPELScopeBuilder {
     private static void calculateProvPlugins(final OperationChain chain,
                                              final List<IPlanBuilderProvPhaseOperationPlugin<?>> provPlugins,
                                              final String interfaceName, final String operationName) {
+
+        // get all IA candidates which implement the given operation
+        final List<AbstractImplementationArtifact> iaCandidates =
+            chain.iaCandidates.stream().flatMap(iaCandidate -> iaCandidate.ias.stream())
+                              .filter(ia -> Objects.nonNull(ia.getInterfaceName())
+                                  && ia.getInterfaceName().trim().equals(interfaceName.trim()))
+                              .filter(ia -> Objects.nonNull(ia.getOperationName())
+                                  && ia.getOperationName().trim().equals(operationName.trim()))
+                              .collect(Collectors.toList());
+
+        // add all IAs which can be handled by a plug-in to the prov candidates
         final List<OperationNodeTypeImplCandidate> candidates = new ArrayList<>();
-        for (final IANodeTypeImplCandidate iaCandidate : chain.iaCandidates) {
-            final OperationNodeTypeImplCandidate provCandidate = new OperationNodeTypeImplCandidate();
-            for (final AbstractImplementationArtifact ia : iaCandidate.ias) {
-                if (!ia.getInterfaceName().trim().equals(interfaceName.trim())) {
-                    continue;
-                }
-                if (ia.getOperationName() != null && !ia.getOperationName().trim().equals(operationName.trim())) {
-                    continue;
-                }
-                for (final IPlanBuilderProvPhaseOperationPlugin<?> plugin : provPlugins) {
-                    if (chain.nodeTemplate != null) {
-                        if (plugin.canHandle(ia.getArtifactType())
-                            && BPELScopeBuilder.getOperationForIa(chain.nodeTemplate, ia) != null) {
-
-                            provCandidate.add(BPELScopeBuilder.getOperationForIa(chain.nodeTemplate, ia), ia, plugin);
-                        }
-                    } else {
-                        if (plugin.canHandle(ia.getArtifactType())
-                            && BPELScopeBuilder.getOperationForIa(chain.relationshipTemplate, ia) != null) {
-                            provCandidate.add(BPELScopeBuilder.getOperationForIa(chain.relationshipTemplate, ia), ia,
-                                              plugin);
-                        }
-                    }
+        for (final AbstractImplementationArtifact ia : iaCandidates) {
+            for (final IPlanBuilderProvPhaseOperationPlugin<?> plugin : provPlugins) {
+                final OperationNodeTypeImplCandidate provCandidate = createProvCandidate(chain, ia, plugin);
+                if (Objects.nonNull(provCandidate)) {
+                    candidates.add(provCandidate);
                 }
             }
-            if (provCandidate.isValid(interfaceName, operationName)) {
-                candidates.add(provCandidate);
-            }
-
         }
+
         chain.provCandidates = candidates;
+    }
+
+    /**
+     * Check if the given IA can be handled by the given plug-in and return a provisioning candidate
+     * containing the IA and the plug-in if handling is possible.
+     *
+     * @param chain the provisioning chain
+     * @param ia the IA candidate
+     * @param plugin the plug-in to handle the IA candidate
+     * @return a provisioning candidate if handling of the IA is possible, else null
+     */
+    private static OperationNodeTypeImplCandidate createProvCandidate(final OperationChain chain,
+                                                                      final AbstractImplementationArtifact ia,
+                                                                      final IPlanBuilderProvPhaseOperationPlugin<?> plugin) {
+        if (plugin.canHandle(ia.getArtifactType())) {
+            final OperationNodeTypeImplCandidate provCandidate = new OperationNodeTypeImplCandidate();
+            if (Objects.nonNull(chain.nodeTemplate)) {
+                if (Objects.nonNull(BPELScopeBuilder.getOperationForIa(chain.nodeTemplate, ia))) {
+                    provCandidate.add(BPELScopeBuilder.getOperationForIa(chain.nodeTemplate, ia), ia, plugin);
+                    return provCandidate;
+                }
+            } else {
+                if (Objects.nonNull(BPELScopeBuilder.getOperationForIa(chain.relationshipTemplate, ia))) {
+                    provCandidate.add(BPELScopeBuilder.getOperationForIa(chain.relationshipTemplate, ia), ia, plugin);
+                    return provCandidate;
+                }
+            }
+        }
+        return null;
     }
 
     /**

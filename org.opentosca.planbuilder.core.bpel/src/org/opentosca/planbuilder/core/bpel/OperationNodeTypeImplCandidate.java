@@ -2,7 +2,6 @@ package org.opentosca.planbuilder.core.bpel;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import org.opentosca.planbuilder.model.tosca.AbstractImplementationArtifact;
 import org.opentosca.planbuilder.model.tosca.AbstractInterface;
@@ -46,24 +45,6 @@ class OperationNodeTypeImplCandidate {
         this.ops.add(op);
         this.ias.add(ia);
         this.plugins.add(plugin);
-    }
-
-    /**
-     * <p>
-     * Checks if an IA of this prov candidate implements the given interface and operation.
-     * </p>
-     *
-     * @param interfaceName the name of the interface
-     * @param operationName the name of the operation
-     * @return true if an IA of this candidate implements the given operation, else false
-     */
-    boolean isValid(final String interfaceName, final String operationName) {
-        return this.ias.stream()
-                       .filter(ia -> Objects.nonNull(ia.getInterfaceName())
-                           && ia.getInterfaceName().equals(interfaceName))
-                       .filter(ia -> Objects.nonNull(ia.getOperationName())
-                           && ia.getOperationName().equals(operationName))
-                       .findFirst().isPresent();
     }
 
     /**

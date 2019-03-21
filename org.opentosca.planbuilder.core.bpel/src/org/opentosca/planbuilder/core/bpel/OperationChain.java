@@ -96,8 +96,8 @@ public class OperationChain {
 
     /**
      * <p>
-     * Executes the first found IACandidate to provision IA's with the appropiate plugins set in the
-     * candidate
+     * Executes the first found IACandidate to provision IA's with the appropriate plugins set in
+     * the candidate
      * </p>
      *
      * @param context a TemplatePlanContext which is initialized for either a NodeTemplate or

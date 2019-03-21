@@ -59,12 +59,6 @@ public class OsgiEventHandler implements EventHandler {
                 headers.put(MBHeader.PLANCORRELATIONID_STRING.toString(), messageID);
                 headers.put(OsgiEventRoute.OPERATION_HEADER, OsgiEventOperations.INVOKE_PLAN.getHeaderValue());
 
-                LOG.debug("Correlation id: {}", messageID);
-                LOG.debug("Sending following message to the Management Bus: {}", message);
-
-                // forward request to the Management Bus
-                Activator.producer.sendBodyAndHeaders("direct:invoke", message, headers);
-
                 // Threaded reception of response
                 this.executor.submit(() -> {
 
@@ -73,6 +67,7 @@ public class OsgiEventHandler implements EventHandler {
                     try {
                         final ConsumerTemplate consumer = Activator.camelContext.createConsumerTemplate();
                         consumer.start();
+                        LOG.debug("Listening for response on Camel endpoint: direct:response" + messageID);
                         final Exchange exchange = consumer.receive("direct:response" + messageID);
                         response = exchange.getIn().getBody();
                         consumer.stop();
@@ -93,6 +88,10 @@ public class OsgiEventHandler implements EventHandler {
                     this.eventAdmin.postEvent(new Event("org_opentosca_plans/responses", responseMap));
                 });
 
+                // forward request to the Management Bus
+                LOG.debug("Correlation id: {}", messageID);
+                LOG.debug("Sending following message to the Management Bus: {}", message);
+                Activator.producer.asyncRequestBodyAndHeaders("direct:invoke", message, headers);
             } else {
                 LOG.warn("Unsupported plan language: {}", planLanguage);
             }
