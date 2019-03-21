@@ -1,10 +1,8 @@
 package org.opentosca.planbuilder.core.bpel;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.opentosca.planbuilder.model.tosca.AbstractImplementationArtifact;
-import org.opentosca.planbuilder.model.tosca.AbstractInterface;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
 import org.opentosca.planbuilder.model.tosca.AbstractOperation;
 import org.opentosca.planbuilder.model.tosca.AbstractParameter;
@@ -26,31 +24,18 @@ class InterfaceDummy extends AbstractOperation {
         this.nodeTemplate = nodeTemplate;
     }
 
+    /**
+     * Return the AbstractOperation for the given name if an operation with that name is available
+     * in the interface represented by this InterfaceDummy.
+     *
+     * @param opName the name of the operation
+     * @return an AbstractOperation with the given name, or else null
+     */
     public AbstractOperation getOperation(final String opName) {
-        for (final AbstractInterface iface : this.nodeTemplate.getType().getInterfaces()) {
-            if (iface.getName().equals(this.ia.getInterfaceName())) {
-                for (final AbstractOperation op : iface.getOperations()) {
-                    if (op.getName().equals(opName)) {
-                        return op;
-                    }
-                }
-
-            }
-        }
-        return null;
-    }
-
-    public List<String> getOperationNames() {
-        for (final AbstractInterface iface : this.nodeTemplate.getType().getInterfaces()) {
-            if (iface.getName().equals(this.ia.getInterfaceName())) {
-                final List<String> opNames = new ArrayList<>();
-                for (final AbstractOperation op : iface.getOperations()) {
-                    opNames.add(op.getName());
-                }
-                return opNames;
-            }
-        }
-        return new ArrayList<>();
+        return this.nodeTemplate.getType().getInterfaces().stream()
+                                .filter(iface -> iface.getName().equals(this.ia.getInterfaceName()))
+                                .flatMap(iface -> iface.getOperations().stream())
+                                .filter(op -> op.getName().equals(opName)).findFirst().orElse(null);
     }
 
     public AbstractNodeTemplate getNodeTemplate() {
@@ -75,5 +60,4 @@ class InterfaceDummy extends AbstractOperation {
     public List<AbstractParameter> getOutputParameters() {
         return null;
     }
-
 }

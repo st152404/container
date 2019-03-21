@@ -98,7 +98,6 @@ public class BPELScopeBuilder {
 
         // calculate infraNodes
         final List<AbstractNodeTemplate> infraNodes = new ArrayList<>();
-
         ModelUtils.getInfrastructureNodes(relationshipTemplate, infraNodes, forSource);
 
         // check for IA Plugins
@@ -184,36 +183,30 @@ public class BPELScopeBuilder {
         final List<AbstractNodeTemplate> infraNodes = new ArrayList<>();
         ModelUtils.getInfrastructureNodes(nodeTemplate, infraNodes);
 
-        // we'll add here a dummy infra node, representing the management
-        // infrastructure of the tosca engine (WAR IA's implementing tosca
-        // operation,..)
+        // we'll add here a dummy infra node, representing the management infrastructure of the
+        // tosca engine (WAR IA's implementing tosca operation,..)
         infraNodes.add(new TOSCAManagementInfrastructureNodeTemplate());
 
         // check for IA Plugins
         final List<IPlanBuilderPrePhaseIAPlugin<?>> iaPlugins = BPELScopeBuilder.pluginRegistry.getIaPlugins();
 
+        // calculate nodeImpl candidates where all IAs of each can be provisioned
         BPELScopeBuilder.LOG.debug("Calculating best IA candidates for nodeTemplate {} ", nodeTemplate.getId());
-        // calculate nodeImpl candidates where all IAs of each can be
-        // provisioned
         BPELScopeBuilder.calculateBestImplementationIACandidates(nodeTypeImpls, iaPlugins, infraNodes, chain,
                                                                  interfaceName, operationName);
+
         for (final IANodeTypeImplCandidate iaCandidate : chain.iaCandidates) {
-            final int length = iaCandidate.ias.size();
-            for (int i = 0; i < length; i++) {
-                final AbstractImplementationArtifact ia = iaCandidate.ias.get(i);
-                final AbstractNodeTemplate infraNode = iaCandidate.infraNodes.get(i);
-                final IPlanBuilderPlugin plugin = iaCandidate.plugins.get(i);
+            for (int i = 0; i < iaCandidate.ias.size(); i++) {
                 BPELScopeBuilder.LOG.debug("Found IA {} for deployment on the InfraNode {} with the Plugin {}",
-                                           ia.getName(), infraNode.getId(), plugin.getID());
+                                           iaCandidate.ias.get(i).getName(), iaCandidate.infraNodes.get(i).getId(),
+                                           iaCandidate.plugins.get(i).getID());
             }
         }
 
         // check for prov plugins
-        final List<IPlanBuilderProvPhaseOperationPlugin<?>> provPlugins =
-            BPELScopeBuilder.pluginRegistry.getProvPlugins();
+        final List<IPlanBuilderProvPhaseOperationPlugin<?>> provPlugins = pluginRegistry.getProvPlugins();
 
-        // search for prov plugins according to the chosen IA provisionings in
-        // the chain
+        // search for prov plugins according to the chosen IA provisioning in the chain
         BPELScopeBuilder.calculateProvPlugins(chain, provPlugins, interfaceName, operationName);
 
         // filter ia and da candidates where the operations can't be executed
@@ -244,8 +237,8 @@ public class BPELScopeBuilder {
         final List<AbstractNodeTypeImplementation> nodeTypeImpls = nodeTemplate.getImplementations();
 
         if (nodeTypeImpls.isEmpty()) {
-            BPELScopeBuilder.LOG.warn("No implementations available for NodeTemplate {} , can't generate Provisioning logic",
-                                      nodeTemplate.getId());
+            LOG.warn("No implementations available for NodeTemplate {} , can't generate Provisioning logic",
+                     nodeTemplate.getId());
             return null;
         }
 
@@ -255,66 +248,63 @@ public class BPELScopeBuilder {
         final List<AbstractNodeTemplate> infraNodes = new ArrayList<>();
         ModelUtils.getInfrastructureNodes(nodeTemplate, infraNodes);
 
-        // we'll add here a dummy infra node, representing the management
-        // infrastructure of the tosca engine (WAR IA's implementing tosca
-        // operation,..)
+        // we'll add here a dummy infra node, representing the management infrastructure of the
+        // tosca engine (WAR IA's implementing tosca operation,..)
         infraNodes.add(new TOSCAManagementInfrastructureNodeTemplate());
 
         // check for IA Plugins
         final List<IPlanBuilderPrePhaseIAPlugin<?>> iaPlugins = BPELScopeBuilder.pluginRegistry.getIaPlugins();
 
-        BPELScopeBuilder.LOG.debug("Calculating best IA candidates for nodeTemplate {} ", nodeTemplate.getId());
+        LOG.debug("Calculating best IA candidates for nodeTemplate {} ", nodeTemplate.getId());
 
         // calculate nodeImpl candidates where all IAs of each can be provisioned
-        BPELScopeBuilder.calculateBestImplementationIACandidates(nodeTypeImpls, iaPlugins, infraNodes, chain);
+        calculateBestImplementationIACandidates(nodeTypeImpls, iaPlugins, infraNodes, chain);
         for (final IANodeTypeImplCandidate wrapper : chain.iaCandidates) {
             final int length = wrapper.ias.size();
             for (int i = 0; i < length; i++) {
                 final AbstractImplementationArtifact ia = wrapper.ias.get(i);
                 final AbstractNodeTemplate infraNode = wrapper.infraNodes.get(i);
                 final IPlanBuilderPlugin plugin = wrapper.plugins.get(i);
-                BPELScopeBuilder.LOG.debug("Found IA {} for deployment on the InfraNode {} with the Plugin {}",
-                                           ia.getName(), infraNode.getId(), plugin.getID());
+                LOG.debug("Found IA {} for deployment on the InfraNode {} with the Plugin {}", ia.getName(),
+                          infraNode.getId(), plugin.getID());
             }
         }
 
         // check for DA Plugins
-        final List<IPlanBuilderPrePhaseDAPlugin<?>> daPlugins = BPELScopeBuilder.pluginRegistry.getDaPlugins();
+        final List<IPlanBuilderPrePhaseDAPlugin<?>> daPlugins = pluginRegistry.getDaPlugins();
 
         // calculate nodeImpl candidates where all DAs of each can be provisioned
-        BPELScopeBuilder.calculateBestImplementationDACandidates(nodeTemplate, nodeTypeImpls, daPlugins, infraNodes,
-                                                                 chain);
+        calculateBestImplementationDACandidates(nodeTemplate, nodeTypeImpls, daPlugins, infraNodes, chain);
         for (final DANodeTypeImplCandidate wrapper : chain.daCandidates) {
             final int length = wrapper.das.size();
             for (int i = 0; i < length; i++) {
                 final AbstractDeploymentArtifact da = wrapper.das.get(i);
                 final AbstractNodeTemplate infraNode = wrapper.infraNodes.get(i);
                 final IPlanBuilderPlugin plugin = wrapper.plugins.get(i);
-                BPELScopeBuilder.LOG.debug("Found DA {} for deployment on the InfraNode {} with the Plugin {}",
-                                           da.getName(), infraNode.getId(), plugin.getID());
+                LOG.debug("Found DA {} for deployment on the InfraNode {} with the Plugin {}", da.getName(),
+                          infraNode.getId(), plugin.getID());
             }
         }
 
         // filter for nodeTypeImpl Candidates where both DAs and IAs can be provisioned
-        BPELScopeBuilder.filterIncompatibleIADACandidates(chain);
+        filterIncompatibleIADACandidates(chain);
 
         // check for prov plugins
-        final List<IPlanBuilderProvPhaseOperationPlugin<?>> provPlugins =
-            BPELScopeBuilder.pluginRegistry.getProvPlugins();
+        final List<IPlanBuilderProvPhaseOperationPlugin<?>> provPlugins = pluginRegistry.getProvPlugins();
 
         // search for prov plugins according to the chosen IA provisionings in the chain
-        BPELScopeBuilder.calculateProvPlugins(chain, provPlugins);
+        calculateProvPlugins(chain, provPlugins);
 
         // filter ia and da candidates where the operations can't be executed
-        BPELScopeBuilder.filterIADACandidates(chain);
+        filterIADACandidates(chain);
 
         // order provisioning candidates
-        BPELScopeBuilder.reorderProvCandidates(chain);
+        reorderProvCandidates(chain);
 
         // TODO consistency plugins
 
         // select provisioning
-        BPELScopeBuilder.selectProvisioning(chain, operationNames);
+        selectProvisioning(chain, operationNames);
 
         return chain;
     }
@@ -346,7 +336,6 @@ public class BPELScopeBuilder {
         }
 
         chain.provCandidates = reorderedList;
-
     }
 
     /**
@@ -384,7 +373,7 @@ public class BPELScopeBuilder {
             }
             if (!iaCandidatesToRemove.isEmpty()) {
                 // we need to remove ia and da candidates accordingly, because
-                // we didn't found matchin operation candidates for them
+                // we didn't found matching operation candidates for them
                 for (final IANodeTypeImplCandidate iaCandidateToRemove : iaCandidatesToRemove) {
                     final int index = chain.iaCandidates.indexOf(iaCandidateToRemove);
                     chain.iaCandidates.remove(index);
@@ -392,8 +381,7 @@ public class BPELScopeBuilder {
             }
 
             if (!provCandidatesWithMatch.isEmpty()) {
-                // remove all prov candidates which weren't matched to some ia
-                // candidate
+                // remove all prov candidates which weren't matched to some ia candidate
                 chain.provCandidates = new ArrayList<>();
                 for (final OperationNodeTypeImplCandidate matchedCandidate : provCandidatesWithMatch) {
                     chain.provCandidates.add(matchedCandidate);
@@ -409,8 +397,7 @@ public class BPELScopeBuilder {
      */
     private static void filterIADACandidates(final OperationChain chain) {
         if (chain.provCandidates.size() != chain.iaCandidates.size()) {
-            // search for ia/da-Candidates where no operation candidate could be
-            // found
+            // search for ia/da-Candidates where no operation candidate could be found
             final List<IANodeTypeImplCandidate> iaCandidatesToRemove = new ArrayList<>();
             final Set<OperationNodeTypeImplCandidate> provCandidatesWithMatch = new HashSet<>();
             for (final IANodeTypeImplCandidate iaCandidate : chain.iaCandidates) {
@@ -440,7 +427,7 @@ public class BPELScopeBuilder {
 
             if (!iaCandidatesToRemove.isEmpty()) {
                 // we need to remove ia and da candidates accordingly, because
-                // we didn't found matchin operation candidates for them
+                // we didn't found matching operation candidates for them
                 for (final IANodeTypeImplCandidate iaCandidateToRemove : iaCandidatesToRemove) {
                     final int index = chain.iaCandidates.indexOf(iaCandidateToRemove);
                     chain.iaCandidates.remove(index);
@@ -466,29 +453,18 @@ public class BPELScopeBuilder {
         // min{|IACandidates| + |DACandidates| +|ProvPhaseOperations|}
 
         // select first candidate set where the provisioning candidate uses the given operations
-
-        int selectedCandidateSet = -1;
         for (int i = 0; i < chain.provCandidates.size(); i++) {
-
             for (final AbstractOperation op : chain.provCandidates.get(i).ops) {
                 if (operationNames.contains(op.getName())) {
-                    selectedCandidateSet = i;
-                    break;
+                    chain.selectedCandidateSet = i;
+                    return;
                 }
             }
-            if (selectedCandidateSet != -1) {
-                break;
-            }
-        }
-
-
-        if (selectedCandidateSet != -1) {
-            chain.selectedCandidateSet = selectedCandidateSet;
         }
     }
 
     /**
-     * Calculates which Provisioning can be used for Provisioining according to the given
+     * Calculates which Provisioning can be used for Provisioning according to the given
      * IA/DACandidates inside the given ProvisioningChain
      *
      * @param chain a ProvisioningChain with set DA/IACandidates
@@ -523,14 +499,8 @@ public class BPELScopeBuilder {
                     }
                 }
             }
-            if (chain.nodeTemplate != null) {
-                if (provCandidate.isValid(chain.nodeTemplate, interfaceName, operationName)) {
-                    candidates.add(provCandidate);
-                }
-            } else {
-                if (provCandidate.isValid(chain.relationshipTemplate)) {
-                    candidates.add(provCandidate);
-                }
+            if (provCandidate.isValid(interfaceName, operationName)) {
+                candidates.add(provCandidate);
             }
 
         }
@@ -538,7 +508,7 @@ public class BPELScopeBuilder {
     }
 
     /**
-     * Calculates which Provisioning can be used for Provisioining according to the given
+     * Calculates which Provisioning can be used for Provisioning according to the given
      * IA/DACandidates inside the given ProvisioningChain
      *
      * @param chain a ProvisioningChain with set DA/IACandidates
@@ -661,32 +631,30 @@ public class BPELScopeBuilder {
         final List<DANodeTypeImplCandidate> candidates = new ArrayList<>();
 
         for (final AbstractNodeTypeImplementation impl : impls) {
-            BPELScopeBuilder.LOG.debug("Checking DAs of NodeTypeImpl {} and NodeTemplate {}", impl.getName(),
-                                       nodeTemplate.getId());
+            LOG.debug("Checking DAs of NodeTypeImpl {} and NodeTemplate {}", impl.getName(), nodeTemplate.getId());
             final DANodeTypeImplCandidate candidate = new DANodeTypeImplCandidate(nodeTemplate, impl);
 
             final List<AbstractDeploymentArtifact> effectiveDAs =
                 BPELScopeBuilder.calculateEffectiveDAs(nodeTemplate, impl);
 
             for (final AbstractDeploymentArtifact da : effectiveDAs) {
-                BPELScopeBuilder.LOG.debug("Checking whether DA {} can be deployed", da.getName());
+                LOG.debug("Checking whether DA {} can be deployed", da.getName());
                 for (final AbstractNodeTemplate infraNode : infraNodes) {
-                    BPELScopeBuilder.LOG.debug("Checking if DA {} can be deployed on InfraNode {}", da.getName(),
-                                               infraNode.getId());
+                    LOG.debug("Checking if DA {} can be deployed on InfraNode {}", da.getName(), infraNode.getId());
                     for (final IPlanBuilderPrePhaseDAPlugin plugin : plugins) {
-                        BPELScopeBuilder.LOG.debug("Checking with Plugin {}", plugin.getID());
+                        LOG.debug("Checking with Plugin {}", plugin.getID());
                         if (plugin.canHandle(da, infraNode.getType())) {
-                            BPELScopeBuilder.LOG.debug("Adding Plugin, can handle DA on InfraNode");
+                            LOG.debug("Adding Plugin, can handle DA on InfraNode");
                             candidate.add(da, infraNode, plugin);
                         }
                     }
                 }
             }
             if (candidate.isValid()) {
-                BPELScopeBuilder.LOG.debug("Generated Candidate was valid, adding to all Candidates");
+                LOG.debug("Generated Candidate was valid, adding to all Candidates");
                 candidates.add(candidate);
             } else {
-                BPELScopeBuilder.LOG.debug("Generated Candidate was invalid, don't add to all Candidates");
+                LOG.debug("Generated Candidate was invalid, don't add to all Candidates");
             }
         }
         chain.daCandidates = candidates;
@@ -723,8 +691,7 @@ public class BPELScopeBuilder {
                     continue;
                 }
 
-                BPELScopeBuilder.LOG.debug("Checking whether IA {} can be deployed on a specific Infrastructure Node",
-                                           ia.getName());
+                LOG.debug("Checking whether IA {} can be deployed on a specific Infrastructure Node", ia.getName());
                 for (final AbstractNodeTemplate infraNode : infraNodes) {
                     // check if any plugin can handle installing the ia on the
                     // infraNode
@@ -738,9 +705,9 @@ public class BPELScopeBuilder {
             // check if all ias of the implementation can be provisioned
             if (candidate.isValid(interfaceName, operationName)) {
                 candidates.add(candidate);
-                BPELScopeBuilder.LOG.debug("IA Candidate is valid, adding to candidate list");
+                LOG.debug("IA Candidate is valid, adding to candidate list");
             } else {
-                BPELScopeBuilder.LOG.debug("IA Candidate is invalid, discarding candidate");
+                LOG.debug("IA Candidate is invalid, discarding candidate");
             }
         }
         chain.iaCandidates = candidates;
@@ -769,8 +736,7 @@ public class BPELScopeBuilder {
             final IANodeTypeImplCandidate candidate = new IANodeTypeImplCandidate(impl);
             // match the ias of the implementation with the infrastructure nodes
             for (final AbstractImplementationArtifact ia : impl.getImplementationArtifacts()) {
-                BPELScopeBuilder.LOG.debug("Checking whether IA {} can be deployed on a specific Infrastructure Node",
-                                           ia.getName());
+                LOG.debug("Checking whether IA {} can be deployed on a specific Infrastructure Node", ia.getName());
                 for (final AbstractNodeTemplate infraNode : infraNodes) {
                     // check if any plugin can handle installing the ia on the infraNode
                     for (final IPlanBuilderPrePhaseIAPlugin<?> plugin : plugins) {
@@ -783,9 +749,9 @@ public class BPELScopeBuilder {
             // check if all ias of the implementation can be provisioned
             if (candidate.isValid()) {
                 candidates.add(candidate);
-                BPELScopeBuilder.LOG.debug("IA Candidate is valid, adding to candidate list");
+                LOG.debug("IA Candidate is valid, adding to candidate list");
             } else {
-                BPELScopeBuilder.LOG.debug("IA Candidate is invalid, discarding candidate");
+                LOG.debug("IA Candidate is invalid, discarding candidate");
             }
         }
         chain.iaCandidates = candidates;

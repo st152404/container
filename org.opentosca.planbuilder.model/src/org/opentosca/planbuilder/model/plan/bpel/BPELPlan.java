@@ -174,7 +174,7 @@ public class BPELPlan extends AbstractPlan {
     }
 
     /**
-     * Returns all files this bBuildPlan has imported
+     * Returns all files this BuildPlan has imported
      *
      * @return a List of File
      */

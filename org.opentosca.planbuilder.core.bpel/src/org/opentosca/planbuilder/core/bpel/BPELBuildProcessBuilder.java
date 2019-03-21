@@ -19,9 +19,7 @@ import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer;
 import org.opentosca.planbuilder.core.bpel.helpers.PropertyVariableInitializer.PropertyMap;
 import org.opentosca.planbuilder.core.bpel.helpers.ServiceInstanceVariablesHandler;
 import org.opentosca.planbuilder.core.bpel.helpers.SituationTriggerRegistration;
-import org.opentosca.planbuilder.core.bpel.helpers.TopologySplitter;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
-import org.opentosca.planbuilder.model.plan.TopologyFragment;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
 import org.opentosca.planbuilder.model.plan.bpel.BPELScopeActivity;
 import org.opentosca.planbuilder.model.tosca.AbstractDefinitions;
@@ -123,24 +121,6 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
         final String processName = ModelUtils.makeValidNCName(serviceTemplate.getId() + "_buildPlan");
         final String processNamespace = serviceTemplate.getTargetNamespace() + "_buildPlan";
 
-        // split the topology into different fragments which can be provisioned independently
-        final List<TopologyFragment> fragments =
-            TopologySplitter.splitTopologyHorizontally(definitions, serviceTemplate);
-
-        // TODO: further splitting
-
-        // generate a POG for each topology fragment
-        final List<AbstractPlan> buildPlanFragments =
-            generatePOGs(new QName(processNamespace, processName).toString(), definitions, serviceTemplate, fragments);
-
-        // transform generated POGs to BPEL plans
-        for (final AbstractPlan planFragment : buildPlanFragments) {
-            LOG.debug("Generated the following abstract prov plan fragment:");
-            LOG.debug(planFragment.toString());
-
-            // TODO: transform POGs to BPEL plans
-        }
-
         final AbstractPlan buildPlan =
             generatePOG(new QName(processNamespace, processName).toString(), definitions, serviceTemplate);
 
@@ -186,7 +166,7 @@ public class BPELBuildProcessBuilder extends AbstractBuildPlanBuilder {
         LOG.debug("Created BuildPlan:");
         LOG.debug(ModelUtils.getStringFromDoc(bpelPlan.getBpelDocument()));
 
-        // TODO: return all generated plan fragments
+        // currently only one monolytic build plan is supported
         final List<AbstractPlan> plans = new ArrayList<>();
         plans.add(bpelPlan);
         return plans;

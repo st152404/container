@@ -62,7 +62,6 @@ public class BPELScaleOutProcessBuilder extends AbstractScaleOutPlanBuilder {
 
     private NodeRelationInstanceVariablesHandler instanceInitializer;
 
-
     // class for finalizing build plans (e.g when some template didn't receive
     // some provisioning logic and they must be filled with empty elements)
     private final BPELFinalizer finalizer;
@@ -163,7 +162,6 @@ public class BPELScaleOutProcessBuilder extends AbstractScaleOutPlanBuilder {
 
         // query its source node, which will be nodeInstance for this NodeTemplate set nodeInstance
         // variable
-
         final String xpathQuery =
             "//*[local-name()='NodeTemplateInstanceResources']/*[local-name()='NodeTemplateInstances']/*[local-name()='NodeTemplateInstance']/*[1]/*[local-name()='Links']/*[local-name()='Link']/@*[local-name()='href']/string()";
         try {
@@ -199,8 +197,6 @@ public class BPELScaleOutProcessBuilder extends AbstractScaleOutPlanBuilder {
         final BPELPlanContext nodeContext = this.createContext(relationshipTemplate.getTarget(), plan, map);
         final String nodeTemplateInstanceVarName =
             this.instanceInitializer.findInstanceIdVarName(plan, relationshipTemplate.getTarget().getId(), true);
-
-        final String serviceInstanceIdVarName = this.serviceInstanceInitializer.getServiceInstanceVariableName(plan);
 
         final String serviceTemplateUrlVarName =
             ServiceInstanceVariablesHandler.getServiceTemplateURLVariableName(nodeContext.getMainVariableNames());

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.opentosca.planbuilder.core.bpel.context.BPELPlanContext;
 import org.opentosca.planbuilder.model.plan.bpel.BPELScopeActivity.BPELScopePhaseType;
@@ -134,47 +135,37 @@ public class OperationChain {
      *         no need for operation to call. In this case true is also returned.
      */
     public boolean executeOperationProvisioning(final BPELPlanContext context, final List<String> operationNames) {
+
+        // no provisioning possible without valid candidate
+        if (this.provCandidates.isEmpty()) {
+            return false;
+        }
+
+        // use the selected provisioning candidate if multiple are valid
+        final OperationNodeTypeImplCandidate provCandidate = this.provCandidates.get(this.selectedCandidateSet);
+
+        // execute operations in the given order
         boolean check = true;
-        if (!this.provCandidates.isEmpty()) {
-            final OperationNodeTypeImplCandidate provCandidate = this.provCandidates.get(this.selectedCandidateSet);
-            final Map<String, Integer> order = new HashMap<>();
-            // check for index of prov candidates
-            for (final String opName : operationNames) {
-                for (Integer index = 0; index < provCandidate.ops.size(); index++) {
-                    final AbstractOperation op = provCandidate.ops.get(index);
-                    if (op instanceof InterfaceDummy) {
-                        if (((InterfaceDummy) op).getOperationNames().contains(opName)) {
-                            order.put(opName, index);
-                        }
-                    } else {
-                        if (opName.equals(op.getName())) {
-                            order.put(opName, index);
-                        }
-                    }
-                }
-            }
-
-            for (final String opName : operationNames) {
-                final Integer index = order.get(opName);
-                if (index == null) {
-                    continue;
-                }
+        for (final String opName : operationNames) {
+            for (Integer index = 0; index < provCandidate.ops.size(); index++) {
                 AbstractOperation op = provCandidate.ops.get(index);
-
-                if (op instanceof InterfaceDummy) {
-                    op = ((InterfaceDummy) op).getOperation(opName);
-                }
-
-                if (!operationNames.contains(op.getName())) {
-                    // if the operation isn't mentioned in operationName
-                    // list, don't execute the operation
-                    continue;
-                }
                 final AbstractImplementationArtifact ia = provCandidate.ias.get(index);
                 final IPlanBuilderProvPhaseOperationPlugin plugin = provCandidate.plugins.get(index);
-                check &= plugin.handle(context, op, ia);
+
+                if (op instanceof InterfaceDummy) {
+                    // retrieve the correct operation in case the IA implements a whole interface
+                    op = ((InterfaceDummy) op).getOperation(opName);
+                    if (Objects.nonNull(op)) {
+                        check &= plugin.handle(context, op, ia);
+                        break;
+                    }
+                } else if (opName.equals(op.getName())) {
+                    check &= plugin.handle(context, op, ia);
+                    break;
+                }
             }
         }
+
         return check;
     }
 
@@ -241,11 +232,10 @@ public class OperationChain {
                         }
                     }
                 }
-
             }
         }
-        return checkCount == operationNames.size();
 
+        return checkCount == operationNames.size();
     }
 
     public boolean executeOperationProvisioning(final BPELPlanContext context, final List<String> operationNames,
@@ -428,7 +418,6 @@ public class OperationChain {
             }
         }
         return checkCount == operationNames.size();
-
     }
 
     public boolean executeOperationProvisioning(final BPELPlanContext context, final List<String> operationNames,

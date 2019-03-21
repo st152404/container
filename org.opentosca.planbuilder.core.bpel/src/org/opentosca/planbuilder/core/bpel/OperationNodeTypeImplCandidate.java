@@ -2,6 +2,7 @@ package org.opentosca.planbuilder.core.bpel;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.opentosca.planbuilder.model.tosca.AbstractImplementationArtifact;
 import org.opentosca.planbuilder.model.tosca.AbstractInterface;
@@ -49,45 +50,20 @@ class OperationNodeTypeImplCandidate {
 
     /**
      * <p>
-     * Checks if any Interface of the given NodeTemplate can be executed completely by this
-     * ProvisioningCandidate
+     * Checks if an IA of this prov candidate implements the given interface and operation.
      * </p>
      *
-     * @param nodeTemplate an AbtractNodeTemplate
-     * @return true if all Interfaces of the NodeTemplate can be provisioned, else false
+     * @param interfaceName the name of the interface
+     * @param operationName the name of the operation
+     * @return true if an IA of this candidate implements the given operation, else false
      */
-    boolean isValid(final AbstractNodeTemplate nodeTemplate, final String interfaceName, final String operationName) {
-
-        for (final AbstractImplementationArtifact ia : this.ias) {
-            if (ia.getInterfaceName() != null) {
-                if (!ia.getInterfaceName().equals(interfaceName)) {
-                    continue;
-                }
-                if (ia.getOperationName() != null && !ia.getOperationName().equals(operationName)) {
-                    continue;
-                }
-                if (ia.getOperationName() != null) {
-                    // ia implements some single operation
-                    if (ia.getOperationName().equals(operationName)) {
-                        return true;
-                    }
-                } else {
-                    // we have to find the interface and count the
-                    // operations in it
-                    for (final AbstractInterface iface : nodeTemplate.getType().getInterfaces()) {
-                        if (iface.getName().equals(ia.getInterfaceName())) {
-                            for (final AbstractOperation op : iface.getOperations()) {
-                                if (op.getName().equals(operationName)) {
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return false;
+    boolean isValid(final String interfaceName, final String operationName) {
+        return this.ias.stream()
+                       .filter(ia -> Objects.nonNull(ia.getInterfaceName())
+                           && ia.getInterfaceName().equals(interfaceName))
+                       .filter(ia -> Objects.nonNull(ia.getOperationName())
+                           && ia.getOperationName().equals(operationName))
+                       .findFirst().isPresent();
     }
 
     /**
@@ -100,18 +76,20 @@ class OperationNodeTypeImplCandidate {
      * @return true if all Interfaces of the NodeTemplate can be provisioned, else false
      */
     boolean isValid(final AbstractNodeTemplate nodeTemplate) {
+
+        if (this.ias.size() != this.plugins.size() && this.ops.size() != this.plugins.size()) {
+            return false;
+        }
+
         // calculate the size of implemented operations by the IAs
-
         int implementedOpsByIAsCount = 0;
-
         for (final AbstractImplementationArtifact ia : this.ias) {
             if (ia.getInterfaceName() != null) {
                 if (ia.getOperationName() != null) {
                     // ia implements some single operation
                     implementedOpsByIAsCount++;
                 } else {
-                    // we have to find the interface and count the
-                    // operations in it
+                    // we have to find the interface and count the operations in it
                     for (final AbstractInterface iface : nodeTemplate.getType().getInterfaces()) {
                         if (iface.getName().equals(ia.getInterfaceName())) {
                             implementedOpsByIAsCount += iface.getOperations().size();
@@ -122,7 +100,6 @@ class OperationNodeTypeImplCandidate {
         }
 
         int operationsToImplementCount = 0;
-
         for (final AbstractOperation op : this.ops) {
             if (op instanceof InterfaceDummy) {
                 final String ifaceName = ((InterfaceDummy) op).getIA().getInterfaceName();
@@ -141,9 +118,6 @@ class OperationNodeTypeImplCandidate {
             return false;
         }
 
-        if (this.ias.size() != this.plugins.size() && this.ops.size() != this.plugins.size()) {
-            return false;
-        }
         return true;
     }
 
@@ -204,5 +178,4 @@ class OperationNodeTypeImplCandidate {
         }
         return false;
     }
-
 }
