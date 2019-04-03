@@ -2,7 +2,6 @@ package org.opentosca.container.control.impl;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -15,7 +14,6 @@ import org.opentosca.container.core.common.SystemException;
 import org.opentosca.container.core.common.UserException;
 import org.opentosca.container.core.engine.IToscaEngineService;
 import org.opentosca.container.core.model.csar.id.CSARID;
-import org.opentosca.container.core.model.deployment.process.DeploymentProcessOperation;
 import org.opentosca.container.core.model.deployment.process.DeploymentProcessState;
 import org.opentosca.container.core.service.ICoreDeploymentTrackerService;
 import org.opentosca.container.core.service.ICoreEndpointService;
@@ -293,7 +291,6 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
                         listOfUndeployedPlans.add(plan);
                     }
                 }
-
             }
         }
         return true;
@@ -306,45 +303,6 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
     public List<QName> getAllContainedServiceTemplates(final CSARID csarID) {
         return OpenToscaControlServiceImpl.toscaEngine.getToscaReferenceMapper()
                                                       .getServiceTemplateIDsContainedInCSAR(csarID);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Set<DeploymentProcessOperation> getExecutableDeploymentProcessOperations(final CSARID csarID) {
-
-        final Set<DeploymentProcessOperation> operationList = new HashSet<>();
-
-        // add all possible operations for a passed CSAR
-        switch (OpenToscaControlServiceImpl.coreDeploymentTracker.getDeploymentState(csarID)) {
-            case STORED:
-
-                operationList.add(DeploymentProcessOperation.PROCESS_TOSCA);
-
-                break;
-
-            case TOSCA_PROCESSED:
-
-                operationList.add(DeploymentProcessOperation.PROCESS_TOSCA);
-                operationList.add(DeploymentProcessOperation.INVOKE_PLAN_DEPL);
-                break;
-
-            case PLANS_DEPLOYED:
-
-                operationList.add(DeploymentProcessOperation.PROCESS_TOSCA);
-                operationList.add(DeploymentProcessOperation.INVOKE_PLAN_DEPL);
-                break;
-
-            default:
-
-                // during active processing (states ending with active) there are no
-                // operations allowed for a certain CSAR
-                break;
-        }
-
-        // return possible operations
-        return operationList;
     }
 
     /**

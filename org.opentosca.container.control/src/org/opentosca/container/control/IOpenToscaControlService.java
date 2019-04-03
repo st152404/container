@@ -7,7 +7,6 @@ import java.util.Set;
 import javax.xml.namespace.QName;
 
 import org.opentosca.container.core.model.csar.id.CSARID;
-import org.opentosca.container.core.model.deployment.process.DeploymentProcessOperation;
 import org.opentosca.container.core.model.deployment.process.DeploymentProcessState;
 import org.opentosca.container.core.tosca.extension.TPlanDTO;
 
@@ -62,14 +61,6 @@ public interface IOpenToscaControlService {
      *         CSAR. An empty list of none are contained. Null if there is an error.
      */
     public List<QName> getAllContainedServiceTemplates(CSARID csarID);
-
-    /**
-     * Returns a Set of executable operations on a currently running deployment process of a CSAR.
-     *
-     * @param csarID ID which uniquely identifies a CSAR file.
-     * @return Set of executable operations.
-     */
-    public Set<DeploymentProcessOperation> getExecutableDeploymentProcessOperations(CSARID csarID);
 
     /**
      * Sets the deployment state of a CSAR to STORED.

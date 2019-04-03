@@ -3,8 +3,6 @@ package org.opentosca.container.core.service.internal;
 import java.util.List;
 
 import org.opentosca.container.core.model.csar.id.CSARID;
-import org.opentosca.container.core.model.deployment.ia.IADeploymentInfo;
-import org.opentosca.container.core.model.deployment.ia.IADeploymentState;
 import org.opentosca.container.core.model.deployment.plan.PlanDeploymentInfo;
 import org.opentosca.container.core.model.deployment.plan.PlanDeploymentState;
 import org.opentosca.container.core.model.deployment.process.DeploymentProcessState;
@@ -31,48 +29,11 @@ public interface ICoreInternalDeploymentTrackerService {
     public DeploymentProcessState getDeploymentState(CSARID csarID);
 
     /**
-     * Stores deployment information for a Implementation Artifact. Already stored deployment
-     * information will be overwritten!
-     *
-     * @param iaDeploymentInfo to store (contains CSARID, relative file path where the IA is located
-     *        inside the CSAR file and deployment state of IA)
-     * @return <code>true</code> if storing was successful, otherwise <code>false</code>
-     */
-    public boolean storeIADeploymentInfo(IADeploymentInfo iaDeploymentInfo);
-
-    /**
-     * Stores deployment information for a Implementation Artifact. Already stored deployment
-     * information will be overwritten!
-     *
-     * @param csarID that uniquely identifies a CSAR file
-     * @param iaRelPath- relative file path where the Implementation Artifact is located inside the CSAR
-     *        file
-     * @param iaDeploymentState - deployment state of the Implementation Artifact
-     * @return <code>true</code> if storing was successful, otherwise <code>false</code>
-     */
-    public boolean storeIADeploymentInfo(CSARID csarID, String iaRelPath, IADeploymentState iaDeploymentState);
-
-    /**
-     * @param csarID that uniquely identifies a CSAR file
-     * @param iaRelPath - relative file path where the Implementation Artifact is located inside the
-     *        CSAR file
-     * @return if Implementation Artifact exists, its deployment information; otherwise
-     *         <code>null</code>
-     */
-    public IADeploymentInfo getIADeploymentInfo(CSARID csarID, String iaRelPath);
-
-    /**
-     * @param csarID that uniquely identifies a CSAR file
-     * @return the deployment informations for all Implementation Artifacts of the CSAR file.
-     */
-    public List<IADeploymentInfo> getIADeploymentInfos(CSARID csarID);
-
-    /**
      * Stores the deployment information for a Plan. Already stored deployment information will be
      * overwritten!
      *
-     * @param planDeploymentInfo to store (contains CSARID, relative file path where the Plan is located
-     *        inside the CSAR file and deployment state of Plan)
+     * @param planDeploymentInfo to store (contains CSARID, relative file path where the Plan is
+     *        located inside the CSAR file and deployment state of Plan)
      * @return <code>true</code> if storing was successful, otherwise <code>false</code>
      */
     public boolean storePlanDeploymentInfo(PlanDeploymentInfo planDeploymentInfo);

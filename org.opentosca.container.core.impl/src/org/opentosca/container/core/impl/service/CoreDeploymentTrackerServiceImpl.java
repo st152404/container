@@ -3,8 +3,6 @@ package org.opentosca.container.core.impl.service;
 import java.util.List;
 
 import org.opentosca.container.core.model.csar.id.CSARID;
-import org.opentosca.container.core.model.deployment.ia.IADeploymentInfo;
-import org.opentosca.container.core.model.deployment.ia.IADeploymentState;
 import org.opentosca.container.core.model.deployment.plan.PlanDeploymentInfo;
 import org.opentosca.container.core.model.deployment.plan.PlanDeploymentState;
 import org.opentosca.container.core.model.deployment.process.DeploymentProcessState;
@@ -53,36 +51,6 @@ public class CoreDeploymentTrackerServiceImpl implements ICoreDeploymentTrackerS
      *
      * This currently acts as a proxy.
      */
-    public boolean storeIADeploymentInfo(final IADeploymentInfo iaDeploymentInfo) {
-        return this.deploymentTrackerService.storeIADeploymentInfo(iaDeploymentInfo);
-    }
-
-    @Override
-    /**
-     * {@inheritDoc}
-     *
-     * This currently acts as a proxy.
-     */
-    public IADeploymentInfo getIADeploymentInfo(final CSARID csarID, final String iaRelPath) {
-        return this.deploymentTrackerService.getIADeploymentInfo(csarID, iaRelPath);
-    }
-
-    @Override
-    /**
-     * {@inheritDoc}
-     *
-     * This currently acts as a proxy.
-     */
-    public List<IADeploymentInfo> getIADeploymentInfos(final CSARID csarID) {
-        return this.deploymentTrackerService.getIADeploymentInfos(csarID);
-    }
-
-    @Override
-    /**
-     * {@inheritDoc}
-     *
-     * This currently acts as a proxy.
-     */
     public boolean storePlanDeploymentInfo(final PlanDeploymentInfo planDeploymentInfo) {
         return this.deploymentTrackerService.storePlanDeploymentInfo(planDeploymentInfo);
     }
@@ -113,17 +81,6 @@ public class CoreDeploymentTrackerServiceImpl implements ICoreDeploymentTrackerS
      *
      * This currently acts as a proxy.
      */
-    public boolean storeIADeploymentInfo(final CSARID csarID, final String iaRelPath,
-                                         final IADeploymentState iaDeploymentState) {
-        return this.deploymentTrackerService.storeIADeploymentInfo(csarID, iaRelPath, iaDeploymentState);
-    }
-
-    @Override
-    /**
-     * {@inheritDoc}
-     *
-     * This currently acts as a proxy.
-     */
     public boolean storePlanDeploymentInfo(final CSARID csarID, final String planRelPath,
                                            final PlanDeploymentState planDeploymentState) {
         return this.deploymentTrackerService.storePlanDeploymentInfo(csarID, planRelPath, planDeploymentState);
@@ -146,7 +103,6 @@ public class CoreDeploymentTrackerServiceImpl implements ICoreDeploymentTrackerS
             this.deploymentTrackerService = deploymentTrackerService;
             CoreDeploymentTrackerServiceImpl.LOG.debug("Core Internal Deployment Tracker Service bound.");
         }
-
     }
 
     /**
@@ -158,5 +114,4 @@ public class CoreDeploymentTrackerServiceImpl implements ICoreDeploymentTrackerS
         this.deploymentTrackerService = null;
         CoreDeploymentTrackerServiceImpl.LOG.debug("Core Internal Deployment Tracker Service unbound.");
     }
-
 }
