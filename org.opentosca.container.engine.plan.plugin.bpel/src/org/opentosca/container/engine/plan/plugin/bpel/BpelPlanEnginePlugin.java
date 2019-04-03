@@ -29,7 +29,7 @@ import org.opentosca.container.core.service.ICoreEndpointService;
 import org.opentosca.container.core.service.ICoreFileService;
 import org.opentosca.container.core.service.IFileAccessService;
 import org.opentosca.container.core.tosca.model.TPlan.PlanModelReference;
-import org.opentosca.container.engine.plan.plugin.IPlanEnginePlanRefPluginService;
+import org.opentosca.container.engine.plan.IPlanEnginePluginService;
 import org.opentosca.container.engine.plan.plugin.bpel.util.BPELRESTLightUpdater;
 import org.opentosca.container.engine.plan.plugin.bpel.util.Messages;
 import org.opentosca.container.engine.plan.plugin.bpel.util.ODEEndpointUpdater;
@@ -64,7 +64,7 @@ import org.xml.sax.SAXException;
  * @see org.opentosca.container.engine.plan.plugin.bpel.util.Messages
  * @see org.opentosca.core.endpoint.service.ICoreEndpointService
  */
-public class BpelPlanEnginePlugin implements IPlanEnginePlanRefPluginService {
+public class BpelPlanEnginePlugin implements IPlanEnginePluginService {
 
     final private static Logger LOG = LoggerFactory.getLogger(BpelPlanEnginePlugin.class);
 

@@ -3,11 +3,8 @@
  */
 package org.opentosca.container.engine.plan;
 
-import java.util.List;
-
 import org.opentosca.container.core.model.csar.id.CSARID;
 import org.opentosca.container.core.tosca.model.TPlan;
-import org.opentosca.container.core.tosca.model.TPlans;
 
 /**
  * This interface defines highlevel methods for deploying, undeploying of plans specified in the
@@ -27,30 +24,6 @@ import org.opentosca.container.core.tosca.model.TPlans;
 public interface IPlanEngineService {
 
     /**
-     * Deploys the given TPlans
-     *
-     * @param plans The TPlans to deploy
-     * @param targetNamespace Optional string value denoting the targetNamespace for the plans. This is
-     *        needed when the plans element doesn't have any targetNamespace defined and the namespace
-     *        must be derived from the ServiceTemplate
-     * @param csarId The id of CSAR file where the TPlans are defined
-     * @return returns a list of plans which couldn't be deployed
-     */
-    public List<TPlan> deployPlans(TPlans plans, String targetNamespace, CSARID csarId);
-
-    /**
-     * Undeploys the given TPlans
-     *
-     * @param plans The TPlans to undeploy
-     * @param targetNamespace Optional string value denoting the targetNamespace for the plans. This is
-     *        needed when the plans element doesn't have any targetNamespace defined and the namespace
-     *        must be derived from the ServiceTemplate
-     * @param csarId The id of CSAR file where the TPlans are contained
-     * @return returns a list of TPlan's which coulnd't be undeployed
-     */
-    public List<TPlan> undeployPlans(TPlans plans, String targetNamespace, CSARID csarId);
-
-    /**
      * Deploys the given TPlan
      *
      *
@@ -66,8 +39,8 @@ public interface IPlanEngineService {
      * Undeploys the given TPlan
      *
      * @param plan The TPlan to undeploy
-     * @param planTargetNamespace the namespace of the given plan element. It must come either from a
-     *        wrapping Plans element (targetNamespace attribute) or the ServiceTemplate itself
+     * @param planTargetNamespace the namespace of the given plan element. It must come either from
+     *        a wrapping Plans element (targetNamespace attribute) or the ServiceTemplate itself
      * @param csarId The id of CSAR file where this TPlan is contained
      * @return true if undeployment was successful, else false
      */

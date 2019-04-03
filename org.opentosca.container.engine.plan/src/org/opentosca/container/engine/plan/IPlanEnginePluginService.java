@@ -1,4 +1,6 @@
-package org.opentosca.container.engine.plan.plugin;
+package org.opentosca.container.engine.plan;
+
+import java.util.List;
 
 import javax.xml.namespace.QName;
 
@@ -6,16 +8,14 @@ import org.opentosca.container.core.model.csar.id.CSARID;
 import org.opentosca.container.core.tosca.model.TPlan.PlanModelReference;
 
 /**
- * This is a subinterface of
- * {@link org.opentosca.container.engine.plan.plugin.IPlanEnginePluginService} and specifies
- * handling of PlanReference elements inside a Plan element specified in Topology and Orchestration
- * Specification for Cloud Applications Version 1.0 Chapter 11: Plans.
+ * This is the interface for plugins which handle PlanReference elements inside a Plan element
+ * specified in a TOSCA Service Template.
  *
  * The plugin musn't resolve the {@link org.opentosca.model.tosca.TPlan.PlanModelReference}, a
  * service implementing {@link org.opentosca.core.file.service.ICoreFileService} should be called
  * for the raw data.
  */
-public interface IPlanEnginePlanRefPluginService extends IPlanEnginePluginService {
+public interface IPlanEnginePluginService {
 
     /**
      * <p>
@@ -53,4 +53,23 @@ public interface IPlanEnginePlanRefPluginService extends IPlanEnginePluginServic
      */
     public boolean undeployPlanReference(QName planId, PlanModelReference planRef, CSARID csarId);
 
+    /**
+     * <p>
+     * Returns the exact plan language understood by this plugin.
+     * </p>
+     * <p>
+     * Example: if the plugin can process WS-BPEL 2.0 Processes it should return
+     * "http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+     * <p>
+     *
+     * @return a string representation of the plan language understood by this plugin
+     */
+    public String getLanguageUsed();
+
+    /**
+     * Returns provided capabilities of this plugin.
+     *
+     * @return a list of strings denoting the capabilities of this plugin
+     */
+    public List<String> getCapabilties();
 }

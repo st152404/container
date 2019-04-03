@@ -25,7 +25,7 @@ import org.opentosca.container.core.service.ICoreFileService;
 import org.opentosca.container.core.service.IFileAccessService;
 import org.opentosca.container.core.service.IHTTPService;
 import org.opentosca.container.core.tosca.model.TPlan.PlanModelReference;
-import org.opentosca.container.engine.plan.plugin.IPlanEnginePlanRefPluginService;
+import org.opentosca.container.engine.plan.IPlanEnginePluginService;
 import org.opentosca.container.engine.plan.plugin.camunda.iaenginecopies.CopyOfIAEnginePluginWarTomcatServiceImpl;
 import org.opentosca.container.engine.plan.plugin.camunda.util.Messages;
 import org.osgi.framework.BundleContext;
@@ -33,15 +33,13 @@ import org.osgi.framework.ServiceReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CamundaPlanEnginePlugin implements IPlanEnginePlanRefPluginService {
+public class CamundaPlanEnginePlugin implements IPlanEnginePluginService {
 
     final private static Logger LOG = LoggerFactory.getLogger(CamundaPlanEnginePlugin.class);
 
     private ICoreFileService fileService = null;
-    private IFileAccessService fileAccessService = null;
     private IToscaEngineService toscaEngineService;
     private ICoreEndpointService endpointService;
-
 
     @Override
     public String getLanguageUsed() {
@@ -61,7 +59,7 @@ public class CamundaPlanEnginePlugin implements IPlanEnginePlanRefPluginService 
     @Override
     public boolean deployPlanReference(final QName planId, final PlanModelReference planRef, final CSARID csarId) {
 
-        this.bindServices();
+        bindServices();
 
         Path fetchedPlan;
 
@@ -146,7 +144,7 @@ public class CamundaPlanEnginePlugin implements IPlanEnginePlanRefPluginService 
             final int retries = 100;
 
             for (int iteration = retries; iteration > 0; iteration--) {
-                endpointURI = this.searchForEndpoint(planName);
+                endpointURI = searchForEndpoint(planName);
 
                 if (null == endpointURI) {
                     try {
@@ -266,7 +264,7 @@ public class CamundaPlanEnginePlugin implements IPlanEnginePlanRefPluginService 
         this.fileService = context.getService(coreRef);
 
         final ServiceReference<IFileAccessService> fileAccess = context.getServiceReference(IFileAccessService.class);
-        this.fileAccessService = context.getService(fileAccess);
+        context.getService(fileAccess);
 
         final ServiceReference<IToscaEngineService> toscaEngine =
             context.getServiceReference(IToscaEngineService.class);

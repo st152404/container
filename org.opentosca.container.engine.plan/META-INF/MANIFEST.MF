@@ -4,8 +4,7 @@ Bundle-Name: OpenTOSCA Plan Engine
 Bundle-SymbolicName: org.opentosca.container.engine.plan
 Bundle-Version: 2.0.0.qualifier
 Export-Package: org.opentosca.container.engine.plan,
- org.opentosca.container.engine.plan.impl,
- org.opentosca.container.engine.plan.plugin
+ org.opentosca.container.engine.plan.impl
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ActivationPolicy: lazy
 Import-Package: org.osgi.framework;version="1.8.0",

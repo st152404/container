@@ -4,7 +4,7 @@ import org.opentosca.container.core.engine.IToscaEngineService;
 import org.opentosca.container.core.service.ICoreEndpointService;
 import org.opentosca.container.core.service.ICoreFileService;
 import org.opentosca.container.core.service.IFileAccessService;
-import org.opentosca.container.engine.plan.plugin.IPlanEnginePlanRefPluginService;
+import org.opentosca.container.engine.plan.IPlanEnginePluginService;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -37,7 +37,7 @@ public class Activator implements BundleActivator {
     public void start(final BundleContext bundleContext) throws Exception {
         Activator.context = bundleContext;
         this.registration =
-            Activator.context.registerService(IPlanEnginePlanRefPluginService.class.getName(), this.plugin, null);
+            Activator.context.registerService(IPlanEnginePluginService.class.getName(), this.plugin, null);
     }
 
     public ICoreFileService getCoreFileService() {
