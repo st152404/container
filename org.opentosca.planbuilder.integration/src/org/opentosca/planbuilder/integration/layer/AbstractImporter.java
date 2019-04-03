@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.opentosca.planbuilder.AbstractPlanBuilder;
 import org.opentosca.planbuilder.core.bpel.BPELBuildProcessBuilder;
+import org.opentosca.planbuilder.core.bpel.BPELDefrostProcessBuilder;
+import org.opentosca.planbuilder.core.bpel.BPELFreezeProcessBuilder;
 import org.opentosca.planbuilder.core.bpel.BPELScaleOutProcessBuilder;
 import org.opentosca.planbuilder.core.bpel.BPELTerminationProcessBuilder;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
@@ -49,10 +51,15 @@ public abstract class AbstractImporter {
 
         final AbstractPlanBuilder terminationPlanBuilder = new BPELTerminationProcessBuilder();
         final AbstractPlanBuilder scalingPlanBuilder = new BPELScaleOutProcessBuilder();
+        final AbstractPlanBuilder freezePlanBuilder = new BPELFreezeProcessBuilder();
+        final AbstractPlanBuilder defreezePlanBuilder = new BPELDefrostProcessBuilder();
 
         plans.addAll(scalingPlanBuilder.buildPlansForCSAR(csarName, defs));
         plans.addAll(buildPlanBuilder.buildPlansForCSAR(csarName, defs));
         plans.addAll(terminationPlanBuilder.buildPlansForCSAR(csarName, defs));
+        plans.addAll(freezePlanBuilder.buildPlansForCSAR(csarName, defs));
+        plans.addAll(defreezePlanBuilder.buildPlansForCSAR(csarName, defs));
+
         return plans;
     }
 

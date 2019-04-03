@@ -70,13 +70,13 @@ public class OperationChain {
 
     /**
      * <p>
-     * Executes the first found DACandidate to provision DA's with the appropiate plugins set in the
-     * candidate
+     * Executes the first found DACandidate to provision DA's with the appropriate plugins set in
+     * the candidate
      * </p>
      *
      * @param context a TemplatePlanContext which is initialized for either a NodeTemplate or
      *        RelationshipTemplate this ProvisioningChain belongs to
-     * @return returns false only when execution of a plugin inside the IACandidate failed, else
+     * @return returns false only when execution of a plugin inside the DACandidate failed, else
      *         true. There may be no IACandidate available, because there is no need for IA's to
      *         provision. In this case true is also returned.
      */
@@ -484,7 +484,6 @@ public class OperationChain {
                         }
                     }
                 }
-
             }
         }
         return checkCount == operationNames.size();

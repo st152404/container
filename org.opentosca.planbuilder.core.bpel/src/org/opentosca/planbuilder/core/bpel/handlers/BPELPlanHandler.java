@@ -28,6 +28,7 @@ import org.opentosca.planbuilder.model.plan.AbstractActivity;
 import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.plan.AbstractPlan.Link;
 import org.opentosca.planbuilder.model.plan.bpel.BPELPlan;
+import org.opentosca.planbuilder.model.plan.bpel.BPELPlan.VariableType;
 import org.opentosca.planbuilder.model.plan.bpel.BPELScopeActivity;
 import org.opentosca.planbuilder.model.plan.bpel.Deploy;
 import org.opentosca.planbuilder.model.plan.bpel.GenericWsdlWrapper;
@@ -65,6 +66,8 @@ public class BPELPlanHandler {
 
     private final BPELScopeHandler bpelScopeHandler;
 
+    private final static String xsdNamespace = "http://www.w3.org/2001/XMLSchema";
+
     /**
      * Default Constructor
      *
@@ -85,18 +88,21 @@ public class BPELPlanHandler {
     }
 
     public String addGlobalStringVariable(final String varNamePrefix, final BPELPlan plan) {
-        final QName stringXsdDeclQName =
-            new QName("http://www.w3.org/2001/XMLSchema", "string", "xsd" + System.currentTimeMillis());
+        String xsdPrefix = null;
+        boolean addedNamespace = false;
 
-        final String xsdNamespace = "http://www.w3.org/2001/XMLSchema";
-        final String xsdPrefix = "xsd" + System.currentTimeMillis();
-        addNamespaceToBPELDoc(xsdPrefix, xsdNamespace, plan);
+        while (!addedNamespace) {
+            xsdPrefix = "xsd" + System.currentTimeMillis();
+            addedNamespace = addNamespaceToBPELDoc(xsdPrefix, xsdNamespace, plan);
+        }
 
-        final String serviceTemplateURLVarName = varNamePrefix + System.currentTimeMillis();
+        final String varName = varNamePrefix + System.currentTimeMillis();
 
-        addVariable(serviceTemplateURLVarName, BPELPlan.VariableType.TYPE, stringXsdDeclQName, plan);
+        final QName stringXsdDeclQName = new QName(xsdNamespace, "string", xsdPrefix);
 
-        return serviceTemplateURLVarName;
+        addVariable(varName, BPELPlan.VariableType.TYPE, stringXsdDeclQName, plan);
+
+        return varName;
     }
 
     /**
@@ -244,8 +250,7 @@ public class BPELPlanHandler {
      * @return true iff adding the variable was successful
      */
     public boolean addIntegerVariable(final String name, final BPELPlan plan) {
-        return addVariable(name, BPELPlan.VariableType.TYPE,
-                           new QName("http://www.w3.org/2001/XMLSchema", "integer", "xsd"), plan);
+        return addVariable(name, BPELPlan.VariableType.TYPE, new QName(xsdNamespace, "integer", "xsd"), plan);
     }
 
     /**
@@ -320,14 +325,19 @@ public class BPELPlanHandler {
      * @param prefix the prefix to use for the namespace
      * @param namespace the namespace
      * @param buildPlan the BuildPlan to set the namespace to
-     * @return true if the namespace isn't alread used, else false
+     * @return true if the namespace isn't already used, else false
      */
     public boolean addNamespaceToBPELDoc(final String prefix, final String namespace, final BPELPlan buildPlan) {
         BPELPlanHandler.LOG.debug("Adding namespace {} to BuildPlan {}", namespace,
                                   buildPlan.getBpelProcessElement().getAttribute("name"));
         buildPlan.getBpelProcessElement().setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:" + prefix, namespace);
-        // TODO make a real check
-        return true;
+
+        final String test = buildPlan.getBpelProcessElement().getAttribute("xmlns:" + prefix);
+        if (!test.isEmpty()) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -344,7 +354,7 @@ public class BPELPlanHandler {
     public boolean addPartnerLink(final String partnerLinkName, final QName partnerLinkType, final String myRole,
                                   final String partnerRole, final boolean initializePartnerRole,
                                   final BPELPlan buildPlan) {
-        BPELPlanHandler.LOG.debug("Trying to add partnerLink {} with type {}, myRole {}, partnerRole {} and initializePartnerRole {} to BuildPlan {}",
+        BPELPlanHandler.LOG.debug("Trying to add partnerLink {} with type {}, myRole {}, partnerRole {} and initializePartnerRole {} to BuildPlan {}",
                                   partnerLinkName, partnerLinkType.toString(), myRole, partnerRole,
                                   String.valueOf(initializePartnerRole),
                                   buildPlan.getBpelProcessElement().getAttribute("name"));
@@ -415,8 +425,8 @@ public class BPELPlanHandler {
      * @return true if adding the PropertyVariable to the BuildPlan, else false
      */
     public boolean addPropertyVariable(final String name, final BPELPlan buildPlan) {
-        return addVariable("prop_" + name, BPELPlan.VariableType.TYPE,
-                           new QName("http://www.w3.org/2001/XMLSchema", "string", "xsd"), buildPlan);
+        return addVariable("prop_" + name, BPELPlan.VariableType.TYPE, new QName(xsdNamespace, "string", "xsd"),
+                           buildPlan);
     }
 
     /**
@@ -430,7 +440,7 @@ public class BPELPlanHandler {
      */
     public boolean addProvideToDeploy(final String partnerLinkName, final QName serviceName, final String portName,
                                       final BPELPlan buildPlan) {
-        BPELPlanHandler.LOG.debug("Trying to add provide with partnerLink {}, service {} and port {} to BuildPlan {}",
+        BPELPlanHandler.LOG.debug("Trying to add provide with partnerLink {}, service {} and port {} to BuildPlan {}",
                                   partnerLinkName, serviceName.toString(), portName,
                                   buildPlan.getBpelProcessElement().getAttribute("name"));
         for (final TProvide inv : buildPlan.getDeploymentDeskriptor().getProcess().get(0).getProvide()) {
@@ -464,9 +474,7 @@ public class BPELPlanHandler {
      * @return true if adding the element to RequestMessage was successful, else false
      */
     public boolean addStringElementToPlanRequest(final String elementName, final BPELPlan buildPlan) {
-        return buildPlan.getWsdl()
-                        .addElementToRequestMessage(elementName,
-                                                    new QName("http://www.w3.org/2001/XMLSchema", "string", "xsd"));
+        return buildPlan.getWsdl().addElementToRequestMessage(elementName, new QName(xsdNamespace, "string", "xsd"));
     }
 
     /**
@@ -477,9 +485,7 @@ public class BPELPlanHandler {
      * @return true if adding the element to the ResponseMessage was successful, else false
      */
     public boolean addStringElementToPlanResponse(final String elementName, final BPELPlan buildPlan) {
-        return buildPlan.getWsdl()
-                        .addElementToResponseMessage(elementName,
-                                                     new QName("http://www.w3.org/2001/XMLSchema", "string", "xsd"));
+        return buildPlan.getWsdl().addElementToResponseMessage(elementName, new QName(xsdNamespace, "string", "xsd"));
     }
 
     /**
@@ -585,7 +591,7 @@ public class BPELPlanHandler {
      */
     public boolean assignVariableStringValue(final String variableName, final String variableValue,
                                              final BPELPlan buildPlan) {
-        BPELPlanHandler.LOG.debug("Trying to add assign of variable {} with value {} to BuildPlan {}", variableName,
+        BPELPlanHandler.LOG.debug("Trying to add assign of variable {} with value {} to BuildPlan {}", variableName,
                                   variableValue, buildPlan.getBpelProcessElement().getAttribute("name"));
         final Element propertyAssignElement = buildPlan.getBpelMainSequencePropertyAssignElement();
         // create copy element
@@ -1024,8 +1030,7 @@ public class BPELPlanHandler {
         newBuildPlan.getBpelDocument().appendChild(newBuildPlan.getBpelProcessElement());
 
         // FIXME declare xml schema namespace
-        newBuildPlan.getBpelProcessElement().setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xsd",
-                                                            "http://www.w3.org/2001/XMLSchema");
+        newBuildPlan.getBpelProcessElement().setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xsd", xsdNamespace);
 
         // init import files list
         newBuildPlan.setImportedFiles(new HashSet<File>());
@@ -1233,5 +1238,15 @@ public class BPELPlanHandler {
             addNamespaceToBPELDoc(prefix, namespace, plan);
         }
         return new QName(namespace, qname.getLocalPart(), prefix);
+    }
+
+    public String createAnyTypeVar(final BPELPlan plan) {
+        // add XMLSchema Namespace for the logic
+        final String xsdPrefix = "xsd" + System.currentTimeMillis();
+        addNamespaceToBPELDoc(xsdPrefix, xsdNamespace, plan);
+        // create Response Variable for interaction
+        final String varName = "anyTypeVariable" + System.currentTimeMillis();
+        addVariable(varName, VariableType.TYPE, new QName(xsdNamespace, "anyType", xsdPrefix), plan);
+        return varName;
     }
 }

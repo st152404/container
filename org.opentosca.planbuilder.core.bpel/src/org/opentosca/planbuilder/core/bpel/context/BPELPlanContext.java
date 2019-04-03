@@ -43,7 +43,7 @@ import org.w3c.dom.NodeList;
 
 /**
  * <p>
- * This class is used for all Plugins. All acitions on TemplateBuildPlans and BuildPlans should be
+ * This class is used for all Plugins. All actions on TemplateBuildPlans and BuildPlans should be
  * done with the operations of this class. It is basically a Facade to Template and its
  * TemplateBuildPlan
  * </p>
@@ -80,35 +80,40 @@ public class BPELPlanContext implements PlanContext {
     public static final String ServiceTemplateURLVarKeyword = "OpenTOSCAContainerAPIServiceTemplateURL";
     public static final String InstanceDataAPIUrlKeyword = "instanceDataAPIUrl";
 
+    public static Variable getVariable(final String varName) {
+        return new Variable(null, varName);
+    }
+
     public static String getVariableContent(final Variable variable, final BPELPlanContext context) {
         // check whether the property is empty --> external parameter
-        for (final AbstractNodeTemplate node : context.getNodeTemplates()) {
-            if (node.getId().equals(variable.getTemplateId())) {
-                if (node.getProperties() == null) {
-                    continue;
-                }
-                final NodeList children = node.getProperties().getDOMElement().getChildNodes();
-                for (int i = 0; i < children.getLength(); i++) {
-                    final Node child = children.item(i);
-                    if (child.getNodeType() != 1) {
+        if (Objects.nonNull(variable)) {
+            for (final AbstractNodeTemplate node : context.getNodeTemplates()) {
+                if (node.getId().equals(variable.getTemplateId())) {
+                    if (node.getProperties() == null) {
                         continue;
                     }
-                    final String variableName = variable.getName();
-                    if (variable.getName().endsWith("_" + child.getLocalName())) {
-                        // check if content is empty
-                        return children.item(i).getTextContent();
+                    final NodeList children = node.getProperties().getDOMElement().getChildNodes();
+                    for (int i = 0; i < children.getLength(); i++) {
+                        final Node child = children.item(i);
+                        if (child.getNodeType() != 1) {
+                            continue;
+                        }
+                        if (variable.getName().endsWith("_" + child.getLocalName())) {
+                            // check if content is empty
+                            return children.item(i).getTextContent();
+                        }
                     }
                 }
             }
-        }
 
-        for (final AbstractRelationshipTemplate relation : context.getRelationshipTemplates()) {
-            if (relation.getId().equals(variable.getTemplateId())) {
-                final NodeList children = relation.getProperties().getDOMElement().getChildNodes();
-                for (int i = 0; i < children.getLength(); i++) {
-                    if (variable.getName().endsWith(children.item(i).getLocalName())) {
-                        // check if content is empty
-                        return children.item(i).getTextContent();
+            for (final AbstractRelationshipTemplate relation : context.getRelationshipTemplates()) {
+                if (relation.getId().equals(variable.getTemplateId())) {
+                    final NodeList children = relation.getProperties().getDOMElement().getChildNodes();
+                    for (int i = 0; i < children.getLength(); i++) {
+                        if (variable.getName().endsWith(children.item(i).getLocalName())) {
+                            // check if content is empty
+                            return children.item(i).getTextContent();
+                        }
                     }
                 }
             }

@@ -223,6 +223,8 @@ public class ModelUtils {
         }
     }
 
+    
+    
     /**
      * Calculates all Infrastructure Nodes of all Infrastructure Paths originating from the given
      * NodeTemplate
