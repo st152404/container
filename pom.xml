@@ -119,7 +119,6 @@
     <module>org.opentosca.container.feature</module>
     <module>org.opentosca.container.product</module>
     <module>org.opentosca.container.engine.plan</module>
-    <module>org.opentosca.container.engine.plan.plugin.bpel</module>
     <module>org.opentosca.container.engine.plan.plugin.camunda</module>
     <module>org.opentosca.container.portability</module>
     <module>org.opentosca.bus.management</module>
