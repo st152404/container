@@ -739,6 +739,13 @@
          install-size="0"
          version="0.0.0"
          unpack="false"/>
+         
+   <plugin
+         id="org.opentosca.bus.management.deployment.plugin.bpel"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
 
    <plugin
          id="org.opentosca.bus.management.deployment.plugin.script"
@@ -869,13 +876,6 @@
 
    <plugin
          id="org.opentosca.container.engine.plan"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>
-
-   <plugin
-         id="org.opentosca.container.engine.plan.plugin.bpel"
          download-size="0"
          install-size="0"
          version="0.0.0"

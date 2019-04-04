@@ -16,18 +16,13 @@ import org.slf4j.LoggerFactory;
  * Management Bus-Plug-in for the deployment of Script IAs.<br>
  * <br>
  *
- *
+ * Copyright 2019 IAAS University of Stuttgart <br>
+ * <br>
  *
  * Since Script IAs have to be executed on a host machine, they don´t have to be deployed.
  * Therefore, this Plug-in is only a wrapper for the supported types and capabilities. When the
  * deployment is invoked it just returns a wildcard endpoint. Likewise, it always returns success
  * when the undeployment is invoked.
- *
- *
- *
- * @author Benjamin Weder - st100495@stud.uni-stuttgart.de
- *
- *
  */
 public class ManagementBusDeploymentPluginScript implements IManagementBusDeploymentPluginService {
 
@@ -38,7 +33,7 @@ public class ManagementBusDeploymentPluginScript implements IManagementBusDeploy
     static final private Logger LOG = LoggerFactory.getLogger(ManagementBusDeploymentPluginScript.class);
 
     @Override
-    public Exchange invokeImplementationArtifactDeployment(final Exchange exchange) {
+    public Exchange invokeDeployment(final Exchange exchange) {
         URI endpoint = null;
         try {
             // return dummy endpoint for further processing without aborting due to missing endpoint
@@ -52,7 +47,7 @@ public class ManagementBusDeploymentPluginScript implements IManagementBusDeploy
     }
 
     @Override
-    public Exchange invokeImplementationArtifactUndeployment(final Exchange exchange) {
+    public Exchange invokeUndeployment(final Exchange exchange) {
         exchange.getIn().setHeader(MBHeader.OPERATIONSTATE_BOOLEAN.toString(), true);
         return exchange;
     }

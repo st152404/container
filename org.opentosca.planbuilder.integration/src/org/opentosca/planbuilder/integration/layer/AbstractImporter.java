@@ -57,8 +57,9 @@ public abstract class AbstractImporter {
         plans.addAll(scalingPlanBuilder.buildPlansForCSAR(csarName, defs));
         plans.addAll(buildPlanBuilder.buildPlansForCSAR(csarName, defs));
         plans.addAll(terminationPlanBuilder.buildPlansForCSAR(csarName, defs));
-        plans.addAll(freezePlanBuilder.buildPlansForCSAR(csarName, defs));
-        plans.addAll(defreezePlanBuilder.buildPlansForCSAR(csarName, defs));
+        // TODO: add plans again
+        // plans.addAll(freezePlanBuilder.buildPlansForCSAR(csarName, defs));
+        // plans.addAll(defreezePlanBuilder.buildPlansForCSAR(csarName, defs));
 
         return plans;
     }

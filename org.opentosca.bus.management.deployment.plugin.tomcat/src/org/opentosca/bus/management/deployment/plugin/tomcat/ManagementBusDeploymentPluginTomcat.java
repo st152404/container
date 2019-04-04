@@ -79,7 +79,7 @@ public class ManagementBusDeploymentPluginTomcat implements IManagementBusDeploy
     static final private Logger LOG = LoggerFactory.getLogger(ManagementBusDeploymentPluginTomcat.class);
 
     @Override
-    public Exchange invokeImplementationArtifactDeployment(final Exchange exchange) {
+    public Exchange invokeDeployment(final Exchange exchange) {
 
         ManagementBusDeploymentPluginTomcat.LOG.debug("Trying to deploy IA on Tomcat.");
         final Message message = exchange.getIn();
@@ -175,7 +175,7 @@ public class ManagementBusDeploymentPluginTomcat implements IManagementBusDeploy
     }
 
     @Override
-    public Exchange invokeImplementationArtifactUndeployment(final Exchange exchange) {
+    public Exchange invokeUndeployment(final Exchange exchange) {
 
         ManagementBusDeploymentPluginTomcat.LOG.debug("Trying to undeploy IA from Tomcat.");
         final Message message = exchange.getIn();

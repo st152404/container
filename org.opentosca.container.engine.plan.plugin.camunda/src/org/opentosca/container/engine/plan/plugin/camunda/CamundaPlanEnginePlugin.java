@@ -22,7 +22,6 @@ import org.opentosca.container.core.model.csar.id.CSARID;
 import org.opentosca.container.core.model.endpoint.wsdl.WSDLEndpoint;
 import org.opentosca.container.core.service.ICoreEndpointService;
 import org.opentosca.container.core.service.ICoreFileService;
-import org.opentosca.container.core.service.IFileAccessService;
 import org.opentosca.container.core.service.IHTTPService;
 import org.opentosca.container.core.tosca.model.TPlan.PlanModelReference;
 import org.opentosca.container.engine.plan.IPlanEnginePluginService;
@@ -262,9 +261,6 @@ public class CamundaPlanEnginePlugin implements IPlanEnginePluginService {
 
         final ServiceReference<ICoreFileService> coreRef = context.getServiceReference(ICoreFileService.class);
         this.fileService = context.getService(coreRef);
-
-        final ServiceReference<IFileAccessService> fileAccess = context.getServiceReference(IFileAccessService.class);
-        context.getService(fileAccess);
 
         final ServiceReference<IToscaEngineService> toscaEngine =
             context.getServiceReference(IToscaEngineService.class);

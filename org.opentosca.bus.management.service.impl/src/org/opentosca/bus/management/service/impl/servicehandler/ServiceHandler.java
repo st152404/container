@@ -10,6 +10,7 @@ import org.opentosca.bus.management.invocation.plugin.IManagementBusInvocationPl
 import org.opentosca.container.core.engine.IToscaEngineService;
 import org.opentosca.container.core.service.ICoreCapabilityService;
 import org.opentosca.container.core.service.ICoreEndpointService;
+import org.opentosca.container.core.service.ICoreFileService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +18,7 @@ import org.slf4j.LoggerFactory;
  * Helper class that handles all needed services for Management Bus.<br>
  * <br>
  *
- * Copyright 2018 IAAS University of Stuttgart <br>
+ * Copyright 2019 IAAS University of Stuttgart <br>
  * <br>
  *
  * In this class the from the Management Bus needed services are binded an unbinded.
@@ -28,6 +29,7 @@ import org.slf4j.LoggerFactory;
  * @see ICoreEndpointService
  * @see IToscaEngineService
  * @see ICoreCapabilityService
+ * @see ICoreFileService
  */
 
 public class ServiceHandler {
@@ -39,8 +41,33 @@ public class ServiceHandler {
     public static ICoreEndpointService endpointService;
     public static IToscaEngineService toscaEngineService;
     public static ICoreCapabilityService capabilityService;
+    public static ICoreFileService fileService;
 
     private final static Logger LOG = LoggerFactory.getLogger(ServiceHandler.class);
+
+    /**
+     * Bind FileService.
+     *
+     * @param fileService - The fileService to register.
+     */
+    public void bindFileService(final ICoreFileService fileService) {
+        if (fileService != null) {
+            ServiceHandler.fileService = fileService;
+            LOG.debug("Bind File Service: {} bound.", fileService.toString());
+        } else {
+            LOG.error("Bind File Service: Supplied parameter is null!");
+        }
+    }
+
+    /**
+     * Unbind FileService.
+     *
+     * @param fileService - The fileService to unregister.
+     */
+    public void unbindFileService(final ICoreFileService fileService) {
+        ServiceHandler.fileService = null;
+        LOG.debug("Unbind File Service unbound.");
+    }
 
     /**
      * Bind EndpointService.

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="org.opentosca.bus.management.deployment.plugin.bpel.ManagementBusDeploymentPluginBpel">
+   <implementation class="org.opentosca.bus.management.deployment.plugin.bpel.ManagementBusDeploymentPluginBpel"/>
+   <service>
+      <provide interface="org.opentosca.bus.management.deployment.plugin.IManagementBusDeploymentPluginService"/>
+   </service>
+   <reference bind="registerFileAccessService" cardinality="1..1" interface="org.opentosca.container.core.service.IFileAccessService" name="IFileAccess" policy="dynamic" unbind="unregisterFileAccessService"/>
+</scr:component>

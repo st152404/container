@@ -3,8 +3,6 @@ package org.opentosca.container.control.impl;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
 
 import javax.xml.namespace.QName;
 
@@ -72,78 +70,6 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
 
     /**
      * {@inheritDoc}
-     */
-    @Override
-    public Boolean invokePlanDeployment(final CSARID csarID, final QName serviceTemplateID) {
-
-        OpenToscaControlServiceImpl.coreDeploymentTracker.storeDeploymentState(csarID,
-                                                                               DeploymentProcessState.PLAN_DEPLOYMENT_ACTIVE);
-
-        // invoke PlanEngine
-        this.LOG.info("Invoke the PlanEngine for processing the Plans.");
-        if (Objects.isNull(OpenToscaControlServiceImpl.planEngine)) {
-            this.LOG.error("PlanEngine is not alive!");
-            OpenToscaControlServiceImpl.coreDeploymentTracker.storeDeploymentState(csarID,
-                                                                                   DeploymentProcessState.TOSCA_PROCESSED);
-            return false;
-        }
-
-        final TServiceTemplate mainServiceTemplate =
-            (TServiceTemplate) OpenToscaControlServiceImpl.toscaEngine.getToscaReferenceMapper()
-                                                                      .getJAXBReference(csarID, serviceTemplateID);
-
-        if (mainServiceTemplate == null) {
-            this.LOG.error("Did not found the main ServiceTemplate \"" + serviceTemplateID + "\".");
-            OpenToscaControlServiceImpl.coreDeploymentTracker.storeDeploymentState(csarID,
-                                                                                   DeploymentProcessState.TOSCA_PROCESSED);
-            return false;
-        }
-
-        if (mainServiceTemplate.getPlans() == null) {
-            this.LOG.info("No plans to process ...");
-            return true;
-        }
-
-        this.LOG.debug("PlanEngine is alive!");
-
-        final TPlans plans = mainServiceTemplate.getPlans();
-
-        String namespace = plans.getTargetNamespace();
-
-        if (namespace == null) {
-            // the Plans element has no targetNamespace defined fallback to ServiceTemplate
-            // namespace
-            namespace = serviceTemplateID.getNamespaceURI();
-        }
-
-        // list of failure - not deployed artifacts
-        final List<TPlan> listOfUndeployedPlans = new ArrayList<>();
-        for (final TPlan plan : plans.getPlan()) {
-            if (!OpenToscaControlServiceImpl.planEngine.deployPlan(plan, namespace, csarID)) {
-                listOfUndeployedPlans.add(plan);
-            }
-        }
-
-        // check the success of the plan deployment
-        if (!listOfUndeployedPlans.isEmpty()) {
-            this.LOG.error("Plan deployment failed!");
-            OpenToscaControlServiceImpl.coreDeploymentTracker.storeDeploymentState(csarID,
-                                                                                   DeploymentProcessState.TOSCA_PROCESSED);
-            return false;
-        }
-
-        this.LOG.info("The deployment of the management plans of the Service Template " + serviceTemplateID.toString()
-            + "\" inside of the CSAR \"" + csarID + "\" was successfull.");
-        OpenToscaControlServiceImpl.coreDeploymentTracker.storeDeploymentState(csarID,
-                                                                               DeploymentProcessState.PLANS_DEPLOYED);
-
-        OpenToscaControlServiceImpl.endpointService.printPlanEndpoints();
-
-        return true;
-    }
-
-    /**
-     * {@inheritDoc}
      *
      * @throws UnsupportedEncodingException
      */
@@ -167,15 +93,6 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
         }
 
         return correlationID;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Set<CSARID> getAllStoredCSARs() {
-
-        return OpenToscaControlServiceImpl.fileService.getCSARIDs();
     }
 
     /**
@@ -294,15 +211,6 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
             }
         }
         return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public List<QName> getAllContainedServiceTemplates(final CSARID csarID) {
-        return OpenToscaControlServiceImpl.toscaEngine.getToscaReferenceMapper()
-                                                      .getServiceTemplateIDsContainedInCSAR(csarID);
     }
 
     /**

@@ -286,16 +286,6 @@ public class PlanInvocationEngine implements IPlanInvocationEngine, EventHandler
         }
     }
 
-
-
-    @Override
-    public void correctCorrelationToServiceTemplateInstanceIdMapping(final CSARID csarID, final QName serviceTemplateId,
-                                                                     final String corrId,
-                                                                     final int correctSTInstanceId) {
-        ServiceProxy.correlationHandler.correlateBuildPlanCorrToServiceTemplateInstanceId(csarID, serviceTemplateId,
-                                                                                          corrId, correctSTInstanceId);
-    }
-
     public Map<String, String> createRequest(final CSARID csarID, final QName serviceTemplateID,
                                              final QName planInputMessageID, final List<TParameterDTO> inputParameter,
                                              final String correlationID) throws UnsupportedEncodingException {
@@ -595,15 +585,6 @@ public class PlanInvocationEngine implements IPlanInvocationEngine, EventHandler
         }
 
         ServiceProxy.correlationHandler.removeCorrelation(correlationID);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public List<String> getActiveCorrelationsOfInstance(final ServiceTemplateInstanceID csarInstanceID) {
-        return ServiceProxy.correlationHandler.getActiveCorrelationsOfInstance(csarInstanceID);
-
     }
 
     /**

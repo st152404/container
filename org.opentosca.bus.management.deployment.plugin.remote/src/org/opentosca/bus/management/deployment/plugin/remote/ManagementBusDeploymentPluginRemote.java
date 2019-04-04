@@ -36,7 +36,7 @@ public class ManagementBusDeploymentPluginRemote implements IManagementBusDeploy
     static final private Logger LOG = LoggerFactory.getLogger(ManagementBusDeploymentPluginRemote.class);
 
     @Override
-    public Exchange invokeImplementationArtifactDeployment(final Exchange exchange) {
+    public Exchange invokeDeployment(final Exchange exchange) {
 
         LOG.debug("Trying to deploy IA on remote OpenTOSCA Container.");
         final Message message = exchange.getIn();
@@ -58,7 +58,7 @@ public class ManagementBusDeploymentPluginRemote implements IManagementBusDeploy
     }
 
     @Override
-    public Exchange invokeImplementationArtifactUndeployment(final Exchange exchange) {
+    public Exchange invokeUndeployment(final Exchange exchange) {
 
         LOG.debug("Trying to undeploy IA on remote OpenTOSCA Container.");
         final Message message = exchange.getIn();

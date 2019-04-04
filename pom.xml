@@ -127,6 +127,7 @@
     <module>org.opentosca.bus.management.api.resthttp</module>
     <module>org.opentosca.bus.management.api.soaphttp</module>
     <module>org.opentosca.bus.management.deployment.plugin</module>
+    <module>org.opentosca.bus.management.deployment.plugin.bpel</module>
     <module>org.opentosca.bus.management.deployment.plugin.script</module>
     <module>org.opentosca.bus.management.deployment.plugin.tomcat</module>
     <module>org.opentosca.bus.management.deployment.plugin.remote</module>

@@ -9,45 +9,43 @@ import org.opentosca.bus.management.header.MBHeader;
  * Interface of the Management Bus Deployment Plug-ins.<br>
  * <br>
  *
- * Copyright 2018 IAAS University of Stuttgart <br>
+ * Copyright 2019 IAAS University of Stuttgart <br>
  * <br>
  *
  * The interface specifies four methods. One for invoking the deployment of an Implementation
- * Artifact, another for invoking the undeployment of a previously deployed Implementation Artifact
- * and two methods that return the supported deployment types and the capabilities of the specific
- * plug-in.
- *
+ * Artifact or plan, another for invoking the undeployment of a previously deployed Implementation
+ * Artifact or plan and two methods that return the supported deployment types and the capabilities
+ * of the specific plug-in.
  */
 public interface IManagementBusDeploymentPluginService {
 
     /**
-     * Invokes the deployment of an Implementation Artifact.
+     * Invokes the deployment of an Implementation Artifact or plan into the suited environment.
      *
-     * @param exchange contains all needed information like the NodeTypeImplementation the
-     *        ArtifactReferences to the files that have to be deployed and the "ServiceEndpoint"
-     *        property if it is defined.
+     * @param exchange contains all needed information for the deployment as header fields.
      *
-     * @return the endpoint of the deployed Implementation Artifact as header field (see
+     * @return the endpoint of the deployed Implementation Artifact or plan as header field (see
      *         {@link MBHeader#ENDPOINT_URI}) of the exchange message or null if the deployment
      *         failed.
      *
      */
-    public Exchange invokeImplementationArtifactDeployment(Exchange exchange);
+    public Exchange invokeDeployment(Exchange exchange);
 
     /**
-     * Invokes the undeployment of an Implementation Artifact.
+     * Invokes the undeployment of an Implementation Artifact or plan.
      *
      * @param exchange contains all needed information like the endpoint of the deployed
-     *        Implementation Artifact.
+     *        Implementation Artifact or plan.
      *
      * @return the result of the undeployment process as header field (see
      *         {@link MBHeader#OPERATIONSTATE_BOOLEAN}) of the exchange message.
      *
      */
-    public Exchange invokeImplementationArtifactUndeployment(Exchange exchange);
+    public Exchange invokeUndeployment(Exchange exchange);
 
     /**
-     * Returns the supported deployment-types of the plug-in.
+     * Returns the supported deployment-types of the plug-in such as the Artifact Types of IAs or
+     * languages of plans.
      *
      * @return list of strings each representing one supported deployment type of the plug-in.
      *

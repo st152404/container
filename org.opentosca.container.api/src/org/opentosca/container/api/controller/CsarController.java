@@ -38,8 +38,6 @@ import org.opentosca.container.api.util.UriUtil;
 import org.opentosca.container.connector.winery.WineryConnector;
 import org.opentosca.container.control.IOpenToscaControlService;
 import org.opentosca.container.core.common.EntityExistsException;
-import org.opentosca.container.core.common.SystemException;
-import org.opentosca.container.core.common.UserException;
 import org.opentosca.container.core.engine.IToscaEngineService;
 import org.opentosca.container.core.model.csar.CSARContent;
 import org.opentosca.container.core.model.csar.id.CSARID;
@@ -216,44 +214,26 @@ public class CsarController {
         }
 
         this.controlService.setDeploymentProcessStateStored(csarId);
-        boolean success = this.controlService.invokeTOSCAProcessing(csarId);
-
-        if (success) {
-            final List<QName> serviceTemplates =
-                this.engineService.getToscaReferenceMapper().getServiceTemplateIDsContainedInCSAR(csarId);
-            for (final QName serviceTemplate : serviceTemplates) {
-                logger.info("Invoke plan deployment for service template \"{}\" of CSAR \"{}\"", serviceTemplate,
-                            csarId.getFileName());
-                if (!this.controlService.invokePlanDeployment(csarId, serviceTemplate)) {
-                    logger.error("Error deploying plan for service template \"{}\" of CSAR \"{}\"", serviceTemplate,
-                                 csarId.getFileName());
-                    success = false;
-                }
-            }
-        }
+        final boolean success = this.controlService.invokeTOSCAProcessing(csarId);
 
         // TODO this is such a brutal hack, won't go through reviews....
         final WineryConnector wc = new WineryConnector();
-        boolean repoAvailable = wc.isWineryRepositoryAvailable();
+        final boolean repoAvailable = wc.isWineryRepositoryAvailable();
 
         final StringBuilder strB = new StringBuilder();
 
-        // quick and dirty parallel thread to upload the csar to the container
-        // repository
+        // quick and dirty parallel thread to upload the csar to the container repository
         // This is needed for the state save feature
-        Thread parallelUploadThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                if (wc.isWineryRepositoryAvailable()) {
-                    try {
-                        strB.append(wc.uploadCSAR(file, false));
-                    }
-                    catch (URISyntaxException e) {
-                        e.printStackTrace();
-                    }
-                    catch (IOException e) {
-                        e.printStackTrace();
-                    }
+        final Thread parallelUploadThread = new Thread(() -> {
+            if (wc.isWineryRepositoryAvailable()) {
+                try {
+                    strB.append(wc.uploadCSAR(file, false));
+                }
+                catch (final URISyntaxException e1) {
+                    e1.printStackTrace();
+                }
+                catch (final IOException e2) {
+                    e2.printStackTrace();
                 }
             }
         });

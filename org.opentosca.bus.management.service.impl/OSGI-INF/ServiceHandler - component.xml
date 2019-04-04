@@ -6,4 +6,5 @@
    <reference bind="bindToscaService" cardinality="1..1" interface="org.opentosca.container.core.engine.IToscaEngineService" name="IToscaEngineService" policy="static" unbind="unbindToscaService"/>
    <reference bind="bindCapabilityService" cardinality="1..1" interface="org.opentosca.container.core.service.ICoreCapabilityService" name="ICoreCapabilityService" policy="static" unbind="unbindCapabilityService"/>
    <reference bind="bindEndpointService" cardinality="1..1" interface="org.opentosca.container.core.service.ICoreEndpointService" name="ICoreEndpointService" policy="static" unbind="unbindEndpointService"/>
+   <reference bind="bindFileService" cardinality="1..1" interface="org.opentosca.container.core.service.ICoreFileService" name="ICoreFileService" policy="static" unbind="unbindFileService"/>
 </scr:component>

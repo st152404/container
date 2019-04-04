@@ -43,8 +43,8 @@ public class PluginHandler {
         LOG.debug("Searching a matching invocation plug-in for InvocationType {} and deployment location {}",
                   invocationType, deploymentLocation);
 
-        // redirect invocation call to 'remote' plug-in if deployment location is not the
-        // local Container
+        // redirect invocation call to 'remote' plug-in if deployment location is not the local
+        // Container
         if (!deploymentLocation.equals(Settings.OPENTOSCA_CONTAINER_HOSTNAME)) {
 
             // FIXME: find better solution to avoid forwarding of script calls to the
@@ -85,8 +85,8 @@ public class PluginHandler {
         LOG.debug("Searching a matching deployment plug-in for deployment type {} and deployment location {}",
                   deploymentType, deploymentLocation);
 
-        // redirect deployment call to 'remote' plug-in if deployment location is not the
-        // local Container
+        // redirect deployment call to 'remote' plug-in if deployment location is not the local
+        // Container
         if (!deploymentLocation.equals(Settings.OPENTOSCA_CONTAINER_HOSTNAME)) {
             LOG.debug("Deployment location is remote. Redirecting deployment to remote plug-in.");
 
@@ -97,7 +97,7 @@ public class PluginHandler {
             ServiceHandler.deploymentPluginServices.get(deploymentType);
 
         if (deploymentPlugin != null) {
-            exchange = deploymentPlugin.invokeImplementationArtifactDeployment(exchange);
+            exchange = deploymentPlugin.invokeDeployment(exchange);
         } else {
             LOG.warn("No matching plug-in found!");
         }

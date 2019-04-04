@@ -335,8 +335,7 @@ public class CoreInternalEndpointServiceImpl implements ICoreInternalEndpointSer
             endpoint = (WSDLEndpoint) queryWSDLEndpoint.getSingleResult();
         }
         catch (final NoResultException e) {
-            LOG.error("Query in database didn't return a result", e);
-            return null;
+            LOG.warn("Query in database didn't return a result");
         }
 
         return endpoint;

@@ -4,8 +4,6 @@ import java.lang.reflect.Field;
 import java.util.Hashtable;
 import java.util.Map;
 
-import javax.xml.namespace.QName;
-
 import org.opentosca.bus.management.service.IManagementBusService;
 import org.opentosca.container.core.engine.IToscaEngineService;
 import org.opentosca.container.core.engine.xml.IXMLSerializerService;
@@ -98,11 +96,6 @@ public class ServiceBindingTracker {
         this.LOG.info("Start of the OpenTOSCA Container, now invoke the resolving and consolidation of TOSCA data inside of stored CSARs.");
         for (final CSARID csarID : this.coreFileService.getCSARIDs()) {
             this.openToscaControlService.invokeTOSCAProcessing(csarID);
-
-            for (final QName serviceTemplateID : this.toscaEngineService.getToscaReferenceMapper()
-                                                                        .getServiceTemplateIDsContainedInCSAR(csarID)) {
-                this.openToscaControlService.invokePlanDeployment(csarID, serviceTemplateID);
-            }
         }
 
         this.toscaEngineService.getToscaReferenceMapper().printStoredData();

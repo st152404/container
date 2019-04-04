@@ -30,6 +30,18 @@ public class Settings {
     public final static String ENGINE_IA_TOMCAT_PASSWORD =
         System.getProperty("org.opentosca.container.engine.ia.plugin.tomcat.password", "admin");
 
+    public final static String BPEL_ENGINE =
+        System.getProperty("org.opentosca.container.engine.plan.plugin.bpel.engine", "ODE");
+    public final static String BPEL_ENGINE_URL =
+        System.getProperty("org.opentosca.container.engine.plan.plugin.bpel.url", "http://localhost:9763/ode");
+    public final static String BPEL_ENGINE_USERNAME =
+        System.getProperty("org.opentosca.container.engine.plan.plugin.bpel.username", "admin");
+    public final static String BPEL_ENGINE_PASSWORD =
+        System.getProperty("org.opentosca.container.engine.plan.plugin.bpel.password", "admin");
+    public final static String BPEL_ENGINE_SERVICES_URL =
+        System.getProperty("org.opentosca.container.engine.plan.plugin.bpel.services.url",
+                           "http://localhost:9763/ode/processes");
+
 
     public final static String PERSISTENCE_UNIT_NAME = "OpenTOSCA";
 

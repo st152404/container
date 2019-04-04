@@ -204,7 +204,7 @@ public class RequestReceiver {
                     LOG.debug("Deployment plug-in: {}. Deploying IA...", deploymentPlugin.toString());
 
                     // execute deployment via corresponding plug-in
-                    exchange = deploymentPlugin.invokeImplementationArtifactDeployment(exchange);
+                    exchange = deploymentPlugin.invokeDeployment(exchange);
                     endpointURI = exchange.getIn().getHeader(MBHeader.ENDPOINT_URI.toString(), URI.class);
 
                     // store new endpoint for the IA
@@ -300,7 +300,7 @@ public class RequestReceiver {
 
                     LOG.debug("Undeploying IA...");
 
-                    exchange = deploymentPlugin.invokeImplementationArtifactUndeployment(exchange);
+                    exchange = deploymentPlugin.invokeUndeployment(exchange);
                     undeploymentState =
                         exchange.getIn().getHeader(MBHeader.OPERATIONSTATE_BOOLEAN.toString(), boolean.class);
                 } else {

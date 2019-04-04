@@ -9,7 +9,8 @@ import org.opentosca.container.core.tosca.model.TPlan.PlanModelReference;
 
 /**
  * This is the interface for plugins which handle PlanReference elements inside a Plan element
- * specified in a TOSCA Service Template.
+ * specified in a TOSCA Service Template.<br>
+ * <br>
  *
  * The plugin musn't resolve the {@link org.opentosca.model.tosca.TPlan.PlanModelReference}, a
  * service implementing {@link org.opentosca.core.file.service.ICoreFileService} should be called

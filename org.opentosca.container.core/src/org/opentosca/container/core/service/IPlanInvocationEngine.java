@@ -1,7 +1,6 @@
 package org.opentosca.container.core.service;
 
 import java.io.UnsupportedEncodingException;
-import java.util.List;
 
 import javax.xml.namespace.QName;
 
@@ -31,17 +30,6 @@ public interface IPlanInvocationEngine {
      */
     public void invokePlan(CSARID csarID, QName serviceTemplateId, long serviceTemplateInstanceID, TPlanDTO plan,
                            String correlationID) throws UnsupportedEncodingException;
-
-    public void correctCorrelationToServiceTemplateInstanceIdMapping(CSARID csarID, QName serviceTemplateId,
-                                                                     String corrId, int correctSTInstanceId);
-
-    /**
-     * Returns a list of CorrelationIDs of activce PublicPlans of a CSARInstance.
-     *
-     * @param csarInstanceID
-     * @return list of CorrelationIDs of active PublicPlans
-     */
-    public List<String> getActiveCorrelationsOfInstance(ServiceTemplateInstanceID csarInstanceID);
 
     /**
      * Returns a specific active PublicPlan.
