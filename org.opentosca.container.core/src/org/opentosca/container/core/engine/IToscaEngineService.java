@@ -527,6 +527,15 @@ public interface IToscaEngineService {
     public String getPlanName(CSARID csarID, QName planId);
 
     /**
+     * Returns the language of a Plan element.
+     *
+     * @param csarID the ID of the CSAR
+     * @param planId the ID of the Plan element
+     * @return the String of the language attribute inside the Plan element
+     */
+    public String getPlanLanguage(CSARID csarID, QName planId);
+
+    /**
      * Returns the defined references of an ArtifacTemplate.
      *
      * @param csarID

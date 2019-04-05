@@ -21,7 +21,6 @@ import org.opentosca.container.core.service.internal.ICoreInternalDeploymentTrac
 import org.opentosca.container.core.service.internal.ICoreInternalEndpointService;
 import org.opentosca.container.core.service.internal.ICoreInternalFileService;
 import org.opentosca.container.core.service.internal.ICoreInternalModelRepositoryService;
-import org.opentosca.container.engine.plan.IPlanEngineService;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
 import org.slf4j.Logger;
@@ -46,7 +45,6 @@ public class ServiceBindingTracker {
     IFileAccessService fileAccessService;
     IHTTPService httpService;
     IOpenToscaControlService openToscaControlService;
-    IPlanEngineService planEngineService;
     IToscaEngineService toscaEngineService;
     IXMLSerializerService xmlSerializerService;
     IPlanInvocationEngine planInvocationEngine;
@@ -455,33 +453,6 @@ public class ServiceBindingTracker {
     protected void unbindIOpenToscaControlService(final IOpenToscaControlService service) {
         this.LOG.debug("Unbind of the IOpenToscaControlService.");
         this.openToscaControlService = null;
-        log_offline(service.getClass().getSimpleName());
-    }
-
-    /**
-     * Bind method for a service.
-     *
-     * @param service The service to bind.
-     */
-    protected void bindIPlanEngineService(final IPlanEngineService service) {
-        if (service == null) {
-            this.LOG.error("Service IPlanEngineService is null.");
-        } else {
-            this.LOG.debug("Bind of the IPlanEngineService.");
-            this.planEngineService = service;
-            log_online(service.getClass().getSimpleName());
-            checkAvailability();
-        }
-    }
-
-    /**
-     * Unbind method for a service.
-     *
-     * @param service The service to unbind.
-     */
-    protected void unbindIPlanEngineService(final IPlanEngineService service) {
-        this.LOG.debug("Unbind of the IPlanEngineService.");
-        this.planEngineService = null;
         log_offline(service.getClass().getSimpleName());
     }
 

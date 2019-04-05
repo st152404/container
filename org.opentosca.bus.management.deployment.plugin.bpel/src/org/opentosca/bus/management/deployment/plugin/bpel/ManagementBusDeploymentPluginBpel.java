@@ -295,12 +295,13 @@ public class ManagementBusDeploymentPluginBpel implements IManagementBusDeployme
         try {
             // store artifact as temporary file
             LOG.info("Trying to retrieve BPEL-File from URL: {}", planURL);
-            final File tempFile = File.createTempFile("BPEL", ".zip");
+            final String fileName = location.substring(location.lastIndexOf('/') + 1);
+            final File tempFile = new File(System.getProperty("java.io.tmpdir"), fileName);
             tempFile.deleteOnExit();
             FileUtils.copyURLToFile(planURL, tempFile);
             return tempFile;
         }
-        catch (final IOException e) {
+        catch (final Exception e) {
             LOG.error("Failed to retrieve BPEL-File: {}", e.getMessage());
             return null;
         }

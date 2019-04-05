@@ -4,7 +4,6 @@
    <service>
       <provide interface="org.opentosca.container.control.IOpenToscaControlService"/>
    </service>
-   <reference bind="bindPlanEngine" cardinality="1..1" interface="org.opentosca.container.engine.plan.IPlanEngineService" name="IPlanEngineService" policy="static" unbind="unbindPlanEngine"/>
    <reference bind="bindFileService" cardinality="1..1" interface="org.opentosca.container.core.service.ICoreFileService" name="ICoreFileService" policy="static" unbind="unbindFileService"/>
    <reference bind="bindToscaEngine" cardinality="1..1" interface="org.opentosca.container.core.engine.IToscaEngineService" name="IToscaEngineService" policy="static" unbind="unbindToscaEngine"/>
    <reference bind="bindDeploymentTrackerService" cardinality="1..1" interface="org.opentosca.container.core.service.ICoreDeploymentTrackerService" name="ICoreDeploymentTrackerService" policy="static" unbind="unbindDeploymentTrackerService"/>

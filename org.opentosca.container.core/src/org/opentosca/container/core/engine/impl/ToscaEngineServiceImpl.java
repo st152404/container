@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -1458,6 +1459,18 @@ public class ToscaEngineServiceImpl implements IToscaEngineService {
 
         LOG.error("Not able to retrieve to plan name of " + planId.toString() + " inside of CSAR " + csar.toString());
         return null;
+    }
+
+    @Override
+    public String getPlanLanguage(final CSARID csarID, final QName planId) {
+        final Object obj = toscaReferenceMapper.getJAXBReference(csarID, planId);
+        if (Objects.nonNull(obj) && obj instanceof TPlan) {
+            final TPlan plan = (TPlan) obj;
+            return plan.getPlanLanguage();
+        } else {
+            LOG.error("Not able to retrieve TPlan object for CSARID {} and plan ID {}", csarID, planId);
+            return "";
+        }
     }
 
     @Override

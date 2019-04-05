@@ -16,6 +16,7 @@ import javax.xml.namespace.QName;
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.ProducerTemplate;
+import org.apache.camel.builder.ExchangeBuilder;
 import org.apache.camel.impl.DefaultExchange;
 import org.apache.commons.lang3.StringUtils;
 import org.opentosca.bus.management.deployment.plugin.IManagementBusDeploymentPluginService;
@@ -599,13 +600,72 @@ public class ManagementBusServiceImpl implements IManagementBusService {
     }
 
     /**
+     * Undeploy all plans of a given CSAR.<br/>
+     * <br/>
+     *
+     * FIXME: Quick fix to allow undeployment of all plans when a CSAR is deleted. Find a better way
+     * to determine when to undeploy which plans. Additionally the invocation mechanism for this
+     * method has to be fixed (Camel rather than direct invocation).
+     *
+     * @param csarID the ID of the CSAR
+     * @return <code>true</code> if undeployment of all plans is successful, <code>false</code>
+     *         otherwise
+     */
+    public static boolean deleteAllPlans(final CSARID csarID) {
+
+        if (Objects.isNull(csarID)) {
+            LOG.error("Plan deletion not possible with CSARID equal to null");
+            return false;
+        }
+
+        boolean success = true;
+
+        // create temp exchange for the plugin communication
+        Exchange exchange = new ExchangeBuilder(Activator.camelContext).build();
+        final Message message = exchange.getIn();
+
+        // get all plan endpoints for the given CSAR
+        final List<WSDLEndpoint> planEndpoints =
+            ServiceHandler.endpointService.getWSDLEndpointsForCSARID(Settings.OPENTOSCA_CONTAINER_HOSTNAME, csarID)
+                                          .stream().filter(endpoint -> Objects.nonNull(endpoint.getPlanId()))
+                                          .collect(Collectors.toList());
+
+        for (final WSDLEndpoint planEndpoint : planEndpoints) {
+            final String planLocation = getPlanLocation(csarID, planEndpoint.getPlanId());
+            LOG.debug("Undeploying plan with ID {} and location {}", planEndpoint.getPlanId(), planLocation);
+
+            // add location to the exchange
+            final List<String> artifactReferences = Arrays.asList(planLocation);
+            message.setHeader(MBHeader.ARTIFACTREFERENCES_LISTSTRING.toString(), artifactReferences);
+
+            // get plan language and determine the suited plugin
+            final String language = ServiceHandler.toscaEngineService.getPlanLanguage(csarID, planEndpoint.getPlanId());
+            final IManagementBusDeploymentPluginService plugin = ServiceHandler.deploymentPluginServices.get(language);
+
+            if (Objects.nonNull(plugin)) {
+                exchange = plugin.invokeUndeployment(exchange);
+                final boolean result =
+                    exchange.getIn().getHeader(MBHeader.OPERATIONSTATE_BOOLEAN.toString(), boolean.class);
+
+                LOG.debug("Undeployment result: {}", result);
+                success &= result;
+            } else {
+                LOG.error("No suited plugin for language {} found", language);
+                success = false;
+            }
+        }
+
+        return success;
+    }
+
+    /**
      * Get the location of the file representing the given plan of the given CSAR.
      *
      * @param csarID the ID of the CSAR
      * @param planID the ID of the plan
      * @return the location of the plan as String if found, <code>null</code> otherwise
      */
-    private String getPlanLocation(final CSARID csarID, final QName planID) {
+    private static String getPlanLocation(final CSARID csarID, final QName planID) {
 
         try {
             final CSARContent csar = ServiceHandler.fileService.getCSAR(csarID);

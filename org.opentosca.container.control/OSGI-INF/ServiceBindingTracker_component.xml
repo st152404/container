@@ -14,7 +14,6 @@
    <reference bind="bindIFileAccessService" cardinality="1..1" interface="org.opentosca.container.core.service.IFileAccessService" name="IFileAccessService" policy="static" unbind="unbindIFileAccessService"/>
    <reference bind="bindIHTTPService" cardinality="1..1" interface="org.opentosca.container.core.service.IHTTPService" name="IHTTPService" policy="static" unbind="unbindIHTTPService"/>
    <reference bind="bindIOpenToscaControlService" cardinality="1..1" interface="org.opentosca.container.control.IOpenToscaControlService" name="IOpenToscaControlService" policy="static" unbind="unbindIOpenToscaControlService"/>
-   <reference bind="bindIPlanEngineService" cardinality="1..1" interface="org.opentosca.container.engine.plan.IPlanEngineService" name="IPlanEngineService" policy="static" unbind="unbindIPlanEngineService"/>
    <reference bind="bindIToscaEngineService" cardinality="1..1" interface="org.opentosca.container.core.engine.IToscaEngineService" name="IToscaEngineService" policy="static" unbind="unbindIToscaEngineService"/>
    <reference bind="bindIXMLSerializerService" cardinality="1..1" interface="org.opentosca.container.core.engine.xml.IXMLSerializerService" name="IXMLSerializerService" policy="static" unbind="unbindIXMLSerializerService"/>
    <reference bind="bindEventAdmin" cardinality="1..1" interface="org.osgi.service.event.EventAdmin" name="EventAdmin" policy="static" unbind="unbindEventAdmin"/>

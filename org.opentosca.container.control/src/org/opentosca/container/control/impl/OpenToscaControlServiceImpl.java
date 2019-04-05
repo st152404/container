@@ -6,6 +6,7 @@ import java.util.List;
 
 import javax.xml.namespace.QName;
 
+import org.opentosca.bus.management.service.impl.ManagementBusServiceImpl;
 import org.opentosca.container.control.IOpenToscaControlService;
 import org.opentosca.container.core.common.Settings;
 import org.opentosca.container.core.common.SystemException;
@@ -18,10 +19,6 @@ import org.opentosca.container.core.service.ICoreEndpointService;
 import org.opentosca.container.core.service.ICoreFileService;
 import org.opentosca.container.core.service.IPlanInvocationEngine;
 import org.opentosca.container.core.tosca.extension.TPlanDTO;
-import org.opentosca.container.core.tosca.model.TPlan;
-import org.opentosca.container.core.tosca.model.TPlans;
-import org.opentosca.container.core.tosca.model.TServiceTemplate;
-import org.opentosca.container.engine.plan.IPlanEngineService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +31,6 @@ import org.slf4j.LoggerFactory;
  */
 public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
 
-    private static IPlanEngineService planEngine = null;
     private static ICoreFileService fileService = null;
     private static IToscaEngineService toscaEngine = null;
     private static ICoreDeploymentTrackerService coreDeploymentTracker = null;
@@ -113,7 +109,7 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
         // return errors;
         // }
 
-        if (!undeployPlans(csarID)) {
+        if (!ManagementBusServiceImpl.deleteAllPlans(csarID)) {
             this.LOG.warn("It was not possible to undeploy all plans of the CSAR \"" + csarID + ".");
             errors.add("Could not undeploy all plans.");
         }
@@ -152,67 +148,6 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
         return errors;
     }
 
-    private boolean undeployPlans(final CSARID csarID) {
-        final List<TPlan> listOfUndeployedPlans = new ArrayList<>();
-        // invoke PlanEngine
-        if (OpenToscaControlServiceImpl.toscaEngine.getServiceTemplatesInCSAR(csarID) == null) {
-            // nothing to delete
-            return true;
-        }
-
-        switch (getDeploymentProcessState(csarID)) {
-            case STORED:
-            case TOSCA_PROCESSED:
-            case TOSCAPROCESSING_ACTIVE:
-                return true;
-            default:
-                break;
-        }
-
-        for (final QName serviceTemplateID : toscaEngine.getServiceTemplatesInCSAR(csarID)) {
-
-            this.LOG.info("Invoke the PlanEngine for processing the Plans.");
-            if (OpenToscaControlServiceImpl.planEngine != null) {
-
-                final TServiceTemplate mainServiceTemplate =
-                    (TServiceTemplate) OpenToscaControlServiceImpl.toscaEngine.getToscaReferenceMapper()
-                                                                              .getJAXBReference(csarID,
-                                                                                                serviceTemplateID);
-
-                if (mainServiceTemplate == null) {
-                    this.LOG.error("Did not found the main ServiceTemplate \"" + serviceTemplateID + "\".");
-                    OpenToscaControlServiceImpl.coreDeploymentTracker.storeDeploymentState(csarID,
-                                                                                           DeploymentProcessState.TOSCA_PROCESSED);
-                    return false;
-                }
-
-                if (mainServiceTemplate.getPlans() == null) {
-                    this.LOG.info("No plans to process ...");
-                    return true;
-                }
-
-                this.LOG.debug("PlanEngine is alive!");
-
-                final TPlans plans = mainServiceTemplate.getPlans();
-
-                String namespace = plans.getTargetNamespace();
-
-                if (namespace == null) {
-                    // the Plans element has no targetNamespace defined fallback
-                    // to ServiceTemplate namespace
-                    namespace = serviceTemplateID.getNamespaceURI();
-                }
-
-                for (final TPlan plan : plans.getPlan()) {
-                    if (!OpenToscaControlServiceImpl.planEngine.undeployPlan(plan, namespace, csarID)) {
-                        listOfUndeployedPlans.add(plan);
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -229,20 +164,6 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
     @Override
     public DeploymentProcessState getDeploymentProcessState(final CSARID csarID) {
         return OpenToscaControlServiceImpl.coreDeploymentTracker.getDeploymentState(csarID);
-    }
-
-    protected void bindPlanEngine(final IPlanEngineService service) {
-        if (service == null) {
-            this.LOG.error("Service PlanEngine is null.");
-        } else {
-            this.LOG.debug("Bind of the PlanEngine.");
-            OpenToscaControlServiceImpl.planEngine = service;
-        }
-    }
-
-    protected void unbindPlanEngine(final IPlanEngineService service) {
-        this.LOG.debug("Unbind of the PlanEngine.");
-        OpenToscaControlServiceImpl.planEngine = null;
     }
 
     protected void bindFileService(final ICoreFileService service) {

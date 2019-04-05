@@ -15,11 +15,7 @@ import org.opentosca.container.core.model.capability.provider.ProviderType;
  * (plan + deployment).<br>
  * <br>
  *
- * Copyright 2018 IAAS University of Stuttgart <br>
- * <br>
- *
- * @author Benjamin Weder - st100495@stud.uni-stuttgart.de
- *
+ * Copyright 2019 IAAS University of Stuttgart
  */
 
 public class DeploymentPluginCapabilityChecker {
@@ -29,7 +25,7 @@ public class DeploymentPluginCapabilityChecker {
      *
      * @param requiredFeatures the set of features to be satisfied
      * @param plugin the deployment plug-in
-     * @return true if all requiredFeatures are met, false otherwise
+     * @return <code>true</code> if all requiredFeatures are met, <code>false</code> otherwise
      */
     public static boolean capabilitiesAreMet(final List<String> requiredFeatures,
                                              final IManagementBusDeploymentPluginService plugin) {
@@ -78,5 +74,4 @@ public class DeploymentPluginCapabilityChecker {
 
         return conAndPlanCaps;
     }
-
 }
