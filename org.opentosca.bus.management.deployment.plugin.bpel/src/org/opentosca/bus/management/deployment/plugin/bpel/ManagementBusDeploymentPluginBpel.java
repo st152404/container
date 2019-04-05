@@ -58,6 +58,13 @@ public class ManagementBusDeploymentPluginBpel implements IManagementBusDeployme
 
     public static final String BPS_ENGINE = "BPS";
 
+    // credentials
+    private static final String ENGINE = Settings.BPEL_ENGINE;
+    private static final String ENGINE_URL = Settings.BPEL_ENGINE_URL;
+    private static final String ENGINE_SERVICES_URL = Settings.BPEL_ENGINE_SERVICES_URL;
+    private static final String ENGINE_USER = Settings.BPEL_ENGINE_USERNAME;
+    private static final String ENGINE_PW = Settings.BPEL_ENGINE_PASSWORD;
+
     private IFileAccessService fileAccessService = null;
 
     @Override
@@ -71,41 +78,22 @@ public class ManagementBusDeploymentPluginBpel implements IManagementBusDeployme
             message.getHeader(MBHeader.ARTIFACTREFERENCES_LISTSTRING.toString(), List.class);
         final CSARID csarID = message.getHeader(MBHeader.CSARID.toString(), CSARID.class);
 
-        // retrieve credentials
-        final String engine = Settings.BPEL_ENGINE;
-        final String engineURL = Settings.BPEL_ENGINE_URL;
-        final String engineServicesURL = Settings.BPEL_ENGINE_SERVICES_URL;
-        final String engineUser = Settings.BPEL_ENGINE_USERNAME;
-        final String enginePW = Settings.BPEL_ENGINE_PASSWORD;
-
         // get location of the BPEL zip file
         if (Objects.nonNull(artifactReferences) && !artifactReferences.isEmpty()) {
             final String planLocation = artifactReferences.get(0);
 
-            if (!planLocation.substring(planLocation.lastIndexOf('.') + 1).equals("zip")) {
-                LOG.error("Plan reference is not a ZIP file: {}", planLocation);
-                return exchange;
-            }
-
-            // parse location to URL for (remote) retrieval
-            final URL planURL = parseLocationToURL(planLocation);
-            if (Objects.isNull(planURL)) {
-                LOG.error("Plan reference is not a URL: {}", planLocation);
-                return exchange;
-            }
-
             // download and store BPEL zip temporarily
-            final File bpelFile = getBPELFile(planURL);
+            final File bpelFile = getBPELFile(planLocation);
             if (Objects.isNull(bpelFile)) {
                 LOG.error("Retrieved file is null.");
                 return exchange;
             }
+            LOG.debug("Successfully retrieved BPEL file from URL");
 
             if (Objects.isNull(this.fileAccessService)) {
                 LOG.error("FileAccessService is not available, can't create needed temporary space on disk");
                 return exchange;
             }
-            LOG.debug("Successfully retrieved BPEL file from URL");
 
             // unzip plan to temp directory for some endpoint updates
             final File tempDir = this.fileAccessService.getTemp();
@@ -116,7 +104,7 @@ public class ManagementBusDeploymentPluginBpel implements IManagementBusDeployme
             // changing endpoints in WSDLs
             QName portType = null;
             try {
-                final ODEEndpointUpdater odeUpdater = new ODEEndpointUpdater(engineServicesURL, engine);
+                final ODEEndpointUpdater odeUpdater = new ODEEndpointUpdater(ENGINE_SERVICES_URL, ENGINE);
                 portType = odeUpdater.getPortType(planContents);
                 if (!odeUpdater.changeEndpoints(planContents, csarID)) {
                     LOG.error("Not all endpoints used by the plan have been changed");
@@ -164,18 +152,16 @@ public class ManagementBusDeploymentPluginBpel implements IManagementBusDeployme
             String processId = "";
             Map<String, URI> endpoints = Collections.emptyMap();
             try {
-                if (engine.equalsIgnoreCase(BPS_ENGINE)) {
+                if (ENGINE.equalsIgnoreCase(BPS_ENGINE)) {
                     final BpsConnector connector = new BpsConnector();
 
-                    processId = connector.deploy(tempPlan, engineURL, engineUser, enginePW);
-
-                    endpoints = connector.getEndpointsForPID(processId, engineURL, engineUser, enginePW);
+                    processId = connector.deploy(tempPlan, ENGINE_URL, ENGINE_USER, ENGINE_PW);
+                    endpoints = connector.getEndpointsForPID(processId, ENGINE_URL, ENGINE_USER, ENGINE_PW);
                 } else {
                     final OdeConnector connector = new OdeConnector();
 
-                    processId = connector.deploy(tempPlan, engineURL);
-
-                    endpoints = connector.getEndpointsForPID(processId, engineURL);
+                    processId = connector.deploy(tempPlan, ENGINE_URL);
+                    endpoints = connector.getEndpointsForPID(processId, ENGINE_URL);
                 }
             }
             catch (final Exception e) {
@@ -202,6 +188,8 @@ public class ManagementBusDeploymentPluginBpel implements IManagementBusDeployme
             // set needed headers to store and access plan endpoint
             message.setHeader(MBHeader.ENDPOINT_URI.toString(), endpoint);
             message.setHeader(MBHeader.PORTTYPE_QNAME.toString(), portType);
+        } else {
+            LOG.error("No artifact reference defined for plan deployment. Aborting...");
         }
 
         return exchange;
@@ -209,7 +197,48 @@ public class ManagementBusDeploymentPluginBpel implements IManagementBusDeployme
 
     @Override
     public Exchange invokeUndeployment(final Exchange exchange) {
-        // TODO
+
+        LOG.debug("Trying to undeploy BPEL plan.");
+        final Message message = exchange.getIn();
+
+        // set operation state to false and only change after successful undeployment
+        message.setHeader(MBHeader.OPERATIONSTATE_BOOLEAN.toString(), false);
+
+        @SuppressWarnings("unchecked")
+        final List<String> artifactReferences =
+            message.getHeader(MBHeader.ARTIFACTREFERENCES_LISTSTRING.toString(), List.class);
+
+        // get location of the BPEL zip file
+        if (Objects.nonNull(artifactReferences) && !artifactReferences.isEmpty()) {
+            final String planLocation = artifactReferences.get(0);
+
+            // download and store BPEL zip temporarily
+            final File bpelFile = getBPELFile(planLocation);
+            if (Objects.isNull(bpelFile)) {
+                LOG.error("Retrieved file is null.");
+                return exchange;
+            }
+            LOG.debug("Successfully retrieved BPEL file from URL");
+
+            boolean wasUndeployed = false;
+            if (ENGINE.equalsIgnoreCase(BPS_ENGINE)) {
+                final BpsConnector connector = new BpsConnector();
+                wasUndeployed = connector.undeploy(bpelFile, ENGINE_URL, ENGINE_USER, ENGINE_PW);
+            } else {
+                final OdeConnector connector = new OdeConnector();
+                wasUndeployed = connector.undeploy(bpelFile, ENGINE_URL);
+            }
+
+            if (wasUndeployed) {
+                LOG.debug("Undeployment successfully");
+                message.setHeader(MBHeader.OPERATIONSTATE_BOOLEAN.toString(), true);
+            } else {
+                LOG.warn("Undeployment not successful");
+            }
+        } else {
+            LOG.error("No artifact reference defined for undeployment. Aborting...");
+        }
+
         return exchange;
     }
 
@@ -242,6 +271,42 @@ public class ManagementBusDeploymentPluginBpel implements IManagementBusDeployme
     }
 
     /**
+     * Download a BPEL zip file from a given location
+     *
+     * @param location the location of the BPEL zip file as String
+     * @return the zip as File or <code>null</code> if location is no URL, target file is no zip or
+     *         retrieval fails
+     */
+    private File getBPELFile(final String location) {
+
+        // only BPEL ZIP files are supported
+        if (!location.substring(location.lastIndexOf('.') + 1).equals("zip")) {
+            LOG.error("Plan reference is not a ZIP file: {}", location);
+            return null;
+        }
+
+        // parse location to URL for (remote) retrieval
+        final URL planURL = parseLocationToURL(location);
+        if (Objects.isNull(planURL)) {
+            LOG.error("Plan reference is not a URL: {}", location);
+            return null;
+        }
+
+        try {
+            // store artifact as temporary file
+            LOG.info("Trying to retrieve BPEL-File from URL: {}", planURL);
+            final File tempFile = File.createTempFile("BPEL", ".zip");
+            tempFile.deleteOnExit();
+            FileUtils.copyURLToFile(planURL, tempFile);
+            return tempFile;
+        }
+        catch (final IOException e) {
+            LOG.error("Failed to retrieve BPEL-File: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Convert the given location to a URL
      *
      * @param location the location to convert
@@ -255,30 +320,6 @@ public class ManagementBusDeploymentPluginBpel implements IManagementBusDeployme
             LOG.error("Failed to convert the reference to a URL: {}", e.getMessage());
             return null;
         }
-    }
-
-    /**
-     * Download a BPEL zip file from a given URL
-     *
-     * @param url the URL of the file
-     * @return the zip as File or null if retrieval fails
-     */
-    private File getBPELFile(final URL url) {
-        LOG.info("Trying to retrieve BPEL-File from URL: {}", url);
-
-        if (Objects.nonNull(url)) {
-            try {
-                // store artifact as temporary file
-                final File tempFile = File.createTempFile("BPEL", ".zip");
-                tempFile.deleteOnExit();
-                FileUtils.copyURLToFile(url, tempFile);
-                return tempFile;
-            }
-            catch (final IOException e) {
-                LOG.error("Failed to retrieve BPEL-File: {}", e.getMessage());
-            }
-        }
-        return null;
     }
 
     /**
