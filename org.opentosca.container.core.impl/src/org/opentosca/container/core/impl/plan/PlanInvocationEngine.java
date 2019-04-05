@@ -286,9 +286,9 @@ public class PlanInvocationEngine implements IPlanInvocationEngine, EventHandler
         }
     }
 
-    public Map<String, String> createRequest(final CSARID csarID, final QName serviceTemplateID,
-                                             final QName planInputMessageID, final List<TParameterDTO> inputParameter,
-                                             final String correlationID) throws UnsupportedEncodingException {
+    private Map<String, String> createRequest(final CSARID csarID, final QName serviceTemplateID,
+                                              final QName planInputMessageID, final List<TParameterDTO> inputParameter,
+                                              final String correlationID) throws UnsupportedEncodingException {
 
         final Map<String, String> map = new HashMap<>();
         final List<Document> docs = new ArrayList<>();

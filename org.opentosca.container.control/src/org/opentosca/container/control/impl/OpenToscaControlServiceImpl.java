@@ -8,14 +8,12 @@ import javax.xml.namespace.QName;
 
 import org.opentosca.bus.management.service.impl.ManagementBusServiceImpl;
 import org.opentosca.container.control.IOpenToscaControlService;
-import org.opentosca.container.core.common.Settings;
 import org.opentosca.container.core.common.SystemException;
 import org.opentosca.container.core.common.UserException;
 import org.opentosca.container.core.engine.IToscaEngineService;
 import org.opentosca.container.core.model.csar.id.CSARID;
 import org.opentosca.container.core.model.deployment.process.DeploymentProcessState;
 import org.opentosca.container.core.service.ICoreDeploymentTrackerService;
-import org.opentosca.container.core.service.ICoreEndpointService;
 import org.opentosca.container.core.service.ICoreFileService;
 import org.opentosca.container.core.service.IPlanInvocationEngine;
 import org.opentosca.container.core.tosca.extension.TPlanDTO;
@@ -34,7 +32,6 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
     private static ICoreFileService fileService = null;
     private static IToscaEngineService toscaEngine = null;
     private static ICoreDeploymentTrackerService coreDeploymentTracker = null;
-    private static ICoreEndpointService endpointService = null;
     private static IPlanInvocationEngine planInvocationEngine = null;
 
     private final Logger LOG = LoggerFactory.getLogger(OpenToscaControlServiceImpl.class);
@@ -123,10 +120,6 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
 
         OpenToscaControlServiceImpl.coreDeploymentTracker.deleteDeploymentState(csarID);
 
-        // Delete all plan endpoints related to this CSAR. IA endpoints are undeployed and deleted
-        // by the Management Bus.
-        OpenToscaControlServiceImpl.endpointService.removePlanEndpoints(Settings.OPENTOSCA_CONTAINER_HOSTNAME, csarID);
-
         try {
             OpenToscaControlServiceImpl.fileService.deleteCSAR(csarID);
         }
@@ -206,20 +199,6 @@ public class OpenToscaControlServiceImpl implements IOpenToscaControlService {
     protected void unbindDeploymentTrackerService(final ICoreDeploymentTrackerService service) {
         this.LOG.debug("Unbind of the Core Deployment Tracker.");
         OpenToscaControlServiceImpl.coreDeploymentTracker = null;
-    }
-
-    protected void bindEndpointService(final ICoreEndpointService service) {
-        if (service == null) {
-            this.LOG.error("Service ICoreEndpointService is null.");
-        } else {
-            this.LOG.debug("Bind of the ICoreEndpointService.");
-            OpenToscaControlServiceImpl.endpointService = service;
-        }
-    }
-
-    protected void unbindEndpointService(final ICoreEndpointService service) {
-        this.LOG.debug("Unbind of the ICoreEndpointService.");
-        OpenToscaControlServiceImpl.endpointService = null;
     }
 
     protected void bindPlanInvocationEngine(final IPlanInvocationEngine service) {

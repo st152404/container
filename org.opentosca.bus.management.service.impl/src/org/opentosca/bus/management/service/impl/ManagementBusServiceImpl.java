@@ -647,6 +647,9 @@ public class ManagementBusServiceImpl implements IManagementBusService {
                 final boolean result =
                     exchange.getIn().getHeader(MBHeader.OPERATIONSTATE_BOOLEAN.toString(), boolean.class);
 
+                // remove stored endpoint
+                ServiceHandler.endpointService.removeWSDLEndpoint(planEndpoint);
+
                 LOG.debug("Undeployment result: {}", result);
                 success &= result;
             } else {
