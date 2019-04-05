@@ -281,11 +281,11 @@ public class BPELFreezeProcessBuilder extends AbstractFreezePlanBuilder {
         // read response and assign url of created stateful service template
         // query the localname from the response
         final String xpathQuery1 =
-            "concat(substring-before($" + statefulServiceTemplateVarName + ",'" + serviceTemplateId.getLocalPart()
+            "concat(substring-before(\\$" + statefulServiceTemplateVarName + ",'" + serviceTemplateId.getLocalPart()
                 + "'),encode-for-uri(encode-for-uri(//*[local-name()='QName']/*[local-name()='localname']/text())))";
         // query original service template url without the last path fragment(/service template
         // localname)
-        final String xpathQuery2 = "string($" + statefulServiceTemplateVarName + ")";
+        final String xpathQuery2 = "string(\\$" + statefulServiceTemplateVarName + ")";
         Node assignCreatedStatefulServiceTemplate =
             this.bpelFragments.createAssignVarToVarWithXpathQueriesAsNode("assignCreatedStatefuleServiceTemplateUrl",
                                                                           responseVarName, null,
