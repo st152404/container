@@ -1,6 +1,5 @@
 package org.opentosca.container.core.impl.service.internal;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -8,8 +7,6 @@ import javax.persistence.Query;
 
 import org.eclipse.osgi.framework.console.CommandProvider;
 import org.opentosca.container.core.model.csar.id.CSARID;
-import org.opentosca.container.core.model.deployment.plan.PlanDeploymentInfo;
-import org.opentosca.container.core.model.deployment.plan.PlanDeploymentState;
 import org.opentosca.container.core.model.deployment.process.DeploymentProcessInfo;
 import org.opentosca.container.core.model.deployment.process.DeploymentProcessState;
 import org.opentosca.container.core.next.jpa.EntityManagerProvider;
@@ -151,113 +148,6 @@ public class CoreInternalDeploymentTrackerServiceImpl implements ICoreInternalDe
                                                                csarID);
             return results.get(0);
         }
-
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean storePlanDeploymentInfo(PlanDeploymentInfo planDeploymentInfo) {
-        init();
-
-        CoreInternalDeploymentTrackerServiceImpl.LOG.info("Storing deployment state {} for Plan \"{}\" of CSAR \"{}\"...",
-                                                          new Object[] {planDeploymentInfo.getDeploymentState(),
-                                                                        planDeploymentInfo.getRelPath(), planDeploymentInfo.getCSARID()});
-
-        this.em.getTransaction().begin();
-
-        // check if deployment info for this Plan already exists
-        final PlanDeploymentInfo storedPlan =
-            getPlanDeploymentInfo(planDeploymentInfo.getCSARID(), planDeploymentInfo.getRelPath());
-
-        // deployment info already exists
-        if (storedPlan != null) {
-
-            CoreInternalDeploymentTrackerServiceImpl.LOG.debug("Plan deployment info for Plan \"{}\" of CSAR \"{}\" already exists. Existent deployment info will be overwritten!",
-                                                               planDeploymentInfo.getRelPath(),
-                                                               planDeploymentInfo.getCSARID());
-
-            final PlanDeploymentState storedPlanDeployState = storedPlan.getDeploymentState();
-            final PlanDeploymentState newPlanDeployState = planDeploymentInfo.getDeploymentState();
-
-            // if Plan is deployed and will be now undeployed (deployment state
-            // change to PLAN_UNDEPLOYING) reset the attempt counter to 0
-            if (storedPlanDeployState.equals(PlanDeploymentState.PLAN_DEPLOYED)
-                && newPlanDeployState.equals(PlanDeploymentState.PLAN_UNDEPLOYING)) {
-                CoreInternalDeploymentTrackerServiceImpl.LOG.debug("Deployed Plan \"{}\" of CSAR \"{}\" is now undeploying. Attempt count will be reseted.",
-                                                                   planDeploymentInfo.getRelPath(),
-                                                                   planDeploymentInfo.getCSARID());
-                storedPlan.setAttempt(0);
-            }
-
-            storedPlan.setDeploymentState(newPlanDeployState);
-            planDeploymentInfo = storedPlan;
-        }
-
-        // if Plan is now deploying or undeploying (deployment state change to
-        // PLAN_DEPLOYING / PLAN_UNDEPLOYING) increment attempt counter
-        if (planDeploymentInfo.getDeploymentState().equals(PlanDeploymentState.PLAN_DEPLOYING)
-            || planDeploymentInfo.getDeploymentState().equals(PlanDeploymentState.PLAN_UNDEPLOYING)) {
-            CoreInternalDeploymentTrackerServiceImpl.LOG.debug("Plan \"{}\" of CSAR \"{}\" is now deploying / undeploying. Increase attempt count.",
-                                                               planDeploymentInfo.getRelPath(),
-                                                               planDeploymentInfo.getCSARID());
-            planDeploymentInfo.setAttempt(planDeploymentInfo.getAttempt() + 1);
-        }
-
-        this.em.persist(planDeploymentInfo);
-        this.em.getTransaction().commit();
-
-        CoreInternalDeploymentTrackerServiceImpl.LOG.info("Storing deployment state {} for Plan \"{}\" of CSAR \"{}\" completed.",
-                                                          new Object[] {planDeploymentInfo.getDeploymentState(),
-                                                                        planDeploymentInfo.getRelPath(), planDeploymentInfo.getCSARID()});
-
-        return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public PlanDeploymentInfo getPlanDeploymentInfo(final CSARID csarID, final String planRelPath) {
-        init();
-        CoreInternalDeploymentTrackerServiceImpl.LOG.info("Retrieving Plan deployment info for Plan \"{}\" of CSAR \"{}\"...",
-                                                          planRelPath, csarID);
-        final Query getPlanDeploymentInfo =
-            this.em.createNamedQuery(PlanDeploymentInfo.getPlanDeploymentInfoByCSARIDAndRelPath)
-                   .setParameter("csarID", csarID).setParameter("planRelPath", planRelPath);
-        @SuppressWarnings("unchecked")
-        final List<PlanDeploymentInfo> results = getPlanDeploymentInfo.getResultList();
-        if (results.isEmpty()) {
-            CoreInternalDeploymentTrackerServiceImpl.LOG.error("No Plan deployment info for Plan \"{}\" of CSAR \"{}\" stored.",
-                                                               planRelPath, csarID);
-            return null;
-        } else {
-            CoreInternalDeploymentTrackerServiceImpl.LOG.info("Plan deployment info for Plan \"{}\" of CSAR \"{}\" exists.",
-                                                              planRelPath, csarID);
-            return results.get(0);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public List<PlanDeploymentInfo> getPlanDeploymentInfos(final CSARID csarID) {
-        init();
-        CoreInternalDeploymentTrackerServiceImpl.LOG.info("Retrieving all Plan deployment infos of CSAR \"{}\"...",
-                                                          csarID);
-        final ArrayList<PlanDeploymentInfo> results = new ArrayList<>();
-        final Query getIADeploymentInfo =
-            this.em.createNamedQuery(PlanDeploymentInfo.getPlanDeploymentInfoByCSARID).setParameter("csarID", csarID);
-        @SuppressWarnings("unchecked")
-        final List<PlanDeploymentInfo> queryResults = getIADeploymentInfo.getResultList();
-        for (final PlanDeploymentInfo ia : queryResults) {
-            results.add(ia);
-        }
-        CoreInternalDeploymentTrackerServiceImpl.LOG.info("Plan deployment infos of {} Plan(s) of CSAR \"{}\" stored.",
-                                                          results.size(), csarID);
-        return results;
     }
 
     /**
@@ -267,16 +157,4 @@ public class CoreInternalDeploymentTrackerServiceImpl implements ICoreInternalDe
     public String getHelp() {
         return null;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean storePlanDeploymentInfo(final CSARID csarID, final String planRelPath,
-                                           final PlanDeploymentState planDeploymentState) {
-        final PlanDeploymentInfo planDeploymentInfo = new PlanDeploymentInfo(csarID, planRelPath, planDeploymentState);
-        this.storePlanDeploymentInfo(planDeploymentInfo);
-        return true;
-    }
-
 }

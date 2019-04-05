@@ -1,10 +1,6 @@
 package org.opentosca.container.core.impl.service;
 
-import java.util.List;
-
 import org.opentosca.container.core.model.csar.id.CSARID;
-import org.opentosca.container.core.model.deployment.plan.PlanDeploymentInfo;
-import org.opentosca.container.core.model.deployment.plan.PlanDeploymentState;
 import org.opentosca.container.core.model.deployment.process.DeploymentProcessState;
 import org.opentosca.container.core.service.ICoreDeploymentTrackerService;
 import org.opentosca.container.core.service.internal.ICoreInternalDeploymentTrackerService;
@@ -43,47 +39,6 @@ public class CoreDeploymentTrackerServiceImpl implements ICoreDeploymentTrackerS
      */
     public DeploymentProcessState getDeploymentState(final CSARID csarID) {
         return this.deploymentTrackerService.getDeploymentState(csarID);
-    }
-
-    @Override
-    /**
-     * {@inheritDoc}
-     *
-     * This currently acts as a proxy.
-     */
-    public boolean storePlanDeploymentInfo(final PlanDeploymentInfo planDeploymentInfo) {
-        return this.deploymentTrackerService.storePlanDeploymentInfo(planDeploymentInfo);
-    }
-
-    @Override
-    /**
-     * {@inheritDoc}
-     *
-     * This currently acts as a proxy.
-     */
-    public PlanDeploymentInfo getPlanDeploymentInfo(final CSARID csarID, final String planRelPath) {
-        return this.deploymentTrackerService.getPlanDeploymentInfo(csarID, planRelPath);
-    }
-
-    @Override
-    /**
-     * {@inheritDoc}
-     *
-     * This currently acts as a proxy.
-     */
-    public List<PlanDeploymentInfo> getPlanDeploymentInfos(final CSARID csarID) {
-        return this.deploymentTrackerService.getPlanDeploymentInfos(csarID);
-    }
-
-    @Override
-    /**
-     * {@inheritDoc}
-     *
-     * This currently acts as a proxy.
-     */
-    public boolean storePlanDeploymentInfo(final CSARID csarID, final String planRelPath,
-                                           final PlanDeploymentState planDeploymentState) {
-        return this.deploymentTrackerService.storePlanDeploymentInfo(csarID, planRelPath, planDeploymentState);
     }
 
     @Override
