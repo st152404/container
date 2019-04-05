@@ -7,7 +7,6 @@ import java.util.Optional;
 
 import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.soap.Node;
 
 import org.opentosca.container.core.tosca.convention.Interfaces;
 import org.opentosca.container.core.tosca.convention.Utils;
@@ -29,8 +28,6 @@ import org.opentosca.planbuilder.model.utils.ModelUtils;
 import org.opentosca.planbuilder.plugins.IPlanBuilderPostPhasePlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 
 /**
  * @author Kálmán Képes - kalman.kepes@iaas.uni-stuttgart.de
@@ -200,31 +197,6 @@ public class BPELTerminationProcessBuilder extends AbstractTerminationPlanBuilde
         return plans;
     }
 
-    private boolean isDockerContainer(final AbstractNodeTemplate nodeTemplate) {
-        if (nodeTemplate.getProperties() == null) {
-            return false;
-        }
-        final Element propertyElement = nodeTemplate.getProperties().getDOMElement();
-        final NodeList childNodeList = propertyElement.getChildNodes();
-
-        int check = 0;
-        for (int index = 0; index < childNodeList.getLength(); index++) {
-            if (childNodeList.item(index).getNodeType() != Node.ELEMENT_NODE) {
-                continue;
-            }
-            if (childNodeList.item(index).getLocalName().equals("ContainerPort")) {
-                check++;
-            } else if (childNodeList.item(index).getLocalName().equals("Port")) {
-                check++;
-            }
-        }
-
-        if (check != 2) {
-            return false;
-        }
-        return true;
-    }
-
     /**
      * This method will execute plugins on each TemplatePlan inside the given plan for termination
      * of each node and relation.
@@ -265,7 +237,7 @@ public class BPELTerminationProcessBuilder extends AbstractTerminationPlanBuilde
                     }
 
                 } else {
-                    if (!isDockerContainer(context.getNodeTemplate())) {
+                    if (!ModelUtils.isDockerContainer(context.getNodeTemplate())) {
                         continue;
                     }
 
