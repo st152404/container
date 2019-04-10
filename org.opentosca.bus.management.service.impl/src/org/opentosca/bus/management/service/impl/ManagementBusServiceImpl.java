@@ -535,9 +535,10 @@ public class ManagementBusServiceImpl implements IManagementBusService {
                         final String location = getPlanLocation(csarID, plan.getTemplateId());
                         LOG.debug("Plan location: {}", location.toString());
 
-                        // add location to the exchange
+                        // add location and plan ID to the exchange
                         final List<String> artifactReferences = Arrays.asList(location);
                         message.setHeader(MBHeader.ARTIFACTREFERENCES_LISTSTRING.toString(), artifactReferences);
+                        message.setHeader(MBHeader.PLANID_QNAME.toString(), plan.getTemplateId());
 
                         // search for a suited deployment plug-in and perform deployment
                         LOG.debug("Plan language for deployment: {}", plan.getLanguage());

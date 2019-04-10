@@ -1,13 +1,18 @@
 package org.opentosca.bus.management.utils;
 
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.xml.namespace.QName;
 
+import org.apache.commons.io.FileUtils;
 import org.opentosca.bus.management.servicehandler.ServiceHandler;
 import org.opentosca.container.core.model.csar.id.CSARID;
 import org.opentosca.container.core.next.model.NodeTemplateInstance;
@@ -105,11 +110,11 @@ public class MBUtils {
      */
     private static boolean isOperatingSystemNodeType(final CSARID csarID, final QName nodeType) {
         if (ServiceHandler.toscaEngineService.doesInterfaceOfTypeContainOperation(csarID, nodeType,
-            Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM,
-            Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM_RUNSCRIPT)
+                                                                                  Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM,
+                                                                                  Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM_RUNSCRIPT)
             && ServiceHandler.toscaEngineService.doesInterfaceOfTypeContainOperation(csarID, nodeType,
-                Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM,
-                Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM_TRANSFERFILE)) {
+                                                                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM,
+                                                                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM_TRANSFERFILE)) {
             return true;
         } else if (ServiceHandler.toscaEngineService.doesInterfaceOfTypeContainOperation(csarID, nodeType,
                                                                                          Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_DOCKERCONTAINER,
@@ -132,11 +137,11 @@ public class MBUtils {
      */
     public static String getInterfaceForOperatingSystemNodeType(final CSARID csarID, final QName nodeType) {
         if (ServiceHandler.toscaEngineService.doesInterfaceOfTypeContainOperation(csarID, nodeType,
-            Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM,
-            Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM_RUNSCRIPT)
+                                                                                  Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM,
+                                                                                  Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM_RUNSCRIPT)
             && ServiceHandler.toscaEngineService.doesInterfaceOfTypeContainOperation(csarID, nodeType,
-                Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM,
-                Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM_TRANSFERFILE)) {
+                                                                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM,
+                                                                                     Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM_TRANSFERFILE)) {
             return Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_OPERATINGSYSTEM;
         } else if (ServiceHandler.toscaEngineService.doesInterfaceOfTypeContainOperation(csarID, nodeType,
                                                                                          Interfaces.OPENTOSCA_DECLARATIVE_INTERFACE_DOCKERCONTAINER,
@@ -406,5 +411,59 @@ public class MBUtils {
         }
 
         return reponseMap;
+    }
+
+    /**
+     * Download a file with a given file extension from a given location
+     *
+     * @param location the location of the file as String
+     * @param fileExtension the expected extension of the needed file
+     * @return the File or <code>null</code> if location is no URL, target file has not the given
+     *         extension or retrieval fails
+     */
+    public static File getFile(final String location, final String fileExtension) {
+
+        // check if file has given extension and abort if not
+        if (!location.substring(location.lastIndexOf('.') + 1).equals(fileExtension)) {
+            LOG.error("File has not the given extension '{}': {}", fileExtension, location);
+            return null;
+        }
+
+        // parse location to URL for (remote) retrieval
+        final URL planURL = parseLocationToURL(location);
+        if (Objects.isNull(planURL)) {
+            LOG.error("Given Location is not a URL: {}", location);
+            return null;
+        }
+
+        try {
+            // store artifact as temporary file
+            LOG.info("Trying to retrieve file from URL: {}", planURL);
+            final String fileName = location.substring(location.lastIndexOf('/') + 1);
+            final File tempFile = new File(System.getProperty("java.io.tmpdir"), fileName);
+            tempFile.deleteOnExit();
+            FileUtils.copyURLToFile(planURL, tempFile);
+            return tempFile;
+        }
+        catch (final Exception e) {
+            LOG.error("Failed to retrieve file: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Convert the given location to a URL
+     *
+     * @param location the location to convert
+     * @return the location as URL or null if the conversion fails
+     */
+    private static URL parseLocationToURL(final String location) {
+        try {
+            return new URL(location);
+        }
+        catch (final MalformedURLException e) {
+            LOG.error("Failed to convert the reference to a URL: {}", e.getMessage());
+            return null;
+        }
     }
 }

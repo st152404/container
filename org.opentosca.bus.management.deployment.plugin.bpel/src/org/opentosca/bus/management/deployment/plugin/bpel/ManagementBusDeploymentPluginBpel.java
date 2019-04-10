@@ -2,9 +2,7 @@ package org.opentosca.bus.management.deployment.plugin.bpel;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -18,12 +16,12 @@ import javax.xml.transform.TransformerConfigurationException;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
-import org.apache.commons.io.FileUtils;
 import org.opentosca.bus.management.deployment.plugin.IManagementBusDeploymentPluginService;
 import org.opentosca.bus.management.deployment.plugin.bpel.util.BPELRESTLightUpdater;
 import org.opentosca.bus.management.deployment.plugin.bpel.util.Messages;
 import org.opentosca.bus.management.deployment.plugin.bpel.util.ODEEndpointUpdater;
 import org.opentosca.bus.management.header.MBHeader;
+import org.opentosca.bus.management.utils.MBUtils;
 import org.opentosca.container.connector.bps.BpsConnector;
 import org.opentosca.container.connector.ode.OdeConnector;
 import org.opentosca.container.core.common.Settings;
@@ -83,7 +81,7 @@ public class ManagementBusDeploymentPluginBpel implements IManagementBusDeployme
             final String planLocation = artifactReferences.get(0);
 
             // download and store BPEL zip temporarily
-            final File bpelFile = getBPELFile(planLocation);
+            final File bpelFile = MBUtils.getFile(planLocation, "zip");
             if (Objects.isNull(bpelFile)) {
                 LOG.error("Retrieved file is null.");
                 return exchange;
@@ -213,7 +211,7 @@ public class ManagementBusDeploymentPluginBpel implements IManagementBusDeployme
             final String planLocation = artifactReferences.get(0);
 
             // download and store BPEL zip temporarily
-            final File bpelFile = getBPELFile(planLocation);
+            final File bpelFile = MBUtils.getFile(planLocation, "zip");
             if (Objects.isNull(bpelFile)) {
                 LOG.error("Retrieved file is null.");
                 return exchange;
@@ -268,59 +266,6 @@ public class ManagementBusDeploymentPluginBpel implements IManagementBusDeployme
             capabilities.add(capability.trim());
         }
         return capabilities;
-    }
-
-    /**
-     * Download a BPEL zip file from a given location
-     *
-     * @param location the location of the BPEL zip file as String
-     * @return the zip as File or <code>null</code> if location is no URL, target file is no zip or
-     *         retrieval fails
-     */
-    private File getBPELFile(final String location) {
-
-        // only BPEL ZIP files are supported
-        if (!location.substring(location.lastIndexOf('.') + 1).equals("zip")) {
-            LOG.error("Plan reference is not a ZIP file: {}", location);
-            return null;
-        }
-
-        // parse location to URL for (remote) retrieval
-        final URL planURL = parseLocationToURL(location);
-        if (Objects.isNull(planURL)) {
-            LOG.error("Plan reference is not a URL: {}", location);
-            return null;
-        }
-
-        try {
-            // store artifact as temporary file
-            LOG.info("Trying to retrieve BPEL-File from URL: {}", planURL);
-            final String fileName = location.substring(location.lastIndexOf('/') + 1);
-            final File tempFile = new File(System.getProperty("java.io.tmpdir"), fileName);
-            tempFile.deleteOnExit();
-            FileUtils.copyURLToFile(planURL, tempFile);
-            return tempFile;
-        }
-        catch (final Exception e) {
-            LOG.error("Failed to retrieve BPEL-File: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Convert the given location to a URL
-     *
-     * @param location the location to convert
-     * @return the location as URL or null if the conversion fails
-     */
-    private URL parseLocationToURL(final String location) {
-        try {
-            return new URL(location);
-        }
-        catch (final MalformedURLException e) {
-            LOG.error("Failed to convert the reference to a URL: {}", e.getMessage());
-            return null;
-        }
     }
 
     /**
