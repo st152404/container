@@ -4,5 +4,5 @@
    <service>
       <provide interface="org.opentosca.bus.management.deployment.plugin.IManagementBusDeploymentPluginService"/>
    </service>
-   <reference bind="registerToscaEngineService" cardinality="1..1" interface="org.opentosca.container.core.service.IToscaEngineService" name="IToscaEngine" policy="dynamic" unbind="unregisterToscaEngineService"/>
+   <reference bind="registerToscaEngineService" cardinality="1..1" interface="org.opentosca.container.core.engine.IToscaEngineService" name="IToscaEngine" policy="dynamic" unbind="unregisterToscaEngineService"/>
 </scr:component>

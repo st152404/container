@@ -240,7 +240,7 @@ public class ManagementBusDeploymentPluginCamunda implements IManagementBusDeplo
      *
      * @param toscaEngineService the toscaEngineService to bind
      */
-    public void registerFileAccessService(final IToscaEngineService toscaEngineService) {
+    public void registerToscaEngineService(final IToscaEngineService toscaEngineService) {
         LOG.debug("Registering IToscaEngineService {}", toscaEngineService.toString());
         if (Objects.nonNull(toscaEngineService)) {
             this.toscaEngineService = toscaEngineService;
@@ -252,7 +252,7 @@ public class ManagementBusDeploymentPluginCamunda implements IManagementBusDeplo
      *
      * @param toscaEngineService the toscaEngineService to unbind
      */
-    protected void unregisterFileAccessService(final IToscaEngineService toscaEngineService) {
+    protected void unregisterToscaEngineService(final IToscaEngineService toscaEngineService) {
         LOG.debug("Unregistering IToscaEngineService {}", toscaEngineService.toString());
         this.toscaEngineService = null;
     }
