@@ -183,5 +183,4 @@ public class TOSCAManagementInfrastructureNodeTemplate extends AbstractNodeTempl
     public List<AbstractPolicy> getPolicies() {
         return new ArrayList<>();
     }
-
 }

@@ -1,6 +1,7 @@
 package org.opentosca.planbuilder.model.tosca;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * <p>
@@ -13,6 +14,8 @@ import java.util.List;
  *
  */
 public abstract class AbstractNodeTemplate {
+
+    protected Optional<String> splitLabel = Optional.empty();
 
     /**
      * Returns the TOSCA RelationshipTemplate which can be used/are declared as the source relation, of
@@ -102,12 +105,23 @@ public abstract class AbstractNodeTemplate {
      */
     public abstract int getMinInstances();
 
+
+    /**
+     * Returns the SplitLabel
+     *
+     * @return A Split Label wrapped in an {@link Optional}. The Optional will be empty if no split
+     *         label exists on this Node.
+     */
+    public Optional<String> getSplitLabel() {
+        return this.splitLabel;
+    }
+
     /**
      * {@inheritDoc}
      */
     @Override
     public int hashCode() {
-        return (this.getId() + this.getName()).hashCode();
+        return (getId() + getName()).hashCode();
     }
 
     /**
@@ -117,10 +131,10 @@ public abstract class AbstractNodeTemplate {
     public boolean equals(final Object o) {
         if (o instanceof AbstractNodeTemplate) {
             final AbstractNodeTemplate node = (AbstractNodeTemplate) o;
-            if (!node.getId().equals(this.getId())) {
+            if (!node.getId().equals(getId())) {
                 return false;
             }
-            if (!node.getType().equals(this.getType())) {
+            if (!node.getType().equals(getType())) {
                 return false;
             }
             return true;

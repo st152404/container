@@ -17,7 +17,7 @@ public abstract class AbstractPlanBuilder {
 
     public boolean isRunning(final AbstractNodeTemplate nodeTemplate) {
         if (nodeTemplate.getProperties() != null) {
-            String val = nodeTemplate.getProperties().asMap().get("State");
+            final String val = nodeTemplate.getProperties().asMap().get("State");
             return val != null && val.equals("Running");
         } else {
             return false;

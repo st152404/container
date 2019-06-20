@@ -2,7 +2,11 @@ package org.opentosca.planbuilder.importer.context.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Stack;
+
+import javax.xml.namespace.QName;
 
 import org.oasis_open.docs.tosca.ns._2011._12.TCapability;
 import org.oasis_open.docs.tosca.ns._2011._12.TDeploymentArtifact;
@@ -35,6 +39,8 @@ import org.slf4j.LoggerFactory;
 public class NodeTemplateImpl extends AbstractNodeTemplate {
 
     private final static Logger LOG = LoggerFactory.getLogger(NodeTemplateImpl.class);
+    private static final QName QNAME_SPLIT =
+        new QName("http://www.opentosca.org/winery/extensions/tosca/2013/02/12", "location", "winery");
 
     private final TNodeTemplate nodeTemplate;
     private final DefinitionsImpl definitions;
@@ -69,6 +75,24 @@ public class NodeTemplateImpl extends AbstractNodeTemplate {
         setUpRequirements();
         setUpDeploymentArtifacts();
         setUpPolicies();
+        setUpSplitLabel();
+    }
+
+
+    /**
+     * TODO: Rename This sets split (if we have one). The name of the partner is contained in/as e.g.
+     * {http://www.opentosca.org/winery/extensions/tosca/2013/02/12}location=partnerA FIXME: Can
+     * Properties be null? TODO: Refactor
+     */
+    private void setUpSplitLabel() {
+        final Map<QName, String> otherAttributes = this.nodeTemplate.getOtherAttributes();
+        if (otherAttributes == null) {
+            return;
+        }
+
+        final String partner = otherAttributes.get(QNAME_SPLIT);
+
+        this.splitLabel = Optional.ofNullable(partner);
     }
 
     private void setUpPolicies() {
@@ -288,10 +312,10 @@ public class NodeTemplateImpl extends AbstractNodeTemplate {
     public List<AbstractPolicy> getPolicies() {
         return this.policies;
     }
-    
+
     @Override
     public String toString() {
-        return "Def: " + this.definitions.getId() + " Id: " + this.getId() + " Name: " + this.getName();
+        return "Def: " + this.definitions.getId() + " Id: " + getId() + " Name: " + getName();
     }
 
 }

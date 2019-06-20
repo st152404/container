@@ -97,27 +97,26 @@ public abstract class AbstractBuildPlanBuilder extends AbstractSimplePlanBuilder
         for (final AbstractRelationshipTemplate relationshipTemplate : relationshipTemplates) {
             final AbstractActivity activity = relationActivityMapping.get(relationshipTemplate);
             final QName baseType = ModelUtils.getRelationshipBaseType(relationshipTemplate);
-            
-            AbstractActivity sourceActivity = nodeActivityMapping.get(relationshipTemplate.getSource());
-            AbstractActivity targetActivity = nodeActivityMapping.get(relationshipTemplate.getTarget());
+
+            final AbstractActivity sourceActivity = nodeActivityMapping.get(relationshipTemplate.getSource());
+            final AbstractActivity targetActivity = nodeActivityMapping.get(relationshipTemplate.getTarget());
             if (baseType.equals(Types.connectsToRelationType)) {
-                if(sourceActivity != null) {                    
+                if (sourceActivity != null) {
                     links.add(new Link(sourceActivity, activity));
                 }
-                if(targetActivity != null) {                    
+                if (targetActivity != null) {
                     links.add(new Link(targetActivity, activity));
                 }
             } else if (baseType.equals(Types.dependsOnRelationType) | baseType.equals(Types.hostedOnRelationType)
                 | baseType.equals(Types.deployedOnRelationType)) {
-                if(targetActivity != null) {                    
-                    links.add(new Link(targetActivity, activity));
+                    if (targetActivity != null) {
+                        links.add(new Link(targetActivity, activity));
+                    }
+                    if (sourceActivity != null) {
+                        links.add(new Link(activity, sourceActivity));
+                    }
                 }
-                if(sourceActivity != null) {                    
-                    links.add(new Link(activity, sourceActivity));
-                }
-            }
 
         }
     }
-
 }
