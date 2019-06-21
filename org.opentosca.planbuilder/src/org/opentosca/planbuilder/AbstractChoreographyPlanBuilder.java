@@ -111,7 +111,7 @@ public abstract class AbstractChoreographyPlanBuilder extends AbstractSimplePlan
             }
         }
 
-        // Check root nodes of parents
+        // Check child nodes of root nodes
         for (final AbstractNodeTemplate rootNode : rootNodes) {
             final String label = rootNode.getSplitLabel().get();
             final boolean hasChildNodeLabels = hasChildNodeLabels(rootNode, label);
