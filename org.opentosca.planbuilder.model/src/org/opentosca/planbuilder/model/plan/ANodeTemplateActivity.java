@@ -19,6 +19,15 @@ public class ANodeTemplateActivity extends AbstractActivity {
         this.nodeTemplate = nodeTemplate;
     }
 
+    public ANodeTemplateActivity(final AbstractNodeTemplate abstractNodeTemplate, final ActivityType activityType) {
+        this(ANodeTemplateActivity.generateId(abstractNodeTemplate, activityType), activityType, abstractNodeTemplate);
+    }
+
+    private static String generateId(final AbstractNodeTemplate abstractNodeTemplate, final ActivityType activityType) {
+        final String result = abstractNodeTemplate.getId();
+        return result + "_" + getIdSuffix(activityType);
+    }
+
     public AbstractNodeTemplate getNodeTemplate() {
         return this.nodeTemplate;
     }
