@@ -4,7 +4,6 @@
 package org.opentosca.planbuilder;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -160,47 +159,4 @@ public abstract class AbstractChoreographyPlanBuilder extends AbstractSimplePlan
 
         return true;
     }
-
-    /**
-     * Checks if a {@link AbstractDefinitions} contains splits. Only {@link AbstractNodeTemplate} can be
-     * marked for splits. It also checks if a service template contains at least 2 partner, because a
-     * split with a single partner makes no sense.
-     *
-     * @param abstractDefinitions {@link AbstractDefinitions}
-     *
-     * @return A List of {@link AbstractServiceTemplate} who are marked for splitting otherwise an empty
-     *         list
-     */
-    protected static Collection<String> getPartnerLabels(final AbstractDefinitions abstractDefinitions) {
-        final List<AbstractServiceTemplate> result = new ArrayList<>();
-        final List<AbstractServiceTemplate> abstractServiceTemplates = abstractDefinitions.getServiceTemplates();
-        Set<String> partners = new HashSet<>();
-
-        for (final AbstractServiceTemplate serviceTemplate : abstractServiceTemplates) {
-            LOGGER.debug("Checking if Service Template {} contains splits", serviceTemplate.getName());
-            final AbstractTopologyTemplate topologyTemplate = serviceTemplate.getTopologyTemplate();
-            final List<AbstractNodeTemplate> nodeTemplates = topologyTemplate.getNodeTemplates();
-            for (final AbstractNodeTemplate abstractNodeTemplate : nodeTemplates) {
-                final Optional<String> splitLabel = abstractNodeTemplate.getSplitLabel();
-                if (splitLabel.isPresent()) {
-                    partners.add(splitLabel.get());
-                }
-            }
-
-            if (!partners.isEmpty()) {
-                if (partners.size() < 2) {
-                    throw new IllegalArgumentException("Service Template " + serviceTemplate.getName()
-                        + " contains only one Partner which is not allowed in a split!");
-                }
-
-                result.add(serviceTemplate);
-                LOGGER.debug("Service Template {} contains a split with Partners {}", serviceTemplate.getName(),
-                             partners);
-                partners = new HashSet<>();
-            }
-        }
-
-        return partners;
-    }
-
 }
