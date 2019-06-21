@@ -2,6 +2,7 @@ package org.opentosca.planbuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.xml.namespace.QName;
 
@@ -27,6 +28,21 @@ public class PartnerDefinition {
     private final List<AbstractNodeTemplate> partnerNodeTemplates = new ArrayList<>();
 
     /**
+     * All nodes of this partner, with the parter node
+     */
+    private List<AbstractNodeTemplate> nodes = new ArrayList<>();
+
+    /**
+     * All relationships of this partner
+     */
+    private final List<AbstractRelationshipTemplate> relationships = new ArrayList<>();
+
+    /**
+     * The complete topology
+     */
+    private final AbstractTopologyTemplate abstractTopologyTemplate;
+
+    /**
      * Generates the Partner Definitions
      *
      * @param name The name of this partner
@@ -38,23 +54,52 @@ public class PartnerDefinition {
         }
 
         this.name = name;
-        final List<AbstractNodeTemplate> nodes = findNodes(topology);
-        findHeadNode(nodes);
+        this.abstractTopologyTemplate = topology;
+        this.nodes = findNodes();
+        findHeadNode();
+        findRelationships(this.headNode, this.name, this.relationships);
         findPartnerNodes(this.headNode);
+    }
+
+    private static void findRelationships(final AbstractNodeTemplate startNode, final String name,
+                                          final List<AbstractRelationshipTemplate> relations) {
+        final Optional<String> splitLabel = startNode.getSplitLabel();
+
+        if (!splitLabel.isPresent() || !splitLabel.get().equals(name)) {
+            return;
+        }
+
+
+        final List<AbstractRelationshipTemplate> outgoingRelations = startNode.getOutgoingRelations();
+        for (final AbstractRelationshipTemplate abstractRelationshipTemplate : outgoingRelations) {
+            final QName type = abstractRelationshipTemplate.getType();
+            final AbstractNodeTemplate target = abstractRelationshipTemplate.getTarget();
+            final boolean childHasSameLabel =
+                target.getSplitLabel().isPresent() && target.getSplitLabel().get().equals(name);
+            if (type.equals(Types.hostedOnRelationType) && childHasSameLabel) {
+                relations.add(abstractRelationshipTemplate);
+                PartnerDefinition.findRelationships(target, name, relations);
+            }
+
+            if (type.equals(Types.connectsToRelationType) && !childHasSameLabel) {
+                relations.add(abstractRelationshipTemplate);
+            }
+        }
     }
 
     /**
      * Reads a {@link AbstractTopologyTemplate} and returns all the nodes where the label is the name
      *
      * @param topologyTemplate A {@link AbstractTopologyTemplate}
+     * @param label The label of this partner
      * @return All the nodes who are marked with the label where the label is the name of this partner
      */
-    private List<AbstractNodeTemplate> findNodes(final AbstractTopologyTemplate topologyTemplate) {
-        final List<AbstractNodeTemplate> nodeTemplates = topologyTemplate.getNodeTemplates();
+    private List<AbstractNodeTemplate> findNodes() {
+        final List<AbstractNodeTemplate> nodeTemplates = this.abstractTopologyTemplate.getNodeTemplates();
         final List<AbstractNodeTemplate> result = new ArrayList<>();
         for (final AbstractNodeTemplate abstractNodeTemplate : nodeTemplates) {
             abstractNodeTemplate.getSplitLabel().filter(this.name::equals)
-                                .ifPresent(label -> result.add(abstractNodeTemplate));
+                                .ifPresent(unused -> result.add(abstractNodeTemplate));
         }
 
         return result;
@@ -65,8 +110,8 @@ public class PartnerDefinition {
      *
      * @param nodes All the nodes of this partner
      */
-    private void findHeadNode(final List<AbstractNodeTemplate> nodes) {
-        for (final AbstractNodeTemplate abstractNodeTemplate : nodes) {
+    private void findHeadNode() {
+        for (final AbstractNodeTemplate abstractNodeTemplate : this.nodes) {
             final List<AbstractRelationshipTemplate> ingoingRelations = abstractNodeTemplate.getIngoingRelations();
             final boolean emptyRelations = ingoingRelations.isEmpty();
             final boolean hasNoHostedOnRelations =
@@ -79,9 +124,9 @@ public class PartnerDefinition {
     }
 
     /**
-     * Using the {@see PartnerDefinition#head} node we can search for the partner nodes. Partner nodes
-     * are nodes who are connected to any node with a connectsTo and have a different label/name. We
-     * also check if the the
+     * Using the {@see PartnerDefinition#headNode} node we can search for the partner nodes. Partner
+     * nodes are nodes who are connected to any node with a connectsTo and have a different label/name.
+     * We also check if the the
      */
     private void findPartnerNodes(final AbstractNodeTemplate headNode) {
         final List<AbstractRelationshipTemplate> outgoingRelations = headNode.getOutgoingRelations();
@@ -107,6 +152,15 @@ public class PartnerDefinition {
     public List<AbstractNodeTemplate> getPartnerNodeTemplates() {
         return this.partnerNodeTemplates;
     }
+
+    public List<AbstractNodeTemplate> getNodes() {
+        return this.nodes;
+    }
+
+    public List<AbstractRelationshipTemplate> getRelationships() {
+        return this.relationships;
+    }
+
 
 
 }

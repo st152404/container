@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import javax.xml.namespace.QName;
 
 import org.opentosca.container.core.tosca.convention.Types;
+import org.opentosca.planbuilder.model.plan.AbstractPlan;
 import org.opentosca.planbuilder.model.plan.AbstractPlan.PlanType;
 import org.opentosca.planbuilder.model.tosca.AbstractDefinitions;
 import org.opentosca.planbuilder.model.tosca.AbstractNodeTemplate;
@@ -28,7 +29,7 @@ import org.slf4j.LoggerFactory;
  *         generates a plan for every partner.
  *
  */
-public abstract class AbstractChoreographyPlanBuilder extends AbstractSimplePlanBuilder {
+public abstract class AbstractChoreographyPlanBuilder extends AbstractBuildPlanBuilder {
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractChoreographyPlanBuilder.class);
 
     @Override
@@ -36,23 +37,32 @@ public abstract class AbstractChoreographyPlanBuilder extends AbstractSimplePlan
         return PlanType.MANAGE;
     }
 
+    public static List<AbstractPlan> generateCOG(final String id, final AbstractDefinitions definitions,
+                                                 final AbstractServiceTemplate serviceTemplate) {
+        return AbstractChoreographyPlanBuilder.getPartnerDefinitions(serviceTemplate).stream().map(partnerDef -> {
+            final List<AbstractNodeTemplate> nodes = partnerDef.getNodes();
+            final List<AbstractNodeTemplate> partnerNodeTemplates = partnerDef.getPartnerNodeTemplates();
+            final List<AbstractRelationshipTemplate> relationships = partnerDef.getRelationships();
+            final List<AbstractNodeTemplate> allNodes = new ArrayList<>(nodes);
+            allNodes.addAll(partnerNodeTemplates);
+
+            return generatePOG(id, definitions, serviceTemplate, allNodes, relationships);
+        }).collect(Collectors.toList());
+    }
+
     /**
      * Returns all existing partner definitions
      *
-     * @param defs The {@link AbstractDefinitions}
      * @return A lsit of {@link PartnerDefinition}
      */
-    public static List<PartnerDefinition> getPartnerDefinitions(final AbstractDefinitions defs) {
+    protected static List<PartnerDefinition> getPartnerDefinitions(final AbstractServiceTemplate abstractServiceTemplate) {
         final List<PartnerDefinition> partnerDefinitions = new ArrayList<>();
-        final List<AbstractServiceTemplate> serviceTemplates = defs.getServiceTemplates();
-        for (final AbstractServiceTemplate abstractServiceTemplate : serviceTemplates) {
-            final AbstractTopologyTemplate topologyTemplate = abstractServiceTemplate.getTopologyTemplate();
-            if (AbstractChoreographyPlanBuilder.isValidTopology(topologyTemplate)) {
-                final Set<String> splitLabels = getSplitLabels(topologyTemplate);
-                for (final String label : splitLabels) {
-                    final PartnerDefinition partnerDefinition = new PartnerDefinition(label, topologyTemplate);
-                    partnerDefinitions.add(partnerDefinition);
-                }
+        final AbstractTopologyTemplate topologyTemplate = abstractServiceTemplate.getTopologyTemplate();
+        if (AbstractChoreographyPlanBuilder.isValidTopology(topologyTemplate)) {
+            final Set<String> splitLabels = getSplitLabels(topologyTemplate);
+            for (final String label : splitLabels) {
+                final PartnerDefinition partnerDefinition = new PartnerDefinition(label, topologyTemplate);
+                partnerDefinitions.add(partnerDefinition);
             }
         }
 

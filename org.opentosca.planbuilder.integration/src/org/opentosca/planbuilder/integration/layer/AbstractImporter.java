@@ -3,6 +3,7 @@ package org.opentosca.planbuilder.integration.layer;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.opentosca.planbuilder.AbstractChoreographyPlanBuilder;
 import org.opentosca.planbuilder.AbstractSimplePlanBuilder;
 import org.opentosca.planbuilder.core.bpel.typebasedplanbuilder.BPELBuildProcessBuilder;
 import org.opentosca.planbuilder.core.bpel.typebasedplanbuilder.BPELDefrostProcessBuilder;
@@ -71,6 +72,10 @@ public abstract class AbstractImporter {
         // } else {
         // buildPlanBuilder = new PolicyAwareBPELBuildProcessBuilder();
         // }
+
+        // TODO: Remove this as its only for debugging purposes for now
+        final List<AbstractPlan> choreoPlans =
+            AbstractChoreographyPlanBuilder.generateCOG("", defs, defs.getServiceTemplates().get(0));
 
         final AbstractSimplePlanBuilder terminationPlanBuilder = new BPELTerminationProcessBuilder();
         final AbstractSimplePlanBuilder scalingPlanBuilder = new BPELScaleOutProcessBuilder();
